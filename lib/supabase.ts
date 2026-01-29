@@ -151,4 +151,5 @@ export type Affiliate = {
   description?: string
   is_active: boolean
   display_order: number
+  clicks: number
 }
