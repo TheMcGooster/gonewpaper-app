@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom font families */
+* {
+  font-family: 'Barlow', sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Archivo Black', sans-serif;
+  letter-spacing: -0.5px;
+}
+
+/* Custom gradients */
+.gnp-gradient {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+.charger-red {
+  background: linear-gradient(135deg, #DC143C 0%, #A01020 100%);
+}
+
+.charger-red-text {
+  color: #DC143C;
+}
+
+/* AI badge animation */
+.ai-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+}
+
+/* Tab active state */
+.tab-active {
+  background: white;
+  color: #DC143C;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* PWA safe area padding */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

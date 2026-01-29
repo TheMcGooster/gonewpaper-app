@@ -1,0 +1,633 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp } from 'lucide-react'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate } from '@/lib/supabase'
+
+export default function GoNewPaper() {
+  const [activeTab, setActiveTab] = useState('events')
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Data from Supabase
+  const [events, setEvents] = useState<Event[]>([])
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [housing, setHousing] = useState<Housing[]>([])
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([])
+  const [celebrations, setCelebrations] = useState<CelebrationOfLife[]>([])
+  const [marketRecap, setMarketRecap] = useState<MarketRecap | null>(null)
+  const [topStories, setTopStories] = useState<TopStory[]>([])
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([])
+
+  // Fetch data from Supabase on load
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true)
+      try {
+        const [
+          eventsRes,
+          jobsRes,
+          businessesRes,
+          housingRes,
+          communityRes,
+          celebrationsRes,
+          marketRes,
+          storiesRes,
+          affiliatesRes
+        ] = await Promise.all([
+          supabase.from('events').select('*').order('date', { ascending: true }).limit(20),
+          supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
+          supabase.from('businesses').select('*').order('featured', { ascending: false }).limit(20),
+          supabase.from('housing').select('*').eq('is_active', true).limit(20),
+          supabase.from('community_posts').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(20),
+          supabase.from('celebrations_of_life').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
+          supabase.from('market_recap').select('*').order('recap_date', { ascending: false }).limit(1),
+          supabase.from('top_stories').select('*').order('priority', { ascending: true }).limit(5),
+          supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true })
+        ])
+
+        if (eventsRes.data) setEvents(eventsRes.data)
+        if (jobsRes.data) setJobs(jobsRes.data)
+        if (businessesRes.data) setBusinesses(businessesRes.data)
+        if (housingRes.data) setHousing(housingRes.data)
+        if (communityRes.data) setCommunityPosts(communityRes.data)
+        if (celebrationsRes.data) setCelebrations(celebrationsRes.data)
+        if (marketRes.data && marketRes.data[0]) setMarketRecap(marketRes.data[0])
+        if (storiesRes.data) setTopStories(storiesRes.data)
+        if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
+      setLoading(false)
+    }
+    fetchData()
+  }, [])
+
+  // Track business clicks
+  const trackBusinessClick = async (business: Business) => {
+    // Update click count in database
+    await supabase
+      .from('businesses')
+      .update({ clicks: business.clicks + 1 })
+      .eq('id', business.id)
+
+    // Log analytics
+    await supabase.from('analytics').insert({
+      event_type: 'business_click',
+      business_id: business.id,
+      source_page: 'business_tab'
+    })
+
+    // Open website
+    window.open(business.website, '_blank')
+  }
+
+  // Track affiliate clicks
+  const trackAffiliateClick = async (affiliate: Affiliate) => {
+    await supabase
+      .from('affiliates')
+      .update({ clicks: affiliate.clicks + 1 })
+      .eq('id', affiliate.id)
+
+    await supabase.from('analytics').insert({
+      event_type: 'affiliate_click',
+      affiliate_name: affiliate.name,
+      source_page: 'menu'
+    })
+
+    window.open(affiliate.url, '_blank')
+  }
+
+  const Card = ({ children, className = '', onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
+    <div
+      className={`bg-white rounded-xl p-4 mb-3 shadow-md border-2 border-gray-100 card-hover ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  )
+
+  // Sample data for when database is empty
+  const sampleEvents: Event[] = [
+    { id: 1, title: 'David - Movie', category: '🎵', date: 'Jan 10', time: '7:00 PM', location: 'Vision II Theatre', price: '$6', source: 'Vision II', verified: true, town_id: 1 },
+    { id: 2, title: 'Avatar: Fire & Ash', category: '🎵', date: 'Jan 10', time: '6:30 PM', location: 'Vision II Theatre', price: '$6', source: 'Vision II', verified: true, town_id: 1 },
+    { id: 3, title: 'City Council Meeting', category: '🏛️', date: 'Jan 12', time: '6:00 PM', location: 'City Hall', price: 'Free', source: 'City of Chariton', verified: true, town_id: 1 },
+    { id: 4, title: 'HS Basketball vs Albia', category: '🏈', date: 'Jan 15', time: '7:00 PM', location: 'Chariton HS', price: '$5', source: 'Chariton Schools', verified: true, town_id: 1 }
+  ]
+
+  const sampleJobs: Job[] = [
+    { id: 1, title: 'Restaurant Server', company: 'Route 34 Grill', type: 'Part-time', pay: '$12-15/hr + tips', auto_scraped: false, created_at: '', town_id: 1 },
+    { id: 2, title: 'Retail Associate', company: 'Hardware Store', type: 'Full-time', pay: '$15/hr', auto_scraped: false, created_at: '', town_id: 1 },
+    { id: 3, title: 'RN - Lucas County Hospital', company: 'Lucas County Health', type: 'Full-time', pay: '$32/hr', auto_scraped: true, created_at: '', town_id: 1 },
+    { id: 4, title: 'CDL Driver', company: 'Midwest Transport', type: 'Full-time', pay: '$55k/yr', auto_scraped: true, created_at: '', town_id: 1 }
+  ]
+
+  const sampleBusinesses: Business[] = [
+    { id: 1, name: "Piper's Old Fashion Grocery", category: 'Grocery', logo_emoji: '🛒', website: 'https://pipersgrocery.com', clicks: 234, featured: true, tagline: 'Your hometown grocer since 1952', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
+    { id: 2, name: 'Vision II Theatre', category: 'Entertainment', logo_emoji: '🎬', website: 'https://visioniitheatre.com', clicks: 456, featured: true, tagline: 'Latest movies, small-town prices', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
+    { id: 3, name: 'Route 34 Grill', category: 'Restaurant', logo_emoji: '🍔', website: 'https://route34grill.com', clicks: 189, featured: true, tagline: 'Best burgers in Lucas County', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
+    { id: 4, name: 'Main Street Coffee', category: 'Cafe', logo_emoji: '☕', website: 'https://mainstreetcoffee.com', clicks: 312, featured: true, tagline: 'Community hub & fresh brews', tier: 'spotlight', phone: '', created_at: '', town_id: 1 }
+  ]
+
+  const sampleHousing: Housing[] = [
+    { id: 1, title: '2BR Apartment', price: '$550/mo', location: 'Downtown', details: 'Updated kitchen, parking', listing_type: 'rent', pets_allowed: false, town_id: 1, is_active: true },
+    { id: 2, title: '3BR House', price: '$750/mo', location: 'Near schools', details: 'Large yard, garage, pets OK', listing_type: 'rent', pets_allowed: true, town_id: 1, is_active: true },
+    { id: 3, title: 'Room for Rent', price: '$300/mo', location: 'North Chariton', details: 'Utilities included', listing_type: 'room', pets_allowed: false, town_id: 1, is_active: true }
+  ]
+
+  const sampleCommunity: CommunityPost[] = [
+    { id: 1, title: 'LOST: Black Lab Mix', post_type: 'lost_pet', description: 'Last seen near Yocom Park', emoji: '🔍', town_id: 1, is_active: true },
+    { id: 2, title: 'FOOD PANTRY VOLUNTEERS', post_type: 'volunteer', description: 'Help needed Tuesdays 2-5pm', emoji: '🤝', town_id: 1, is_active: true },
+    { id: 3, title: 'Multi-Family Garage Sale', post_type: 'garage_sale', description: 'Sat, Jan 11, 8am-2pm', location: '215 Oak St', emoji: '🏷️', town_id: 1, is_active: true }
+  ]
+
+  const sampleAffiliates: Affiliate[] = [
+    { id: 1, name: 'Everyday Dose', category: 'Health', logo_emoji: '☕', url: 'https://affiliate.link/everydaydose', commission: '20%', is_active: true, display_order: 1, clicks: 0 },
+    { id: 2, name: 'Take Profit Trader', category: 'Trading', logo_emoji: '📈', url: 'https://affiliate.link/takeprofit', commission: '15%', is_active: true, display_order: 2, clicks: 0 },
+    { id: 3, name: 'TD Ameritrade', category: 'Broker', logo_emoji: '💹', url: 'https://affiliate.link/tdameritrade', commission: '$50/signup', is_active: true, display_order: 3, clicks: 0 }
+  ]
+
+  const sampleStocks = [
+    { symbol: 'AAPL', price: 178.52, change: 2.34, changePercent: 1.33 },
+    { symbol: 'TSLA', price: 242.18, change: -5.67, changePercent: -2.29 },
+    { symbol: 'NVDA', price: 495.22, change: 8.91, changePercent: 1.83 },
+    { symbol: 'SPY', price: 478.36, change: 1.22, changePercent: 0.26 }
+  ]
+
+  // Use sample data if database is empty
+  const displayEvents = events.length > 0 ? events : sampleEvents
+  const displayJobs = jobs.length > 0 ? jobs : sampleJobs
+  const displayBusinesses = businesses.length > 0 ? businesses : sampleBusinesses
+  const displayHousing = housing.length > 0 ? housing : sampleHousing
+  const displayCommunity = communityPosts.length > 0 ? communityPosts : sampleCommunity
+  const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
+  const displayStocks = marketRecap?.hot_stocks || sampleStocks
+
+  const tabs = [
+    { id: 'events', icon: Calendar, label: 'EVENTS' },
+    { id: 'jobs', icon: Briefcase, label: 'JOBS' },
+    { id: 'housing', icon: Home, label: 'HOUSING' },
+    { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
+    { id: 'community', icon: Users, label: 'COMMUNITY' }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <header className="gnp-gradient text-white sticky top-0 z-40 shadow-2xl safe-top">
+        <div className="p-4">
+          {/* Top Row: Town Badge + Go New Paper Logo */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Left: Chariton Badge */}
+            <div className="flex items-center gap-3">
+              <svg width="50" height="50" viewBox="0 0 100 100" className="drop-shadow-xl">
+                <path d="M50 5 L90 15 L90 65 Q90 85 50 95 Q10 85 10 65 L10 15 Z" fill="#DC143C" stroke="#000" strokeWidth="4"/>
+                <path d="M50 12 L83 20 L83 65 Q83 80 50 88 Q17 80 17 65 L17 20 Z" fill="#DC143C" stroke="#fff" strokeWidth="3"/>
+                <text x="50" y="72" fontSize="52" fontWeight="900" fill="#fff" textAnchor="middle" fontFamily="Archivo Black" stroke="#000" strokeWidth="2">C</text>
+                <text x="50" y="72" fontSize="52" fontWeight="900" fill="#fff" textAnchor="middle" fontFamily="Archivo Black">C</text>
+              </svg>
+              <div>
+                <h2 className="text-xl font-black tracking-tight font-display">CHARITON EDITION</h2>
+              </div>
+            </div>
+
+            {/* Right: Go New Paper Logo */}
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-1">
+                <div className="bg-white text-green-600 px-2 py-1 rounded font-display text-sm font-black">GO</div>
+                <span className="font-display text-lg">NEW PAPER</span>
+              </div>
+              <p className="text-[9px] font-bold text-gray-300 mt-0.5 tracking-wide">Everything Local &bull; All In Your Pocket</p>
+            </div>
+          </div>
+
+          {/* Second Row: Bell + Menu */}
+          <div className="flex items-center justify-end gap-2 mb-3">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg transition-all"
+            >
+              <Bell className="w-5 h-5" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-black shadow-lg">3</div>
+            </button>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search events, jobs, housing..."
+              className="w-full pl-10 pr-4 py-3 rounded-xl text-gray-900 font-semibold placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30 shadow-lg"
+            />
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <nav className="flex overflow-x-auto border-t-2 border-white/20 bg-black/20 hide-scrollbar">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap font-black text-xs tracking-wider transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-red-600 shadow-lg'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-4 pb-24">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-charger-red"></div>
+          </div>
+        ) : (
+          <>
+            {/* Morning Digest */}
+            {activeTab === 'events' && (
+              <div className="charger-red text-white rounded-xl p-5 mb-4 shadow-xl border-2 border-white/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bell className="w-6 h-6" />
+                  <h3 className="text-lg font-black tracking-tight font-display">GOOD MORNING CHARITON!</h3>
+                </div>
+                <p className="text-sm font-semibold mb-3 text-red-50">Here&apos;s what&apos;s happening today:</p>
+                <ul className="text-sm font-bold space-y-2 text-white">
+                  {displayEvents.slice(0, 2).map((event, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-white rounded-full"></span>
+                      {event.category} {event.title}, {event.time}
+                    </li>
+                  ))}
+                  {displayEvents.length > 2 && (
+                    <li className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-white rounded-full"></span>
+                      + {displayEvents.length - 2} more events this weekend &rarr;
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Events Tab */}
+            {activeTab === 'events' && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-black tracking-tight font-display">UPCOMING EVENTS</h2>
+                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                    <Plus className="w-4 h-4" />POST
+                  </button>
+                </div>
+                {displayEvents.map(event => (
+                  <Card key={event.id}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{event.category}</span>
+                        <div>
+                          <h3 className="text-lg font-black tracking-tight">{event.title}</h3>
+                          <p className="text-xs text-gray-600 font-bold uppercase tracking-wide">{event.source}</p>
+                        </div>
+                      </div>
+                      {event.verified && (
+                        <div className="flex items-center gap-1 charger-red-text text-xs font-black">
+                          <Star className="w-4 h-4 fill-current" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-700 space-y-2 font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 charger-red-text" />
+                        <span className="font-bold">{event.date}</span>
+                        <span className="mx-1 text-gray-400">&bull;</span>
+                        <Clock className="w-4 h-4 charger-red-text" />
+                        <span className="font-bold">{event.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 charger-red-text" />
+                        <span>{event.location}</span>
+                        <span className="mx-1 text-gray-400">&bull;</span>
+                        <span className="font-black charger-red-text">{event.price}</span>
+                      </div>
+                    </div>
+                    <button className="w-full mt-4 charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                      I&apos;M INTERESTED
+                    </button>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Jobs Tab */}
+            {activeTab === 'jobs' && (
+              <>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🤖</span>
+                    <p className="text-sm font-bold text-gray-800">AI Auto-Finding Jobs Within 50 Miles</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    {displayJobs.filter(j => j.auto_scraped).length} jobs auto-discovered from Indeed &bull; {displayJobs.filter(j => !j.auto_scraped).length} posted locally
+                  </p>
+                </div>
+                {displayJobs.map(job => (
+                  <Card key={job.id}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-black tracking-tight">{job.title}</h3>
+                          {job.auto_scraped && <span className="text-xl">🤖</span>}
+                        </div>
+                        <p className="text-sm text-gray-700 font-bold">{job.company}</p>
+                      </div>
+                      <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-black uppercase tracking-wide">{job.type}</span>
+                    </div>
+                    <p className="text-sm font-bold mb-3 charger-red-text">{job.pay}</p>
+                    <button className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                      APPLY NOW
+                    </button>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Housing Tab */}
+            {activeTab === 'housing' && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-black tracking-tight font-display">HOUSING</h2>
+                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                    <Plus className="w-4 h-4" />POST
+                  </button>
+                </div>
+                {displayHousing.map(h => (
+                  <Card key={h.id}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">{h.title}</h3>
+                        <p className="text-sm text-gray-700 font-bold">{h.location}</p>
+                      </div>
+                      <span className="text-xl font-black charger-red-text">{h.price}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 font-semibold mb-3">{h.details}</p>
+                    <button className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                      CONTACT
+                    </button>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Businesses Tab */}
+            {activeTab === 'businesses' && (
+              <>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-4 rounded-xl mb-4 shadow-md">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">FEATURED LOCAL BUSINESSES</span></p>
+                  <p className="text-xs font-semibold text-gray-600 mt-1">Click tracking active &bull; Support local!</p>
+                </div>
+
+                {displayBusinesses.map(b => (
+                  <Card key={b.id} className="hover:shadow-xl transition-all cursor-pointer border-blue-200">
+                    <div className="flex items-start gap-4">
+                      <div className="text-5xl">{b.logo_emoji}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-black tracking-tight">{b.name}</h3>
+                          {b.featured && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-black">SPOTLIGHT</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 font-semibold mb-2">{b.tagline}</p>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 font-semibold mb-3">
+                          <span className="bg-gray-100 px-2 py-1 rounded">{b.category}</span>
+                          <span>{b.clicks} clicks this month</span>
+                        </div>
+                        <button
+                          onClick={() => trackBusinessClick(b)}
+                          className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase"
+                        >
+                          VISIT WEBSITE &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+
+                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl mt-4">
+                  <p className="text-sm font-bold text-gray-700 mb-2">Want your business featured here?</p>
+                  <p className="text-xs text-gray-600 font-semibold mb-3">Get a Business Spotlight for $75/month - track clicks, drive traffic, grow sales!</p>
+                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-black">
+                    LEARN MORE
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Community Tab */}
+            {activeTab === 'community' && (
+              <>
+                {/* Celebrations of Life Section */}
+                {celebrations.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Heart className="w-5 h-5 charger-red-text" />
+                      <h2 className="text-xl font-black tracking-tight font-display">CELEBRATIONS OF LIFE</h2>
+                    </div>
+                    {celebrations.map(c => (
+                      <Card key={c.id} className="border-gray-200 bg-gray-50">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">🕯️</span>
+                          <div>
+                            <h3 className="font-black text-base tracking-tight mb-1">{c.full_name}</h3>
+                            {c.age && <p className="text-sm text-gray-600 font-semibold">Age {c.age}</p>}
+                            {c.service_location && (
+                              <p className="text-sm font-semibold text-gray-700 mt-2">
+                                Service: {c.service_location}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-black tracking-tight font-display">COMMUNITY</h2>
+                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                    <Plus className="w-4 h-4" />POST
+                  </button>
+                </div>
+
+                {displayCommunity.map(post => (
+                  <Card key={post.id}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{post.emoji}</span>
+                      <div>
+                        <h3 className="font-black text-base tracking-tight mb-1">{post.title}</h3>
+                        <p className="text-sm font-semibold text-gray-700">{post.description}</p>
+                        {post.location && (
+                          <p className="text-sm font-semibold text-gray-500 mt-1">📍 {post.location}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-red-600 z-40 shadow-2xl safe-bottom">
+        <div className="flex justify-around p-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center gap-1 p-2 transition-all ${
+                activeTab === tab.id ? 'text-red-600 scale-110' : 'text-gray-500'
+              }`}
+            >
+              <tab.icon className="w-6 h-6" strokeWidth={activeTab === tab.id ? 3 : 2} />
+              <span className="text-xs font-black tracking-wider uppercase">{tab.id}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Notification Panel */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end backdrop-blur-sm" onClick={() => setShowNotifications(false)}>
+          <div className="bg-white w-full rounded-t-3xl p-6 max-h-[75vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-black tracking-tight font-display">NOTIFICATIONS</h2>
+              <button onClick={() => setShowNotifications(false)}><X className="w-6 h-6" /></button>
+            </div>
+            <div className="space-y-3">
+              <Card className="border-green-200 bg-green-50">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">🤖</span>
+                  <div className="flex-1">
+                    <p className="font-black text-sm mb-1">AI Correction Applied</p>
+                    <p className="text-xs font-semibold text-gray-700">City Council meeting time updated: 5:00 PM &rarr; 6:00 PM based on city website</p>
+                    <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <p className="text-sm font-bold"><span className="font-black">2 new jobs</span> found within 50 miles 🤖</p>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Menu Sidebar */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 backdrop-blur-sm" onClick={() => setShowMenu(false)}>
+          <div className="bg-white w-80 h-full ml-auto p-6 shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-black tracking-tight font-display">MENU</h2>
+              <button onClick={() => setShowMenu(false)}><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 rounded-xl mb-4">
+              <p className="text-xs font-bold mb-2 text-gray-300">OUR MISSION</p>
+              <p className="text-sm font-semibold italic">&quot;Bringing back the town newspaper&mdash;but faster &amp; in your pocket.&quot;</p>
+            </div>
+
+            {/* Town Selector */}
+            <div className="space-y-2 mb-6">
+              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase">Switch Town Edition</h3>
+
+              <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔴</span>
+                  <div>
+                    <p className="font-black text-sm">Chariton</p>
+                    <p className="text-xs text-gray-600 font-semibold">Current &bull; Chargers Red/White</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+                <p className="text-xs font-black text-blue-800 mb-2 uppercase">Coming Soon</p>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>🔵 Indianola</p>
+                  <p>🟣 Osceola</p>
+                  <p>🟢 Knoxville</p>
+                  <p>⚫ Centerville</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Market Recap Section */}
+            <div className="border-t-2 border-gray-200 pt-4 mb-4">
+              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" /> Market Snapshot
+              </h3>
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-3 mb-3">
+                <p className="text-xs font-black text-gray-700 mb-2">📈 HOT STOCKS TODAY</p>
+                <div className="space-y-1">
+                  {displayStocks.map((stock: any) => (
+                    <div key={stock.symbol} className="flex items-center justify-between text-xs bg-white p-2 rounded">
+                      <span className="font-black">{stock.symbol}</span>
+                      <span className="font-bold">${stock.price}</span>
+                      <span className={`font-black ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Affiliates Section */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+                <p className="text-xs font-black text-gray-700 mb-2">🤝 TRADING PARTNERS</p>
+                {displayAffiliates.map(aff => (
+                  <button
+                    key={aff.id}
+                    onClick={() => trackAffiliateClick(aff)}
+                    className="flex items-center justify-between p-2 bg-white rounded-lg mb-2 hover:bg-gray-50 transition-all w-full text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{aff.logo_emoji}</span>
+                      <div>
+                        <p className="text-xs font-bold">{aff.name}</p>
+                        <p className="text-[10px] text-gray-600">{aff.category}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black text-green-600">{aff.commission}</span>
+                  </button>
+                ))}
+                <p className="text-[9px] text-gray-500 mt-2 italic">Affiliate partnerships help keep this app free</p>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="border-t-2 border-gray-200 pt-4">
+              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase">Quick Links - Chariton</h3>
+              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="block p-3 hover:bg-red-50 rounded-xl font-bold text-gray-800 transition-all mb-2">🎓 School District</a>
+              <a href="https://www.visioniitheatre.com/" target="_blank" rel="noopener noreferrer" className="block p-3 hover:bg-red-50 rounded-xl font-bold text-gray-800 transition-all">🎬 Vision II Theatre</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
