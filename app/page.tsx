@@ -356,7 +356,10 @@ export default function GoNewPaper() {
                       <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-black uppercase tracking-wide">{job.type}</span>
                     </div>
                     <p className="text-sm font-bold mb-3 charger-red-text">{job.pay}</p>
-                    <button className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                    <button
+                      onClick={() => job.apply_url && window.open(job.apply_url, '_blank')}
+                      className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase"
+                    >
                       APPLY NOW
                     </button>
                   </Card>
