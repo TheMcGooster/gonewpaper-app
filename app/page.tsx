@@ -202,7 +202,7 @@ export default function GoNewPaper() {
           storiesRes,
           affiliatesRes
         ] = await Promise.all([
-          supabase.from('events').select('*').order('date', { ascending: true }).limit(20),
+          supabase.from('events').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
           supabase.from('businesses').select('*').order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('is_active', true).limit(20),
@@ -768,17 +768,17 @@ export default function GoNewPaper() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-red-600 z-40 shadow-2xl safe-bottom">
-        <div className="flex justify-around p-2">
+        <div className="grid grid-cols-6 p-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-1 p-2 transition-all ${
-                activeTab === tab.id ? 'text-red-600 scale-110' : 'text-gray-500'
+              className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-all ${
+                activeTab === tab.id ? 'text-red-600' : 'text-gray-500'
               }`}
             >
-              <tab.icon className="w-6 h-6" strokeWidth={activeTab === tab.id ? 3 : 2} />
-              <span className="text-xs font-black tracking-wider uppercase">{tab.id}</span>
+              <tab.icon className="w-5 h-5" strokeWidth={activeTab === tab.id ? 3 : 2} />
+              <span className="text-[10px] font-bold uppercase truncate w-full text-center">{tab.id.slice(0, 6)}</span>
             </button>
           ))}
         </div>
