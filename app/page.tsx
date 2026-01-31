@@ -4,6 +4,34 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate } from '@/lib/supabase'
 
+// Format date from ISO string to readable format
+const formatEventDate = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+// Format time from ISO string
+const formatEventTime = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  } catch {
+    return ''
+  }
+}
+
 export default function GoNewPaper() {
   const [activeTab, setActiveTab] = useState('events')
   const [showNotifications, setShowNotifications] = useState(false)
@@ -270,7 +298,7 @@ export default function GoNewPaper() {
                   {displayEvents.slice(0, 2).map((event, idx) => (
                     <li key={idx} className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-white rounded-full"></span>
-                      {event.category} {event.title}, {event.time}
+                      {event.category} {event.title}, {event.time || formatEventTime(event.date)}
                     </li>
                   ))}
                   {displayEvents.length > 2 && (
@@ -311,16 +339,20 @@ export default function GoNewPaper() {
                     <div className="text-sm text-gray-700 space-y-2 font-semibold">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 charger-red-text" />
-                        <span className="font-bold">{event.date}</span>
+                        <span className="font-bold">{formatEventDate(event.date)}</span>
                         <span className="mx-1 text-gray-400">&bull;</span>
                         <Clock className="w-4 h-4 charger-red-text" />
-                        <span className="font-bold">{event.time}</span>
+                        <span className="font-bold">{event.time || formatEventTime(event.date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 charger-red-text" />
-                        <span>{event.location}</span>
-                        <span className="mx-1 text-gray-400">&bull;</span>
-                        <span className="font-black charger-red-text">{event.price}</span>
+                        <span>{event.location || 'TBD'}</span>
+                        {event.price && (
+                          <>
+                            <span className="mx-1 text-gray-400">&bull;</span>
+                            <span className="font-black charger-red-text">{event.price}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <button className="w-full mt-4 charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
