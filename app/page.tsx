@@ -791,7 +791,12 @@ export default function GoNewPaper() {
               <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl mb-4">
                 <div className="flex items-center gap-3 mb-2">
                   <img
-                    src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(user.email || user.id)}`}
+                    src={(() => {
+                      const styles = ['bottts-neutral', 'avataaars', 'pixel-art', 'fun-emoji', 'thumbs', 'lorelei', 'notionists', 'adventurer'];
+                      const seed = user.email || user.id;
+                      const styleIndex = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % styles.length;
+                      return `https://api.dicebear.com/7.x/${styles[styleIndex]}/svg?seed=${encodeURIComponent(seed)}`;
+                    })()}
                     alt="Avatar"
                     className="w-12 h-12 rounded-full bg-white/20"
                   />
