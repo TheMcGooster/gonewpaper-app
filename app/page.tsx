@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate } from '@/lib/supabase'
+import { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Format date from ISO string to readable format
 const formatEventDate = (dateStr: string) => {
@@ -38,6 +39,16 @@ export default function GoNewPaper() {
   const [showMenu, setShowMenu] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // Auth state
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [userInterests, setUserInterests] = useState<number[]>([])
+
   // Data from Supabase
   const [events, setEvents] = useState<Event[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
@@ -48,6 +59,117 @@ export default function GoNewPaper() {
   const [marketRecap, setMarketRecap] = useState<MarketRecap | null>(null)
   const [topStories, setTopStories] = useState<TopStory[]>([])
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
+
+  // Check auth state on load
+  useEffect(() => {
+    // Get current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchUserInterests(session.user.id)
+      }
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchUserInterests(session.user.id)
+      } else {
+        setUserInterests([])
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Fetch user's interested events
+  const fetchUserInterests = async (userId: string) => {
+    const { data } = await supabase
+      .from('user_interests')
+      .select('event_id')
+      .eq('user_id', userId)
+
+    if (data) {
+      setUserInterests(data.map(d => d.event_id))
+    }
+  }
+
+  // Handle login
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthLoading(true)
+    setAuthError('')
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword,
+    })
+
+    if (error) {
+      setAuthError(error.message)
+    } else {
+      setShowAuthModal(false)
+      setAuthEmail('')
+      setAuthPassword('')
+    }
+    setAuthLoading(false)
+  }
+
+  // Handle signup
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthLoading(true)
+    setAuthError('')
+
+    const { error } = await supabase.auth.signUp({
+      email: authEmail,
+      password: authPassword,
+    })
+
+    if (error) {
+      setAuthError(error.message)
+    } else {
+      setAuthError('')
+      setAuthMode('login')
+      alert('Check your email for a confirmation link!')
+    }
+    setAuthLoading(false)
+  }
+
+  // Handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setShowMenu(false)
+  }
+
+  // Handle interest toggle
+  const handleInterestToggle = async (eventId: number) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
+    const isInterested = userInterests.includes(eventId)
+
+    if (isInterested) {
+      // Remove interest
+      await supabase
+        .from('user_interests')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('event_id', eventId)
+
+      setUserInterests(prev => prev.filter(id => id !== eventId))
+    } else {
+      // Add interest
+      await supabase
+        .from('user_interests')
+        .insert({ user_id: user.id, event_id: eventId })
+
+      setUserInterests(prev => [...prev, eventId])
+    }
+  }
 
   // Fetch data from Supabase on load
   useEffect(() => {
@@ -355,8 +477,22 @@ export default function GoNewPaper() {
                         )}
                       </div>
                     </div>
-                    <button className="w-full mt-4 charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
-                      I&apos;M INTERESTED
+                    <button
+                      onClick={() => handleInterestToggle(event.id)}
+                      className={`w-full mt-4 py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2 ${
+                        userInterests.includes(event.id)
+                          ? 'bg-green-600 text-white'
+                          : 'charger-red text-white'
+                      }`}
+                    >
+                      {userInterests.includes(event.id) ? (
+                        <>
+                          <Check className="w-5 h-5" />
+                          INTERESTED!
+                        </>
+                      ) : (
+                        "I'M INTERESTED"
+                      )}
                     </button>
                   </Card>
                 ))}
@@ -572,6 +708,75 @@ export default function GoNewPaper() {
         </div>
       )}
 
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowAuthModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black tracking-tight font-display">
+                {authMode === 'login' ? 'WELCOME BACK!' : 'JOIN GO NEW PAPER'}
+              </h2>
+              <button onClick={() => setShowAuthModal(false)}><X className="w-6 h-6" /></button>
+            </div>
+
+            <form onSubmit={authMode === 'login' ? handleLogin : handleSignup}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold"
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                {authError && (
+                  <p className="text-red-600 text-sm font-bold">{authError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full charger-red text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50"
+                >
+                  {authLoading ? 'LOADING...' : (authMode === 'login' ? 'LOG IN' : 'SIGN UP')}
+                </button>
+              </div>
+            </form>
+
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600 font-semibold">
+                {authMode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                <button
+                  onClick={() => {
+                    setAuthMode(authMode === 'login' ? 'signup' : 'login')
+                    setAuthError('')
+                  }}
+                  className="charger-red-text font-black"
+                >
+                  {authMode === 'login' ? 'Sign Up' : 'Log In'}
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Menu Sidebar */}
       {showMenu && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 backdrop-blur-sm" onClick={() => setShowMenu(false)}>
@@ -580,6 +785,47 @@ export default function GoNewPaper() {
               <h2 className="text-xl font-black tracking-tight font-display">MENU</h2>
               <button onClick={() => setShowMenu(false)}><X className="w-6 h-6" /></button>
             </div>
+
+            {/* User Account Section */}
+            {user ? (
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <User className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-green-100">LOGGED IN AS</p>
+                    <p className="text-sm font-black truncate max-w-[180px]">{user.email}</p>
+                  </div>
+                </div>
+                <p className="text-xs font-semibold text-green-100 mb-2">
+                  {userInterests.length} events marked as interested
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  LOG OUT
+                </button>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-xl mb-4">
+                <p className="text-xs font-bold text-red-100 mb-1">JOIN GO NEW PAPER</p>
+                <p className="text-sm font-semibold mb-3">Track events, save jobs & more!</p>
+                <button
+                  onClick={() => {
+                    setShowMenu(false)
+                    setShowAuthModal(true)
+                    setAuthMode('login')
+                  }}
+                  className="w-full bg-white text-red-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"
+                >
+                  <LogIn className="w-4 h-4" />
+                  LOG IN / SIGN UP
+                </button>
+              </div>
+            )}
 
             <div className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 rounded-xl mb-4">
               <p className="text-xs font-bold mb-2 text-gray-300">OUR MISSION</p>
