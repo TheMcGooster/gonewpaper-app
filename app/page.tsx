@@ -790,9 +790,11 @@ export default function GoNewPaper() {
             {user ? (
               <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl mb-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6" />
-                  </div>
+                  <img
+                    src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(user.email || user.id)}`}
+                    alt="Avatar"
+                    className="w-12 h-12 rounded-full bg-white/20"
+                  />
                   <div>
                     <p className="text-xs font-bold text-green-100">LOGGED IN AS</p>
                     <p className="text-sm font-black truncate max-w-[180px]">{user.email}</p>
