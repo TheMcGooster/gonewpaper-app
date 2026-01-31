@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
+import OneSignal from 'react-onesignal'
 
 // Format date from ISO string to readable format
 const formatEventDate = (dateStr: string) => {
@@ -60,6 +61,45 @@ export default function GoNewPaper() {
   const [topStories, setTopStories] = useState<TopStory[]>([])
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
 
+  // Initialize OneSignal
+  useEffect(() => {
+    const initOneSignal = async () => {
+      try {
+        await OneSignal.init({
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766',
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        })
+        console.log('OneSignal initialized successfully')
+      } catch (error) {
+        console.error('OneSignal initialization error:', error)
+      }
+    }
+    initOneSignal()
+  }, [])
+
+  // Save OneSignal player ID to Supabase when user logs in
+  const saveOneSignalPlayerId = async (userId: string) => {
+    try {
+      const playerId = await OneSignal.getUserId()
+      if (playerId) {
+        await supabase
+          .from('users')
+          .upsert({
+            id: userId,
+            onesignal_player_id: playerId
+          }, {
+            onConflict: 'id'
+          })
+        console.log('OneSignal player ID saved:', playerId)
+      }
+    } catch (error) {
+      console.error('Error saving OneSignal player ID:', error)
+    }
+  }
+
   // Check auth state on load
   useEffect(() => {
     // Get current session
@@ -67,6 +107,7 @@ export default function GoNewPaper() {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserInterests(session.user.id)
+        saveOneSignalPlayerId(session.user.id)
       }
     })
 
@@ -75,6 +116,7 @@ export default function GoNewPaper() {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserInterests(session.user.id)
+        saveOneSignalPlayerId(session.user.id)
       } else {
         setUserInterests([])
       }
