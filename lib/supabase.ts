@@ -32,6 +32,9 @@ export type Event = {
   town_id: number
   image_url?: string
   description?: string
+  google_event_id?: string
+  end_date?: string
+  source_url?: string
 }
 
 export type Job = {
