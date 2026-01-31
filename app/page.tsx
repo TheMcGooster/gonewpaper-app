@@ -335,7 +335,8 @@ export default function GoNewPaper() {
     { id: 'jobs', icon: Briefcase, label: 'JOBS' },
     { id: 'housing', icon: Home, label: 'HOUSING' },
     { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
-    { id: 'community', icon: Users, label: 'COMMUNITY' }
+    { id: 'community', icon: Users, label: 'COMMUNITY' },
+    { id: 'affiliates', icon: TrendingUp, label: 'AFFILIATES' }
   ]
 
   return (
@@ -669,6 +670,98 @@ export default function GoNewPaper() {
                 ))}
               </>
             )}
+
+            {/* Affiliates Tab */}
+            {activeTab === 'affiliates' && (
+              <>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-6 h-6 text-green-600" />
+                    <p className="text-lg font-black text-gray-800">MARKET & PARTNERS</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Stock picks, trading tools & affiliate partnerships that help keep this app free!
+                  </p>
+                </div>
+
+                {/* Market Snapshot */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>📈</span> MARKET SNAPSHOT
+                  </h3>
+                  <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white">
+                    <div className="space-y-2">
+                      {displayStocks.map((stock: any) => (
+                        <div key={stock.symbol} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                          <span className="font-black text-lg">{stock.symbol}</span>
+                          <span className="font-bold text-gray-700">${stock.price}</span>
+                          <span className={`font-black px-3 py-1 rounded-full text-sm ${stock.change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3 text-center font-semibold">
+                      Data for educational purposes only • Not financial advice
+                    </p>
+                  </Card>
+                </div>
+
+                {/* Trading Partners */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>🤝</span> TRADING PARTNERS
+                  </h3>
+                  {displayAffiliates.filter(a => a.category === 'Trading' || a.category === 'Broker').map(aff => (
+                    <Card key={aff.id} className="border-blue-200 hover:shadow-xl transition-all cursor-pointer">
+                      <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
+                        <div className="text-4xl">{aff.logo_emoji}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
+                          <button className="w-full charger-red text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                            CHECK IT OUT &rarr;
+                          </button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Other Affiliate Partners */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>⭐</span> PARTNER DEALS
+                  </h3>
+                  {displayAffiliates.filter(a => a.category !== 'Trading' && a.category !== 'Broker').map(aff => (
+                    <Card key={aff.id} className="border-purple-200 hover:shadow-xl transition-all cursor-pointer">
+                      <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
+                        <div className="text-4xl">{aff.logo_emoji}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
+                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
+                          <button className="w-full bg-purple-600 text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                            GET DEAL &rarr;
+                          </button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl">
+                  <p className="text-xs text-gray-600 font-semibold text-center italic">
+                    These affiliate partnerships help keep Go New Paper free for everyone! When you sign up through our links, we may earn a small commission at no extra cost to you.
+                  </p>
+                </div>
+              </>
+            )}
           </>
         )}
       </main>
@@ -898,47 +991,24 @@ export default function GoNewPaper() {
               </div>
             </div>
 
-            {/* Market Recap Section */}
+            {/* Affiliates Quick Link */}
             <div className="border-t-2 border-gray-200 pt-4 mb-4">
-              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" /> Market Snapshot
-              </h3>
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-3 mb-3">
-                <p className="text-xs font-black text-gray-700 mb-2">📈 HOT STOCKS TODAY</p>
-                <div className="space-y-1">
-                  {displayStocks.map((stock: any) => (
-                    <div key={stock.symbol} className="flex items-center justify-between text-xs bg-white p-2 rounded">
-                      <span className="font-black">{stock.symbol}</span>
-                      <span className="font-bold">${stock.price}</span>
-                      <span className={`font-black ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent)}%
-                      </span>
-                    </div>
-                  ))}
+              <button
+                onClick={() => {
+                  setActiveTab('affiliates')
+                  setShowMenu(false)
+                }}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white p-3 rounded-xl flex items-center justify-between hover:from-green-700 hover:to-emerald-700 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  <div className="text-left">
+                    <p className="text-sm font-black">Market & Partners</p>
+                    <p className="text-xs font-semibold text-green-100">Stocks, Trading & Deals</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Affiliates Section */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
-                <p className="text-xs font-black text-gray-700 mb-2">🤝 TRADING PARTNERS</p>
-                {displayAffiliates.map(aff => (
-                  <button
-                    key={aff.id}
-                    onClick={() => trackAffiliateClick(aff)}
-                    className="flex items-center justify-between p-2 bg-white rounded-lg mb-2 hover:bg-gray-50 transition-all w-full text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{aff.logo_emoji}</span>
-                      <div>
-                        <p className="text-xs font-bold">{aff.name}</p>
-                        <p className="text-[10px] text-gray-600">{aff.category}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-black text-green-600">{aff.commission}</span>
-                  </button>
-                ))}
-                <p className="text-[9px] text-gray-500 mt-2 italic">Affiliate partnerships help keep this app free</p>
-              </div>
+                <span className="text-xl">&rarr;</span>
+              </button>
             </div>
 
             {/* Quick Links */}
