@@ -466,30 +466,48 @@ export default function GoNewPaper() {
           </div>
         ) : (
           <>
-            {/* Morning Digest */}
-            {activeTab === 'events' && (
-              <div className="charger-red text-white rounded-xl p-5 mb-4 shadow-xl border-2 border-white/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bell className="w-6 h-6" />
-                  <h3 className="text-lg font-black tracking-tight font-display">GOOD MORNING CHARITON!</h3>
-                </div>
-                <p className="text-sm font-semibold mb-3 text-red-50">Here&apos;s what&apos;s happening today:</p>
-                <ul className="text-sm font-bold space-y-2 text-white">
-                  {displayEvents.slice(0, 2).map((event, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
-                      {event.category} {event.title}, {event.time || formatEventTime(event.date)}
-                    </li>
-                  ))}
-                  {displayEvents.length > 2 && (
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-white rounded-full"></span>
-                      + {displayEvents.length - 2} more events this weekend &rarr;
-                    </li>
+            {/* Daily Digest */}
+            {activeTab === 'events' && (() => {
+              // Get time-aware greeting
+              const hour = new Date().getHours()
+              let greeting = 'GOOD MORNING'
+              if (hour >= 12 && hour < 17) {
+                greeting = 'GOOD AFTERNOON'
+              } else if (hour >= 17) {
+                greeting = 'GOOD EVENING'
+              }
+
+              // Filter to only today's events
+              const today = new Date().toISOString().split('T')[0]
+              const todaysEvents = displayEvents.filter(event => {
+                const eventDate = event.date.split('T')[0]
+                return eventDate === today
+              })
+
+              return (
+                <div className="charger-red text-white rounded-xl p-5 mb-4 shadow-xl border-2 border-white/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Bell className="w-6 h-6" />
+                    <h3 className="text-lg font-black tracking-tight font-display">{greeting} CHARITON!</h3>
+                  </div>
+                  <p className="text-sm font-semibold mb-3 text-red-50">
+                    {todaysEvents.length > 0
+                      ? `Here's what's happening today:`
+                      : `No events scheduled for today. Check out upcoming events below!`}
+                  </p>
+                  {todaysEvents.length > 0 && (
+                    <ul className="text-sm font-bold space-y-2 text-white">
+                      {todaysEvents.map((event, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-white rounded-full"></span>
+                          {event.category} {event.title}, {event.time || formatEventTime(event.date)}
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </ul>
-              </div>
-            )}
+                </div>
+              )
+            })()}
 
             {/* Events Tab */}
             {activeTab === 'events' && (
