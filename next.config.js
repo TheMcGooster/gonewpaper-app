@@ -4,6 +4,23 @@ const nextConfig = {
   images: {
     domains: ['hsuqduzndegemopwossk.supabase.co', 'i.imgur.com'],
   },
+  async headers() {
+    return [
+      {
+        source: '/OneSignalSDKWorker.js',
+        headers: [
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
