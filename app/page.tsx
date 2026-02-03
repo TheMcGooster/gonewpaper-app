@@ -72,9 +72,28 @@ export default function GoNewPaper() {
             enable: true,
           },
         })
-        console.log('OneSignal initialized successfully')
+        console.log('✅ OneSignal initialized successfully')
+
+        // Check notification permission status
+        const permission = await OneSignal.getNotificationPermission()
+        console.log('🔔 Notification permission:', permission)
+
+        // Listen for subscription changes
+        OneSignal.on('subscriptionChange', async (isSubscribed: boolean) => {
+          console.log('🔔 Subscription changed:', isSubscribed)
+          if (isSubscribed) {
+            const playerId = await OneSignal.getUserId()
+            console.log('🆔 New Player ID after subscription:', playerId)
+
+            // If user is logged in, save the player ID
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user && playerId) {
+              await saveOneSignalPlayerId(session.user.id)
+            }
+          }
+        })
       } catch (error) {
-        console.error('OneSignal initialization error:', error)
+        console.error('❌ OneSignal initialization error:', error)
       }
     }
     initOneSignal()
@@ -83,9 +102,19 @@ export default function GoNewPaper() {
   // Save OneSignal player ID to Supabase when user logs in
   const saveOneSignalPlayerId = async (userId: string) => {
     try {
-      const playerId = await OneSignal.getUserId()
+      // Try to get player ID, with retries
+      let playerId = await OneSignal.getUserId()
+
+      // If no player ID yet, wait a bit and retry (user might still be subscribing)
+      if (!playerId) {
+        console.log('⏳ No player ID yet, waiting for subscription...')
+        // Wait 2 seconds and try again
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        playerId = await OneSignal.getUserId()
+      }
+
       if (playerId) {
-        await supabase
+        const { error } = await supabase
           .from('users')
           .upsert({
             id: userId,
@@ -93,10 +122,17 @@ export default function GoNewPaper() {
           }, {
             onConflict: 'id'
           })
-        console.log('OneSignal player ID saved:', playerId)
+
+        if (error) {
+          console.error('❌ Supabase upsert error:', error)
+        } else {
+          console.log('✅ OneSignal player ID saved to Supabase:', playerId)
+        }
+      } else {
+        console.log('⚠️ No OneSignal player ID available - user may need to allow notifications')
       }
     } catch (error) {
-      console.error('Error saving OneSignal player ID:', error)
+      console.error('❌ Error saving OneSignal player ID:', error)
     }
   }
 
@@ -1005,6 +1041,22 @@ export default function GoNewPaper() {
                 >
                   <LogOut className="w-4 h-4" />
                   LOG OUT
+                </button>
+                {/* Debug: Show OneSignal Player ID */}
+                <button
+                  onClick={async () => {
+                    const playerId = await OneSignal.getUserId()
+                    const permission = await OneSignal.getNotificationPermission()
+                    alert(`🔔 Notification Permission: ${permission}\n\n🆔 Player ID: ${playerId || 'Not available - allow notifications first!'}\n\n📋 Copy this Player ID to use in Make.com`)
+                    if (playerId) {
+                      navigator.clipboard.writeText(playerId)
+                      console.log('Player ID copied to clipboard:', playerId)
+                    }
+                  }}
+                  className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black"
+                >
+                  <Bell className="w-4 h-4" />
+                  TEST: Get My Player ID
                 </button>
               </div>
             ) : (
