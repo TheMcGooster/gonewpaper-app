@@ -52,7 +52,7 @@ Copy `.env.local` and update with your keys:
 1. User visits the app → OneSignal SDK initializes
 2. User allows notifications → OneSignal generates a **Player ID** (one per device)
 3. User logs in → App saves Player ID to Supabase `users.onesignal_player_id`
-4. Make.com automation → Queries Supabase for Player IDs → Sends push via OneSignal API
+4. ActivePieces automation → Queries Supabase for Player IDs → Sends push via OneSignal API
 
 ### OneSignal Dashboard:
 - **Login**: https://onesignal.com
@@ -85,7 +85,7 @@ The service worker must be accessible at the root. Add to `vercel.json` if neede
 
 ---
 
-## Make.com Automation (Event Reminders)
+## ActivePieces Automation (Event Reminders)
 
 ### Flow:
 ```
@@ -141,7 +141,7 @@ The service worker must be accessible at the root. Add to `vercel.json` if neede
 - **Frontend**: Next.js 14, React, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL + Auth)
 - **Push Notifications**: OneSignal (Web Push)
-- **Automation**: Make.com
+- **Automation**: ActivePieces
 - **Hosting**: Vercel
 - **Domain**: gonewpaper.com
 
@@ -172,5 +172,5 @@ npm start
 | Vercel | Hosting & Deployment |
 | Supabase | Database & Auth |
 | OneSignal | Push Notifications |
-| Make.com | Automation |
+| ActivePieces | Automation |
 | GitHub | Code Repository |
