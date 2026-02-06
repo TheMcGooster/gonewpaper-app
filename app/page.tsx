@@ -723,15 +723,18 @@ export default function GoNewPaper() {
                 </div>
 
                 {/* PRICING INFO */}
-                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl mt-6">
-                  <p className="text-sm font-bold text-gray-700 mb-2">Want to be listed here?</p>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-2">📣 Want to be listed here?</p>
                   <div className="space-y-2 text-xs text-gray-600 font-semibold mb-3">
                     <p><span className="font-black text-blue-600">Spotlight Business</span> - $30/month - Full card, website link, featured placement</p>
                     <p><span className="font-black text-purple-600">Digital Business Card</span> - $15/month - Compact card, click-to-call</p>
                   </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-black">
-                    LEARN MORE
-                  </button>
+                  <a
+                    href="mailto:thenewpaperchariton@gmail.com?subject=Business%20Listing%20Inquiry&body=Hi!%20I'm%20interested%20in%20getting%20my%20business%20listed%20on%20Go%20New%20Paper.%0A%0ABusiness%20Name:%0APhone:%0APreferred%20Plan%20(Spotlight%20$30%20or%20Digital%20Card%20$15):"
+                    className="w-full bg-green-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>✉️</span> GET STARTED
+                  </a>
                 </div>
               </>
             )}
