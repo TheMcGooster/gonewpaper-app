@@ -49,6 +49,14 @@ export default function GoNewPaper() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [userInterests, setUserInterests] = useState<number[]>([])
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  // Toast helper function
+  const showToast = (message: string) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 3000)
+  }
 
   // Data from Supabase
   const [events, setEvents] = useState<Event[]>([])
@@ -61,7 +69,7 @@ export default function GoNewPaper() {
   const [topStories, setTopStories] = useState<TopStory[]>([])
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
 
-  // Initialize OneSignal and request permission
+  // Initialize OneSignal and track notification status
   useEffect(() => {
     const initOneSignal = async () => {
       try {
@@ -71,21 +79,19 @@ export default function GoNewPaper() {
         })
         console.log('OneSignal initialized successfully')
 
-        // Request notification permission after a short delay
-        // This gives users time to see the app first
-        setTimeout(async () => {
-          try {
-            const permission = await OneSignal.Notifications.permission
-            console.log('Current notification permission:', permission)
-            if (!permission) {
-              // Prompt user to allow notifications
-              console.log('Requesting notification permission...')
-              await OneSignal.Notifications.requestPermission()
-            }
-          } catch (permError) {
-            console.log('Permission request error (may be expected):', permError)
+        // Check current notification permission status
+        const permission = OneSignal.Notifications.permission
+        console.log('Current notification permission:', permission)
+        setNotificationsEnabled(permission)
+
+        // Listen for permission changes
+        OneSignal.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
+          console.log('Notification permission changed:', newPermission)
+          setNotificationsEnabled(newPermission)
+          if (newPermission) {
+            showToast('🔔 Notifications enabled!')
           }
-        }, 3000) // Wait 3 seconds before prompting
+        })
 
       } catch (error) {
         console.error('OneSignal initialization error:', error)
@@ -260,6 +266,7 @@ export default function GoNewPaper() {
         .eq('event_id', eventId)
 
       setUserInterests(prev => prev.filter(id => id !== eventId))
+      showToast('Removed from your interests')
     } else {
       // Add interest
       await supabase
@@ -267,6 +274,13 @@ export default function GoNewPaper() {
         .insert({ user_id: user.id, event_id: eventId })
 
       setUserInterests(prev => [...prev, eventId])
+
+      // Show appropriate toast based on notification status
+      if (notificationsEnabled) {
+        showToast("You'll be reminded about this event!")
+      } else {
+        showToast('Interested! Enable notifications to get reminders')
+      }
     }
   }
 
@@ -1082,17 +1096,22 @@ export default function GoNewPaper() {
                 <div className="flex items-center gap-3 mb-2">
                   <img
                     src={(() => {
+                      // Try Google profile picture first, then fall back to DiceBear
+                      const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+                      if (googleAvatar) return googleAvatar;
+
+                      // Fallback to DiceBear random avatar
                       const styles = ['bottts-neutral', 'avataaars', 'pixel-art', 'fun-emoji', 'thumbs', 'lorelei', 'notionists', 'adventurer'];
                       const seed = user.email || user.id;
                       const styleIndex = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % styles.length;
                       return `https://api.dicebear.com/7.x/${styles[styleIndex]}/svg?seed=${encodeURIComponent(seed)}`;
                     })()}
                     alt="Avatar"
-                    className="w-12 h-12 rounded-full bg-white/20"
+                    className="w-12 h-12 rounded-full bg-white/20 object-cover"
                   />
                   <div>
                     <p className="text-xs font-bold text-green-100">LOGGED IN AS</p>
-                    <p className="text-sm font-black truncate max-w-[180px]">{user.email}</p>
+                    <p className="text-sm font-black truncate max-w-[180px]">{user.user_metadata?.full_name || user.email}</p>
                   </div>
                 </div>
                 <p className="text-xs font-semibold text-green-100 mb-2">
@@ -1105,21 +1124,27 @@ export default function GoNewPaper() {
                   <LogOut className="w-4 h-4" />
                   LOG OUT
                 </button>
-                {/* Debug: Show OneSignal Player ID */}
-                <button
-                  onClick={() => {
-                    const playerId = OneSignal.User.PushSubscription.id
-                    alert(`🆔 Player ID: ${playerId || 'Not available - allow notifications first!'}\n\n📋 ${playerId ? 'Copied to clipboard!' : 'Enable notifications to get your Player ID'}`)
-                    if (playerId) {
-                      navigator.clipboard.writeText(playerId)
-                      console.log('Player ID copied to clipboard:', playerId)
-                    }
-                  }}
-                  className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black"
-                >
-                  <Bell className="w-4 h-4" />
-                  TEST: Get My Player ID
-                </button>
+                {/* Notification Status */}
+                {notificationsEnabled ? (
+                  <div className="w-full mt-2 bg-green-500/30 py-2 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                    <Bell className="w-4 h-4" />
+                    Notifications enabled
+                  </div>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await OneSignal.Notifications.requestPermission()
+                      } catch (err) {
+                        console.log('Permission request error:', err)
+                      }
+                    }}
+                    className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black"
+                  >
+                    <Bell className="w-4 h-4" />
+                    Enable Notifications
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-xl mb-4">
@@ -1196,6 +1221,13 @@ export default function GoNewPaper() {
               <a href="https://www.visioniitheatre.com/" target="_blank" rel="noopener noreferrer" className="block p-3 hover:bg-red-50 rounded-xl font-bold text-gray-800 transition-all">🎬 Vision II Theatre</a>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-24 left-4 right-4 bg-gray-900 text-white p-4 rounded-xl shadow-2xl text-center font-bold z-50 animate-pulse">
+          {toast}
         </div>
       )}
     </div>
