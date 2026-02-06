@@ -657,7 +657,11 @@ export default function GoNewPaper() {
                 {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map(b => (
                   <Card key={b.id} className="hover:shadow-xl transition-all cursor-pointer border-blue-200">
                     <div className="flex items-start gap-4">
-                      <div className="text-5xl">{b.logo_emoji}</div>
+                      {b.logo_url ? (
+                        <img src={b.logo_url} alt={b.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
+                      ) : (
+                        <div className="text-5xl">{b.logo_emoji}</div>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-lg font-black tracking-tight">{b.name}</h3>
@@ -689,7 +693,11 @@ export default function GoNewPaper() {
                   {displayBusinesses.filter(b => b.tier === 'card').map(b => (
                     <div key={b.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-purple-100 hover:shadow-lg hover:border-purple-300 transition-all">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="text-3xl">{b.logo_emoji}</div>
+                        {b.logo_url ? (
+                          <img src={b.logo_url} alt={b.name} className="w-12 h-12 rounded-lg object-cover shadow" />
+                        ) : (
+                          <div className="text-3xl">{b.logo_emoji}</div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-black tracking-tight truncate">{b.name}</h3>
                           <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{b.category}</span>
