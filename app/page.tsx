@@ -336,10 +336,16 @@ export default function GoNewPaper() {
   ]
 
   const sampleBusinesses: Business[] = [
-    { id: 1, name: "Piper's Old Fashion Grocery", category: 'Grocery', logo_emoji: '🛒', website: 'https://pipersgrocery.com', clicks: 234, featured: true, tagline: 'Your hometown grocer since 1952', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
-    { id: 2, name: 'Vision II Theatre', category: 'Entertainment', logo_emoji: '🎬', website: 'https://visioniitheatre.com', clicks: 456, featured: true, tagline: 'Latest movies, small-town prices', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
-    { id: 3, name: 'Route 34 Grill', category: 'Restaurant', logo_emoji: '🍔', website: 'https://route34grill.com', clicks: 189, featured: true, tagline: 'Best burgers in Lucas County', tier: 'spotlight', phone: '', created_at: '', town_id: 1 },
-    { id: 4, name: 'Main Street Coffee', category: 'Cafe', logo_emoji: '☕', website: 'https://mainstreetcoffee.com', clicks: 312, featured: true, tagline: 'Community hub & fresh brews', tier: 'spotlight', phone: '', created_at: '', town_id: 1 }
+    // Spotlight Businesses (full cards)
+    { id: 1, name: "Piper's Old Fashion Grocery", category: 'Grocery', logo_emoji: '🛒', website: 'https://pipersgrocery.com', clicks: 234, featured: true, tagline: 'Your hometown grocer since 1952', tier: 'spotlight', phone: '(641) 774-5411', created_at: '', town_id: 1 },
+    { id: 2, name: 'Vision II Theatre', category: 'Entertainment', logo_emoji: '🎬', website: 'https://visioniitheatre.com', clicks: 456, featured: true, tagline: 'Latest movies, small-town prices', tier: 'spotlight', phone: '(641) 774-4444', created_at: '', town_id: 1 },
+    { id: 3, name: 'Route 34 Grill', category: 'Restaurant', logo_emoji: '🍔', website: 'https://route34grill.com', clicks: 189, featured: true, tagline: 'Best burgers in Lucas County', tier: 'spotlight', phone: '(641) 774-2233', created_at: '', town_id: 1 },
+    { id: 4, name: 'Main Street Coffee', category: 'Cafe', logo_emoji: '☕', website: 'https://mainstreetcoffee.com', clicks: 312, featured: true, tagline: 'Community hub & fresh brews', tier: 'spotlight', phone: '(641) 774-1122', created_at: '', town_id: 1 },
+    // Digital Business Cards ($15/mo tier)
+    { id: 5, name: 'Sarah Mitchell - State Farm', category: 'Insurance', logo_emoji: '🛡️', website: '', clicks: 45, featured: false, tagline: 'Your local insurance agent', tier: 'card', phone: '(641) 774-5678', created_at: '', town_id: 1, email: 'sarah.mitchell@statefarm.com' },
+    { id: 6, name: "Mike's Mobile Detailing", category: 'Auto Services', logo_emoji: '🚗', website: '', clicks: 23, featured: false, tagline: 'We come to you!', tier: 'card', phone: '(641) 203-4567', created_at: '', town_id: 1 },
+    { id: 7, name: 'Johnson Financial Group', category: 'Financial Advisor', logo_emoji: '💼', website: '', clicks: 67, featured: false, tagline: 'Retirement & investment planning', tier: 'card', phone: '(641) 774-9012', created_at: '', town_id: 1, email: 'info@johnsonfinancial.com' },
+    { id: 8, name: 'Lucas County Realty - Tom Baker', category: 'Real Estate', logo_emoji: '🏠', website: '', clicks: 89, featured: false, tagline: 'Helping families find home', tier: 'card', phone: '(641) 774-3456', created_at: '', town_id: 1 }
   ]
 
   const sampleHousing: Housing[] = [
@@ -640,21 +646,20 @@ export default function GoNewPaper() {
             {/* Businesses Tab */}
             {activeTab === 'businesses' && (
               <>
+                {/* SPOTLIGHT BUSINESSES SECTION */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-4 rounded-xl mb-4 shadow-md">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">FEATURED LOCAL BUSINESSES</span></p>
-                  <p className="text-xs font-semibold text-gray-600 mt-1">Click tracking active &bull; Support local!</p>
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">SPOTLIGHT BUSINESSES</span></p>
+                  <p className="text-xs font-semibold text-gray-600 mt-1">Featured local businesses &bull; Support local!</p>
                 </div>
 
-                {displayBusinesses.map(b => (
+                {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map(b => (
                   <Card key={b.id} className="hover:shadow-xl transition-all cursor-pointer border-blue-200">
                     <div className="flex items-start gap-4">
                       <div className="text-5xl">{b.logo_emoji}</div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-lg font-black tracking-tight">{b.name}</h3>
-                          {b.featured && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-black">SPOTLIGHT</span>
-                          )}
+                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-black">SPOTLIGHT</span>
                         </div>
                         <p className="text-sm text-gray-600 font-semibold mb-2">{b.tagline}</p>
                         <div className="flex items-center gap-3 text-xs text-gray-500 font-semibold mb-3">
@@ -672,9 +677,48 @@ export default function GoNewPaper() {
                   </Card>
                 ))}
 
-                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl mt-4">
-                  <p className="text-sm font-bold text-gray-700 mb-2">Want your business featured here?</p>
-                  <p className="text-xs text-gray-600 font-semibold mb-3">Get a Business Spotlight for $75/month - track clicks, drive traffic, grow sales!</p>
+                {/* DIGITAL BUSINESS CARDS SECTION */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 p-4 rounded-xl mb-4 mt-6 shadow-md">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-purple-600">LOCAL PROFESSIONALS</span></p>
+                  <p className="text-xs font-semibold text-gray-600 mt-1">Financial advisors, agents, services & more</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {displayBusinesses.filter(b => b.tier === 'card').map(b => (
+                    <div key={b.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-purple-100 hover:shadow-lg hover:border-purple-300 transition-all">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="text-3xl">{b.logo_emoji}</div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-black tracking-tight truncate">{b.name}</h3>
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{b.category}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 font-semibold mb-3 italic">&quot;{b.tagline}&quot;</p>
+                      <a
+                        href={`tel:${b.phone}`}
+                        className="w-full bg-purple-600 text-white py-2 rounded-lg text-xs font-black tracking-wide shadow hover:shadow-lg transition-all uppercase flex items-center justify-center gap-2"
+                      >
+                        <span>📞</span> {b.phone}
+                      </a>
+                      {b.email && (
+                        <a
+                          href={`mailto:${b.email}`}
+                          className="w-full mt-2 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>✉️</span> Email
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* PRICING INFO */}
+                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl mt-6">
+                  <p className="text-sm font-bold text-gray-700 mb-2">Want to be listed here?</p>
+                  <div className="space-y-2 text-xs text-gray-600 font-semibold mb-3">
+                    <p><span className="font-black text-blue-600">Spotlight Business</span> - $30/month - Full card, website link, featured placement</p>
+                    <p><span className="font-black text-purple-600">Digital Business Card</span> - $15/month - Compact card, click-to-call</p>
+                  </div>
                   <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-black">
                     LEARN MORE
                   </button>

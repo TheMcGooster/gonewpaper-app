@@ -63,7 +63,7 @@ export type Business = {
   featured: boolean
   logo_emoji: string
   clicks: number
-  tier: 'free' | 'basic' | 'spotlight' | 'premium'
+  tier: 'free' | 'card' | 'spotlight' | 'premium'
   town_id: number
   description?: string
   address?: string
