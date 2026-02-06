@@ -61,7 +61,7 @@ export default function GoNewPaper() {
   const [topStories, setTopStories] = useState<TopStory[]>([])
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
 
-  // Initialize OneSignal
+  // Initialize OneSignal and request permission
   useEffect(() => {
     const initOneSignal = async () => {
       try {
@@ -70,6 +70,23 @@ export default function GoNewPaper() {
           allowLocalhostAsSecureOrigin: true,
         })
         console.log('OneSignal initialized successfully')
+
+        // Request notification permission after a short delay
+        // This gives users time to see the app first
+        setTimeout(async () => {
+          try {
+            const permission = await OneSignal.Notifications.permission
+            console.log('Current notification permission:', permission)
+            if (!permission) {
+              // Prompt user to allow notifications
+              console.log('Requesting notification permission...')
+              await OneSignal.Notifications.requestPermission()
+            }
+          } catch (permError) {
+            console.log('Permission request error (may be expected):', permError)
+          }
+        }, 3000) // Wait 3 seconds before prompting
+
       } catch (error) {
         console.error('OneSignal initialization error:', error)
       }
@@ -98,6 +115,27 @@ export default function GoNewPaper() {
         } else {
           console.log('OneSignal player ID saved:', playerId)
         }
+      } else {
+        console.log('No player ID yet - user may not have allowed notifications')
+
+        // Listen for when user subscribes to notifications
+        OneSignal.User.PushSubscription.addEventListener('change', async (event) => {
+          const newPlayerId = event.current.id
+          if (newPlayerId && event.current.optedIn) {
+            console.log('User subscribed! Saving player ID:', newPlayerId)
+            const { error } = await supabase
+              .from('users')
+              .upsert({
+                id: userId,
+                onesignal_player_id: newPlayerId
+              }, {
+                onConflict: 'id'
+              })
+            if (!error) {
+              console.log('OneSignal player ID saved after subscription:', newPlayerId)
+            }
+          }
+        })
       }
     } catch (error) {
       console.error('Error saving OneSignal player ID:', error)
