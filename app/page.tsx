@@ -271,7 +271,7 @@ export default function GoNewPaper() {
   }
 
   // Admin check
-  const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com'
+  const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com' || user?.email === 'thenewpaperchariton@gmail.com'
 
   const handleDeleteListing = async (table: 'nonprofits' | 'clubs', id: number, name: string) => {
     if (!confirm(`Remove "${name}" from the site?`)) return
