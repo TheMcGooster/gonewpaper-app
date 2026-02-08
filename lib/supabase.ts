@@ -194,3 +194,16 @@ export type Club = {
   display_order: number
   created_at: string
 }
+
+export type Comic = {
+  id: number
+  title: string
+  image_url?: string
+  alt_text?: string
+  source?: string
+  artist_name?: string
+  artist_url?: string
+  publish_date: string
+  town_id: number
+  created_at: string
+}

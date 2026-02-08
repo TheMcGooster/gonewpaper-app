@@ -2,8 +2,8 @@
 // Go New Paper v2.0.0 - 8 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, Community, Affiliates
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2 } from 'lucide-react'
-import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh } from 'lucide-react'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club, Comic } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
 
@@ -83,6 +83,7 @@ export default function GoNewPaper() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
+  const [comics, setComics] = useState<Comic[]>([])
 
   // Initialize OneSignal and track notification status
   useEffect(() => {
@@ -409,7 +410,8 @@ export default function GoNewPaper() {
           storiesRes,
           affiliatesRes,
           nonprofitsRes,
-          clubsRes
+          clubsRes,
+          comicsRes
         ] = await Promise.all([
           supabase.from('events').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
@@ -421,7 +423,8 @@ export default function GoNewPaper() {
           supabase.from('top_stories').select('*').order('priority', { ascending: true }).limit(5),
           supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true }),
           supabase.from('nonprofits').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-          supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true })
+          supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+          supabase.from('comics').select('*').order('publish_date', { ascending: false }).limit(10)
         ])
 
         if (eventsRes.data) setEvents(eventsRes.data)
@@ -435,6 +438,7 @@ export default function GoNewPaper() {
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
+        if (comicsRes.data) setComics(comicsRes.data)
       } catch (error) {
         console.error('Error fetching data:', error)
       }
@@ -543,6 +547,12 @@ export default function GoNewPaper() {
     { id: 1, name: 'Chariton Rock Climbers', category: 'Sports & Recreation', logo_emoji: '🧗', logo_url: '/Chariton_Rock_Climbers_LOGO.png', tagline: 'Climb higher together!', email: 'jarrettcmcgee@gmail.com', town_id: 1, is_active: true, display_order: 1, created_at: '' },
   ]
 
+  const sampleComics: Comic[] = [
+    { id: 1, title: 'Why did the scarecrow win an award?', alt_text: 'Because he was outstanding in his field! 🌾', source: 'Daily Laughs', publish_date: new Date().toISOString().split('T')[0], town_id: 1, created_at: '' },
+    { id: 2, title: 'What do you call a fake noodle?', alt_text: 'An impasta! 🍝', source: 'Daily Laughs', publish_date: new Date(Date.now() - 86400000).toISOString().split('T')[0], town_id: 1, created_at: '' },
+    { id: 3, title: 'Why don\'t scientists trust atoms?', alt_text: 'Because they make up everything! ⚛️', source: 'Daily Laughs', publish_date: new Date(Date.now() - 172800000).toISOString().split('T')[0], town_id: 1, created_at: '' },
+  ]
+
   const sampleStocks = [
     { symbol: 'AAPL', price: 178.52, change: 2.34, changePercent: 1.33 },
     { symbol: 'TSLA', price: 242.18, change: -5.67, changePercent: -2.29 },
@@ -559,6 +569,7 @@ export default function GoNewPaper() {
   const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
   const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
   const displayClubs = clubs.length > 0 ? clubs : sampleClubs
+  const displayComics = comics.length > 0 ? comics : sampleComics
   const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   const tabs = [
@@ -569,6 +580,7 @@ export default function GoNewPaper() {
     { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
     { id: 'clubs', icon: UsersRound, label: 'CLUBS' },
     { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' },
+    { id: 'comics', icon: Laugh, label: 'DAILY LAUGHS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
     { id: 'affiliates', icon: TrendingUp, label: 'AFFILIATES' }
   ]
@@ -916,6 +928,53 @@ export default function GoNewPaper() {
                     <span>✉️</span> GET STARTED
                   </a>
                 </div>
+              </>
+            )}
+
+            {/* Daily Laughs Tab */}
+            {activeTab === 'comics' && (
+              <>
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Laugh className="w-6 h-6 text-yellow-600" />
+                    <p className="text-lg font-black text-gray-800">DAILY LAUGHS</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Your daily dose of humor. A new joke every day to brighten your morning!
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {displayComics.map((comic, index) => (
+                    <div key={comic.id} className={`bg-white rounded-xl shadow-md border-2 overflow-hidden ${index === 0 ? 'border-yellow-300' : 'border-gray-100'}`}>
+                      {comic.image_url ? (
+                        <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-gray-50" />
+                      ) : (
+                        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
+                          <p className="text-lg font-black text-gray-800 text-center">{comic.title}</p>
+                          {comic.alt_text && (
+                            <p className="text-base font-bold text-yellow-700 text-center mt-3">{comic.alt_text}</p>
+                          )}
+                        </div>
+                      )}
+                      <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                          {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-xs font-black px-2 py-0.5 rounded">TODAY</span>}
+                          <span className="text-xs text-gray-500 font-semibold">{comic.publish_date}</span>
+                        </div>
+                        {comic.source && <span className="text-xs text-gray-400 font-semibold">{comic.source}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {displayComics.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-5xl mb-4">😄</div>
+                    <p className="text-lg font-black text-gray-700 mb-2">No jokes yet!</p>
+                    <p className="text-sm text-gray-500 font-semibold">Check back tomorrow for your daily laugh.</p>
+                  </div>
+                )}
               </>
             )}
 
