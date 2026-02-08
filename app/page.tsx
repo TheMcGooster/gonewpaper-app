@@ -2,7 +2,7 @@
 // Go New Paper v2.0.0 - 8 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, Community, Affiliates
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2 } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
@@ -268,6 +268,21 @@ export default function GoNewPaper() {
       setAuthError(error.message)
     }
     setAuthLoading(false)
+  }
+
+  // Admin check
+  const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com'
+
+  const handleDeleteListing = async (table: 'nonprofits' | 'clubs', id: number, name: string) => {
+    if (!confirm(`Remove "${name}" from the site?`)) return
+    const { error } = await supabase.from(table).update({ is_active: false }).eq('id', id)
+    if (error) { showToast('Error: ' + error.message); return }
+    showToast(`"${name}" removed`)
+    if (table === 'nonprofits') {
+      setNonprofits(prev => prev.filter(n => n.id !== id))
+    } else {
+      setClubs(prev => prev.filter(c => c.id !== id))
+    }
   }
 
   // Listing form helpers
@@ -553,6 +568,7 @@ export default function GoNewPaper() {
     { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
     { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
     { id: 'clubs', icon: UsersRound, label: 'CLUBS' },
+    { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
     { id: 'affiliates', icon: TrendingUp, label: 'AFFILIATES' }
   ]
@@ -906,32 +922,6 @@ export default function GoNewPaper() {
             {/* Community Tab */}
             {activeTab === 'community' && (
               <>
-                {/* Celebrations of Life Section */}
-                {celebrations.length > 0 && (
-                  <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Heart className="w-5 h-5 charger-red-text" />
-                      <h2 className="text-xl font-black tracking-tight font-display">CELEBRATIONS OF LIFE</h2>
-                    </div>
-                    {celebrations.map(c => (
-                      <Card key={c.id} className="border-gray-200 bg-gray-50">
-                        <div className="flex items-start gap-3">
-                          <span className="text-2xl">🕯️</span>
-                          <div>
-                            <h3 className="font-black text-base tracking-tight mb-1">{c.full_name}</h3>
-                            {c.age && <p className="text-sm text-gray-600 font-semibold">Age {c.age}</p>}
-                            {c.service_location && (
-                              <p className="text-sm font-semibold text-gray-700 mt-2">
-                                Service: {c.service_location}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-black tracking-tight font-display">COMMUNITY</h2>
                   <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
@@ -971,7 +961,12 @@ export default function GoNewPaper() {
 
                 <div className="grid grid-cols-1 gap-3">
                   {displayNonprofits.map(np => (
-                    <div key={np.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-rose-100 hover:shadow-lg hover:border-rose-300 transition-all">
+                    <div key={np.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-rose-100 hover:shadow-lg hover:border-rose-300 transition-all relative">
+                      {isAdmin && (
+                        <button onClick={() => handleDeleteListing('nonprofits', np.id, np.name)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove listing">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
                       <div className="flex items-center gap-4 mb-3">
                         {np.logo_url ? (
                           <img src={np.logo_url} alt={np.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
@@ -1046,7 +1041,12 @@ export default function GoNewPaper() {
 
                 <div className="grid grid-cols-1 gap-3">
                   {displayClubs.map(club => (
-                    <div key={club.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-cyan-100 hover:shadow-lg hover:border-cyan-300 transition-all">
+                    <div key={club.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-cyan-100 hover:shadow-lg hover:border-cyan-300 transition-all relative">
+                      {isAdmin && (
+                        <button onClick={() => handleDeleteListing('clubs', club.id, club.name)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove listing">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
                       <div className="flex items-center gap-4 mb-3">
                         {club.logo_url ? (
                           <img src={club.logo_url} alt={club.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
@@ -1115,6 +1115,87 @@ export default function GoNewPaper() {
                     <span>📝</span> GET LISTED FREE
                   </button>
                 </div>
+              </>
+            )}
+
+            {/* Celebrations of Life Tab */}
+            {activeTab === 'celebrations' && (
+              <>
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border-2 border-purple-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Flower2 className="w-6 h-6 text-purple-600" />
+                    <p className="text-lg font-black text-gray-800">CELEBRATIONS OF LIFE</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Honoring those we&apos;ve lost. Remembering the lives that made our community special.
+                  </p>
+                </div>
+
+                {celebrations.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {celebrations.map(c => (
+                      <div key={c.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-purple-100 hover:shadow-lg transition-all">
+                        <div className="flex items-start gap-4">
+                          {c.photo_url ? (
+                            <img src={c.photo_url} alt={c.full_name} className="w-20 h-20 rounded-xl object-cover shadow-md" />
+                          ) : (
+                            <div className="w-20 h-20 rounded-xl bg-purple-50 flex items-center justify-center">
+                              <span className="text-3xl">🕯️</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-black tracking-tight mb-1">{c.full_name}</h3>
+                            {c.age && <p className="text-sm text-gray-600 font-semibold">Age {c.age}</p>}
+                            {(c.birth_date || c.passing_date) && (
+                              <p className="text-xs text-gray-500 font-semibold mt-1">
+                                {c.birth_date && `Born: ${c.birth_date}`}
+                                {c.birth_date && c.passing_date && ' • '}
+                                {c.passing_date && `Passed: ${c.passing_date}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {c.obituary && (
+                          <p className="text-sm text-gray-600 font-semibold mt-3 line-clamp-3">{c.obituary}</p>
+                        )}
+                        {(c.service_date || c.service_location) && (
+                          <div className="bg-purple-50 rounded-lg p-3 mt-3">
+                            <p className="text-xs font-black text-purple-800 uppercase tracking-wider mb-1">Service Details</p>
+                            {c.service_date && (
+                              <div className="flex items-center gap-2 text-sm text-gray-700 font-semibold">
+                                <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                                <span>{c.service_date}{c.service_time ? ` at ${c.service_time}` : ''}</span>
+                              </div>
+                            )}
+                            {c.service_location && (
+                              <div className="flex items-center gap-2 text-sm text-gray-700 font-semibold mt-1">
+                                <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                                <span>{c.service_location}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {c.funeral_home && (
+                          <div className="mt-3 text-xs text-gray-500 font-semibold">
+                            {c.funeral_home_url ? (
+                              <a href={c.funeral_home_url} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 underline">
+                                {c.funeral_home}
+                              </a>
+                            ) : (
+                              <span>{c.funeral_home}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-5xl mb-4">🕊️</div>
+                    <p className="text-lg font-black text-gray-700 mb-2">No current listings</p>
+                    <p className="text-sm text-gray-500 font-semibold">Celebrations of life will appear here when available.</p>
+                  </div>
+                )}
               </>
             )}
 
