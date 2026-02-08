@@ -53,6 +53,18 @@ export default function GoNewPaper() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
+  // Listing form state
+  const [showListingModal, setShowListingModal] = useState(false)
+  const [listingType, setListingType] = useState<'nonprofit' | 'club'>('nonprofit')
+  const [listingForm, setListingForm] = useState({
+    name: '', category: '', tagline: '', email: '',
+    donation_url: '', description: '', website: '', phone: '',
+    meeting_schedule: '', meeting_location: '',
+  })
+  const [listingError, setListingError] = useState('')
+  const [listingLoading, setListingLoading] = useState(false)
+  const [listingSuccess, setListingSuccess] = useState(false)
+
   // Toast helper function
   const showToast = (message: string) => {
     setToast(message)
@@ -256,6 +268,78 @@ export default function GoNewPaper() {
       setAuthError(error.message)
     }
     setAuthLoading(false)
+  }
+
+  // Listing form helpers
+  const resetListingForm = () => {
+    setListingForm({
+      name: '', category: '', tagline: '', email: '',
+      donation_url: '', description: '', website: '', phone: '',
+      meeting_schedule: '', meeting_location: '',
+    })
+    setListingError('')
+    setListingSuccess(false)
+    setListingType('nonprofit')
+  }
+
+  const handleListingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setListingLoading(true)
+    setListingError('')
+
+    if (!listingForm.name.trim()) { setListingError('Organization name is required'); setListingLoading(false); return }
+    if (!listingForm.category) { setListingError('Please select a category'); setListingLoading(false); return }
+    if (!listingForm.tagline.trim()) { setListingError('Tagline is required'); setListingLoading(false); return }
+    if (!listingForm.email.trim()) { setListingError('Email is required'); setListingLoading(false); return }
+    if (listingType === 'nonprofit' && !listingForm.donation_url.trim()) { setListingError('Donation URL is required for non-profits'); setListingLoading(false); return }
+
+    if (listingType === 'nonprofit') {
+      const { error } = await supabase.from('nonprofits').insert({
+        name: listingForm.name.trim(),
+        category: listingForm.category,
+        logo_emoji: '🏛️',
+        tagline: listingForm.tagline.trim(),
+        email: listingForm.email.trim(),
+        donation_url: listingForm.donation_url.trim(),
+        description: listingForm.description.trim() || null,
+        website: listingForm.website.trim() || null,
+        phone: listingForm.phone.trim() || null,
+        town_id: 1,
+        is_active: true,
+        display_order: 999,
+      })
+      if (error) { setListingError(error.message); setListingLoading(false); return }
+    } else {
+      const { error } = await supabase.from('clubs').insert({
+        name: listingForm.name.trim(),
+        category: listingForm.category,
+        logo_emoji: '👥',
+        tagline: listingForm.tagline.trim(),
+        email: listingForm.email.trim(),
+        description: listingForm.description.trim() || null,
+        website: listingForm.website.trim() || null,
+        phone: listingForm.phone.trim() || null,
+        meeting_schedule: listingForm.meeting_schedule.trim() || null,
+        meeting_location: listingForm.meeting_location.trim() || null,
+        town_id: 1,
+        is_active: true,
+        display_order: 999,
+      })
+      if (error) { setListingError(error.message); setListingLoading(false); return }
+    }
+
+    setListingSuccess(true)
+    setListingLoading(false)
+    showToast(`${listingType === 'nonprofit' ? 'Non-profit' : 'Club'} listed successfully!`)
+
+    // Re-fetch data so the new entry appears immediately
+    if (listingType === 'nonprofit') {
+      const { data } = await supabase.from('nonprofits').select('*').eq('is_active', true).order('display_order', { ascending: true })
+      if (data) setNonprofits(data)
+    } else {
+      const { data } = await supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true })
+      if (data) setClubs(data)
+    }
   }
 
   // Handle interest toggle
@@ -937,12 +1021,12 @@ export default function GoNewPaper() {
                 <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-300 p-4 rounded-xl mt-6">
                   <p className="text-sm font-bold text-gray-800 mb-2">🏛️ Run a local non-profit?</p>
                   <p className="text-xs text-gray-600 font-semibold mb-3">Get your organization listed here for free so residents can find and support you!</p>
-                  <a
-                    href="mailto:thenewpaperchariton@gmail.com?subject=Non-Profit%20Listing%20Request&body=Hi!%20I'd%20like%20to%20list%20our%20non-profit%20on%20Go%20New%20Paper.%0A%0AOrganization%20Name:%0ADonation%20Link:%0AContact%20Email:"
+                  <button
+                    onClick={() => { resetListingForm(); setListingType('nonprofit'); setShowListingModal(true) }}
                     className="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
                   >
-                    <span>✉️</span> GET LISTED FREE
-                  </a>
+                    <span>📝</span> GET LISTED FREE
+                  </button>
                 </div>
               </>
             )}
@@ -1024,12 +1108,12 @@ export default function GoNewPaper() {
                 <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border-2 border-cyan-300 p-4 rounded-xl mt-6">
                   <p className="text-sm font-bold text-gray-800 mb-2">👥 Have a local club or group?</p>
                   <p className="text-xs text-gray-600 font-semibold mb-3">Get your club listed here for free so residents can find and join!</p>
-                  <a
-                    href="mailto:thenewpaperchariton@gmail.com?subject=Club%20Listing%20Request&body=Hi!%20I'd%20like%20to%20list%20our%20club/group%20on%20Go%20New%20Paper.%0A%0AClub%20Name:%0ACategory:%0AContact%20Email:%0AMeeting%20Schedule:"
+                  <button
+                    onClick={() => { resetListingForm(); setListingType('club'); setShowListingModal(true) }}
                     className="w-full bg-cyan-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-cyan-700 transition-all flex items-center justify-center gap-2"
                   >
-                    <span>✉️</span> GET LISTED FREE
-                  </a>
+                    <span>📝</span> GET LISTED FREE
+                  </button>
                 </div>
               </>
             )}
@@ -1275,6 +1359,124 @@ export default function GoNewPaper() {
                 </button>
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Listing Submission Modal */}
+      {showListingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => { setShowListingModal(false); resetListingForm() }}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black tracking-tight font-display">
+                {listingSuccess ? "YOU'RE LISTED!" : 'GET LISTED FREE'}
+              </h2>
+              <button onClick={() => { setShowListingModal(false); resetListingForm() }}><X className="w-6 h-6" /></button>
+            </div>
+
+            {listingSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">🎉</div>
+                <p className="text-lg font-black mb-2">{listingType === 'nonprofit' ? 'Non-Profit' : 'Club'} Added!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  Your listing is now live on Go New Paper. Check the {listingType === 'nonprofit' ? 'Non-Profits' : 'Clubs'} tab!
+                </p>
+                <button
+                  onClick={() => { setShowListingModal(false); resetListingForm(); setActiveTab(listingType === 'nonprofit' ? 'nonprofits' : 'clubs') }}
+                  className="w-full bg-red-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg"
+                >
+                  VIEW MY LISTING
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleListingSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
+                    <select value={listingType} onChange={(e) => setListingType(e.target.value as 'nonprofit' | 'club')} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold">
+                      <option value="nonprofit">Non-Profit Organization</option>
+                      <option value="club">Club or Group</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Organization Name *</label>
+                    <input type="text" value={listingForm.name} onChange={(e) => setListingForm(f => ({...f, name: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. Chariton Community Garden" required maxLength={80} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Category *</label>
+                    <select value={listingForm.category} onChange={(e) => setListingForm(f => ({...f, category: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" required>
+                      <option value="">Select a category...</option>
+                      <option value="General">General</option>
+                      <option value="Community Events">Community Events</option>
+                      <option value="Sports & Recreation">Sports & Recreation</option>
+                      <option value="Arts & Culture">Arts & Culture</option>
+                      <option value="Youth">Youth</option>
+                      <option value="Education">Education</option>
+                      <option value="Faith-Based">Faith-Based</option>
+                      <option value="Health & Wellness">Health & Wellness</option>
+                      <option value="Veterans">Veterans</option>
+                      <option value="Social Services">Social Services</option>
+                      <option value="Environment">Environment</option>
+                      <option value="Animal Welfare">Animal Welfare</option>
+                      <option value="Civic/Government">Civic/Government</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Tagline *</label>
+                    <input type="text" value={listingForm.tagline} onChange={(e) => setListingForm(f => ({...f, tagline: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="One sentence about your organization" required maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Contact Email *</label>
+                    <input type="email" value={listingForm.email} onChange={(e) => setListingForm(f => ({...f, email: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="you@example.com" required />
+                  </div>
+
+                  {listingType === 'nonprofit' && (
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Donation Link *</label>
+                      <input type="url" value={listingForm.donation_url} onChange={(e) => setListingForm(f => ({...f, donation_url: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="https://donate.example.com" required />
+                    </div>
+                  )}
+
+                  {listingType === 'club' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Meeting Schedule</label>
+                        <input type="text" value={listingForm.meeting_schedule} onChange={(e) => setListingForm(f => ({...f, meeting_schedule: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. Every Tuesday at 6 PM (optional)" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Meeting Location</label>
+                        <input type="text" value={listingForm.meeting_location} onChange={(e) => setListingForm(f => ({...f, meeting_location: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. Community Center (optional)" />
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                    <textarea value={listingForm.description} onChange={(e) => setListingForm(f => ({...f, description: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="Tell people more about your organization (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Website</label>
+                    <input type="url" value={listingForm.website} onChange={(e) => setListingForm(f => ({...f, website: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="https://... (optional)" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Phone</label>
+                    <input type="tel" value={listingForm.phone} onChange={(e) => setListingForm(f => ({...f, phone: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="(641) 555-1234 (optional)" />
+                  </div>
+
+                  {listingError && <p className="text-red-600 text-sm font-bold">{listingError}</p>}
+
+                  <button type="submit" disabled={listingLoading} className="w-full bg-red-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
+                    {listingLoading ? 'SUBMITTING...' : 'SUBMIT LISTING'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
