@@ -1126,6 +1126,14 @@ export default function GoNewPaper() {
             )}
           </>
         )}
+        {/* Footer Links */}
+        <div className="text-center py-8 pb-24 text-xs text-gray-400 space-x-3">
+          <a href="/privacy" className="underline hover:text-gray-600">Privacy Policy</a>
+          <span>|</span>
+          <a href="/terms" className="underline hover:text-gray-600">Terms of Service</a>
+          <span>|</span>
+          <span>© 2025 Go New Paper</span>
+        </div>
       </main>
 
       {/* Bottom Navigation */}
