@@ -9,15 +9,5 @@
         }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/daily-summary",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/event-reminders",
-      "schedule": "*/5 * * * *"
-    }
   ]
 }
