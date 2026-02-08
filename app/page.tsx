@@ -1,5 +1,6 @@
 'use client'
-// Go New Paper v2.0 - 8 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, Community, Affiliates
+// Go New Paper v2.0.0 - 8 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, Community, Affiliates
+// Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
