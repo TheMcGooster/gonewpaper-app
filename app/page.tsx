@@ -65,6 +65,15 @@ export default function GoNewPaper() {
   const [listingLoading, setListingLoading] = useState(false)
   const [listingSuccess, setListingSuccess] = useState(false)
 
+  // Community post form state
+  const [showCommunityModal, setShowCommunityModal] = useState(false)
+  const [communityForm, setCommunityForm] = useState({
+    title: '', post_type: '' as string, description: '', location: '', date: '', time: '', contact_info: '',
+  })
+  const [communityError, setCommunityError] = useState('')
+  const [communityLoading, setCommunityLoading] = useState(false)
+  const [communitySuccess, setCommunitySuccess] = useState(false)
+
   // Toast helper function
   const showToast = (message: string) => {
     setToast(message)
@@ -298,6 +307,15 @@ export default function GoNewPaper() {
     setListingType('nonprofit')
   }
 
+  const resetCommunityForm = () => {
+    setCommunityForm({
+      title: '', post_type: '', description: '', location: '', date: '', time: '', contact_info: '',
+    })
+    setCommunityError('')
+    setCommunitySuccess(false)
+    setCommunityLoading(false)
+  }
+
   const handleListingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setListingLoading(true)
@@ -356,6 +374,56 @@ export default function GoNewPaper() {
       const { data } = await supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true })
       if (data) setClubs(data)
     }
+  }
+
+  const handleCommunitySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCommunityLoading(true)
+    setCommunityError('')
+
+    if (!communityForm.title.trim()) { setCommunityError('Title is required'); setCommunityLoading(false); return }
+    if (!communityForm.post_type) { setCommunityError('Please select a post type'); setCommunityLoading(false); return }
+
+    const emojiMap: Record<string, string> = {
+      lost_pet: '\u{1F50D}',
+      found_pet: '\u{1F43E}',
+      garage_sale: '\u{1F3F7}\uFE0F',
+      volunteer: '\u{1F91D}',
+      announcement: '\u{1F4E2}',
+      other: '\u{1F4AC}',
+    }
+
+    const { error } = await supabase.from('community_posts').insert({
+      title: communityForm.title.trim(),
+      post_type: communityForm.post_type,
+      emoji: emojiMap[communityForm.post_type] || '\u{1F4AC}',
+      description: communityForm.description.trim() || null,
+      location: communityForm.location.trim() || null,
+      date: communityForm.date || null,
+      time: communityForm.time || null,
+      contact_info: communityForm.contact_info.trim() || null,
+      image_url: null,
+      town_id: 1,
+      is_active: true,
+    })
+
+    if (error) { setCommunityError(error.message); setCommunityLoading(false); return }
+
+    setCommunitySuccess(true)
+    setCommunityLoading(false)
+    showToast('Community post submitted!')
+
+    // Re-fetch community posts
+    const { data } = await supabase.from('community_posts').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(20)
+    if (data) setCommunityPosts(data)
+  }
+
+  const handleDeleteCommunityPost = async (id: number, title: string) => {
+    if (!confirm(`Remove "${title}" from community posts?`)) return
+    const { error } = await supabase.from('community_posts').update({ is_active: false }).eq('id', id)
+    if (error) { showToast('Error: ' + error.message); return }
+    showToast(`"${title}" removed`)
+    setCommunityPosts(prev => prev.filter(p => p.id !== id))
   }
 
   // Handle interest toggle
@@ -981,27 +1049,86 @@ export default function GoNewPaper() {
             {/* Community Tab */}
             {activeTab === 'community' && (
               <>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-black tracking-tight font-display">COMMUNITY</h2>
-                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bell className="w-6 h-6 text-green-600" />
+                    <p className="text-lg font-black text-gray-800">COMMUNITY BOARD</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Lost pets, garage sales, volunteer needs & local announcements from your neighbors.
+                  </p>
+                </div>
+
+                <div className="flex justify-end mb-3">
+                  <button
+                    onClick={() => { resetCommunityForm(); setShowCommunityModal(true) }}
+                    className="bg-green-600 text-white text-sm font-black flex items-center gap-1 tracking-wide px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-all"
+                  >
                     <Plus className="w-4 h-4" />POST
                   </button>
                 </div>
 
-                {displayCommunity.map(post => (
-                  <Card key={post.id}>
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{post.emoji}</span>
-                      <div>
-                        <h3 className="font-black text-base tracking-tight mb-1">{post.title}</h3>
-                        <p className="text-sm font-semibold text-gray-700">{post.description}</p>
-                        {post.location && (
-                          <p className="text-sm font-semibold text-gray-500 mt-1">📍 {post.location}</p>
-                        )}
+                <div className="grid grid-cols-1 gap-3">
+                  {displayCommunity.map(post => (
+                    <div key={post.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-green-100 hover:shadow-lg hover:border-green-300 transition-all relative">
+                      {isAdmin && (
+                        <button onClick={() => handleDeleteCommunityPost(post.id, post.title)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove post">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">{post.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-black text-base tracking-tight mb-1">{post.title}</h3>
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">
+                            {post.post_type === 'lost_pet' ? 'Lost Pet' : post.post_type === 'found_pet' ? 'Found Pet' : post.post_type === 'garage_sale' ? 'Garage Sale' : post.post_type === 'volunteer' ? 'Volunteer' : post.post_type === 'announcement' ? 'Announcement' : 'Other'}
+                          </span>
+                          {post.description && (
+                            <p className="text-sm font-semibold text-gray-700 mt-2">{post.description}</p>
+                          )}
+                          {post.location && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 font-semibold mt-2">
+                              <MapPin className="w-3 h-3 text-green-600" />
+                              <span>{post.location}</span>
+                            </div>
+                          )}
+                          {(post.date || post.time) && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 font-semibold mt-1">
+                              <Clock className="w-3 h-3 text-green-600" />
+                              <span>{post.date}{post.date && post.time ? ' at ' : ''}{post.time}</span>
+                            </div>
+                          )}
+                          {post.contact_info && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 font-semibold mt-1">
+                              <User className="w-3 h-3 text-green-600" />
+                              <span>{post.contact_info}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </Card>
-                ))}
+                  ))}
+                </div>
+
+                {displayCommunity.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-5xl mb-4">📋</div>
+                    <p className="text-lg font-black text-gray-700 mb-2">No posts yet!</p>
+                    <p className="text-sm text-gray-500 font-semibold">Be the first to post something to the community board.</p>
+                  </div>
+                )}
+
+                {/* CTA for community posts */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-2">📢 Got something to share?</p>
+                  <p className="text-xs text-gray-600 font-semibold mb-3">Post lost/found pets, garage sales, volunteer needs, or announcements for free!</p>
+                  <button
+                    onClick={() => { resetCommunityForm(); setShowCommunityModal(true) }}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>📝</span> POST FOR FREE
+                  </button>
+                </div>
               </>
             )}
 
@@ -1613,6 +1740,90 @@ export default function GoNewPaper() {
 
                   <button type="submit" disabled={listingLoading} className="w-full bg-red-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
                     {listingLoading ? 'SUBMITTING...' : 'SUBMIT LISTING'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Community Post Modal */}
+      {showCommunityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black tracking-tight font-display">
+                {communitySuccess ? 'POSTED!' : 'POST TO COMMUNITY'}
+              </h2>
+              <button onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}><X className="w-6 h-6" /></button>
+            </div>
+
+            {communitySuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">🎉</div>
+                <p className="text-lg font-black mb-2">Your post is live!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  Your community post is now visible on the Community tab for all of Chariton to see!
+                </p>
+                <button
+                  onClick={() => { setShowCommunityModal(false); resetCommunityForm(); setActiveTab('community') }}
+                  className="w-full bg-green-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg"
+                >
+                  VIEW MY POST
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCommunitySubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Post Type *</label>
+                    <select value={communityForm.post_type} onChange={(e) => setCommunityForm(f => ({...f, post_type: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" required>
+                      <option value="">Select a type...</option>
+                      <option value="lost_pet">Lost Pet</option>
+                      <option value="found_pet">Found Pet</option>
+                      <option value="garage_sale">Garage Sale</option>
+                      <option value="volunteer">Volunteer Needed</option>
+                      <option value="announcement">Announcement</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Title *</label>
+                    <input type="text" value={communityForm.title} onChange={(e) => setCommunityForm(f => ({...f, title: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="e.g. Lost Golden Retriever near Town Square" required maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                    <textarea value={communityForm.description} onChange={(e) => setCommunityForm(f => ({...f, description: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="Add more details (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                    <input type="text" value={communityForm.location} onChange={(e) => setCommunityForm(f => ({...f, location: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="e.g. 123 Main St, Chariton (optional)" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
+                      <input type="date" value={communityForm.date} onChange={(e) => setCommunityForm(f => ({...f, date: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
+                      <input type="time" value={communityForm.time} onChange={(e) => setCommunityForm(f => ({...f, time: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Contact Info</label>
+                    <input type="text" value={communityForm.contact_info} onChange={(e) => setCommunityForm(f => ({...f, contact_info: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="Phone, email, or social media (optional)" />
+                  </div>
+
+                  {communityError && <p className="text-red-600 text-sm font-bold">{communityError}</p>}
+
+                  <button type="submit" disabled={communityLoading} className="w-full bg-green-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
+                    {communityLoading ? 'SUBMITTING...' : 'SUBMIT POST'}
                   </button>
                 </div>
               </form>
