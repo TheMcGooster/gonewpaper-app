@@ -157,3 +157,40 @@ export type Affiliate = {
   display_order: number
   clicks: number
 }
+
+export type NonProfit = {
+  id: number
+  name: string
+  category: string
+  logo_emoji: string
+  logo_url?: string
+  tagline: string
+  description?: string
+  donation_url: string
+  website?: string
+  email: string
+  phone?: string
+  town_id: number
+  is_active: boolean
+  display_order: number
+  created_at: string
+}
+
+export type Club = {
+  id: number
+  name: string
+  category: string
+  logo_emoji: string
+  logo_url?: string
+  tagline: string
+  description?: string
+  website?: string
+  email: string
+  phone?: string
+  meeting_schedule?: string
+  meeting_location?: string
+  town_id: number
+  is_active: boolean
+  display_order: number
+  created_at: string
+}

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check } from 'lucide-react'
-import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate } from '@/lib/supabase'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound } from 'lucide-react'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
 
@@ -68,6 +68,8 @@ export default function GoNewPaper() {
   const [marketRecap, setMarketRecap] = useState<MarketRecap | null>(null)
   const [topStories, setTopStories] = useState<TopStory[]>([])
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
+  const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
+  const [clubs, setClubs] = useState<Club[]>([])
 
   // Initialize OneSignal and track notification status
   useEffect(() => {
@@ -80,21 +82,28 @@ export default function GoNewPaper() {
         console.log('OneSignal initialized successfully')
 
         // Check current notification permission status
-        const permission = OneSignal.Notifications.permission
-        console.log('Current notification permission:', permission)
-        setNotificationsEnabled(permission)
+        // Use both OneSignal and native browser API for reliability
+        const oneSignalPermission = OneSignal.Notifications.permission
+        const browserPermission = 'Notification' in window ? Notification.permission === 'granted' : false
+        const hasPermission = oneSignalPermission || browserPermission
+        console.log('Notification permission - OneSignal:', oneSignalPermission, 'Browser:', browserPermission)
+        setNotificationsEnabled(hasPermission)
 
         // Listen for permission changes
         OneSignal.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
           console.log('Notification permission changed:', newPermission)
           setNotificationsEnabled(newPermission)
           if (newPermission) {
-            showToast('🔔 Notifications enabled!')
+            showToast('Notifications enabled!')
           }
         })
 
       } catch (error) {
         console.error('OneSignal initialization error:', error)
+        // Even if OneSignal fails, check native browser permission
+        if ('Notification' in window && Notification.permission === 'granted') {
+          setNotificationsEnabled(true)
+        }
       }
     }
     initOneSignal()
@@ -298,7 +307,9 @@ export default function GoNewPaper() {
           celebrationsRes,
           marketRes,
           storiesRes,
-          affiliatesRes
+          affiliatesRes,
+          nonprofitsRes,
+          clubsRes
         ] = await Promise.all([
           supabase.from('events').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
@@ -308,7 +319,9 @@ export default function GoNewPaper() {
           supabase.from('celebrations_of_life').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
           supabase.from('market_recap').select('*').order('recap_date', { ascending: false }).limit(1),
           supabase.from('top_stories').select('*').order('priority', { ascending: true }).limit(5),
-          supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true })
+          supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+          supabase.from('nonprofits').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+          supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true })
         ])
 
         if (eventsRes.data) setEvents(eventsRes.data)
@@ -320,6 +333,8 @@ export default function GoNewPaper() {
         if (marketRes.data && marketRes.data[0]) setMarketRecap(marketRes.data[0])
         if (storiesRes.data) setTopStories(storiesRes.data)
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
+        if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
+        if (clubsRes.data) setClubs(clubsRes.data)
       } catch (error) {
         console.error('Error fetching data:', error)
       }
@@ -420,6 +435,14 @@ export default function GoNewPaper() {
     { id: 3, name: 'TD Ameritrade', category: 'Broker', logo_emoji: '💹', url: 'https://affiliate.link/tdameritrade', commission: '$50/signup', is_active: true, display_order: 3, clicks: 0 }
   ]
 
+  const sampleNonprofits: NonProfit[] = [
+    { id: 1, name: 'Chariton 4th of July Celebration', category: 'Community Events', logo_emoji: '🎆', logo_url: '/Chariton_4th_LOGO.png', tagline: 'Keeping small-town traditions alive!', donation_url: 'https://www.zeffy.com/en-US/donation-form/2026-4th-of-july-celebration', email: 'chariton4thjulycommitte@gmail.com', town_id: 1, is_active: true, display_order: 1, created_at: '' },
+  ]
+
+  const sampleClubs: Club[] = [
+    { id: 1, name: 'Chariton Rock Climbers', category: 'Sports & Recreation', logo_emoji: '🧗', logo_url: '/Chariton_Rock_Climbers_LOGO.png', tagline: 'Climb higher together!', email: 'jarrettcmcgee@gmail.com', town_id: 1, is_active: true, display_order: 1, created_at: '' },
+  ]
+
   const sampleStocks = [
     { symbol: 'AAPL', price: 178.52, change: 2.34, changePercent: 1.33 },
     { symbol: 'TSLA', price: 242.18, change: -5.67, changePercent: -2.29 },
@@ -434,6 +457,8 @@ export default function GoNewPaper() {
   const displayHousing = housing.length > 0 ? housing : sampleHousing
   const displayCommunity = communityPosts.length > 0 ? communityPosts : sampleCommunity
   const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
+  const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
+  const displayClubs = clubs.length > 0 ? clubs : sampleClubs
   const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   const tabs = [
@@ -441,6 +466,8 @@ export default function GoNewPaper() {
     { id: 'jobs', icon: Briefcase, label: 'JOBS' },
     { id: 'housing', icon: Home, label: 'HOUSING' },
     { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
+    { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
+    { id: 'clubs', icon: UsersRound, label: 'CLUBS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
     { id: 'affiliates', icon: TrendingUp, label: 'AFFILIATES' }
   ]
@@ -844,6 +871,168 @@ export default function GoNewPaper() {
               </>
             )}
 
+            {/* Non-Profits Tab */}
+            {activeTab === 'nonprofits' && (
+              <>
+                <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <HeartHandshake className="w-6 h-6 text-rose-600" />
+                    <p className="text-lg font-black text-gray-800">LOCAL NON-PROFITS</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Support the organizations that make Chariton great. Donate directly!
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {displayNonprofits.map(np => (
+                    <div key={np.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-rose-100 hover:shadow-lg hover:border-rose-300 transition-all">
+                      <div className="flex items-center gap-4 mb-3">
+                        {np.logo_url ? (
+                          <img src={np.logo_url} alt={np.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
+                        ) : (
+                          <div className="text-5xl">{np.logo_emoji}</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-black tracking-tight">{np.name}</h3>
+                          <span className="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">{np.category}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{np.tagline}&quot;</p>
+                      {np.description && (
+                        <p className="text-xs text-gray-500 font-semibold mb-3">{np.description}</p>
+                      )}
+                      <a
+                        href={np.donation_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:bg-rose-700 transition-all uppercase flex items-center justify-center gap-2"
+                      >
+                        <span>💝</span> DONATE NOW
+                      </a>
+                      <div className="flex gap-2 mt-2">
+                        <a
+                          href={`mailto:${np.email}`}
+                          className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>✉️</span> Email
+                        </a>
+                        {np.website && (
+                          <a
+                            href={np.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>🌐</span> Website
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA for nonprofits */}
+                <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-300 p-4 rounded-xl mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-2">🏛️ Run a local non-profit?</p>
+                  <p className="text-xs text-gray-600 font-semibold mb-3">Get your organization listed here for free so residents can find and support you!</p>
+                  <a
+                    href="mailto:thenewpaperchariton@gmail.com?subject=Non-Profit%20Listing%20Request&body=Hi!%20I'd%20like%20to%20list%20our%20non-profit%20on%20Go%20New%20Paper.%0A%0AOrganization%20Name:%0ADonation%20Link:%0AContact%20Email:"
+                    className="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>✉️</span> GET LISTED FREE
+                  </a>
+                </div>
+              </>
+            )}
+
+            {/* Clubs/Groups Tab */}
+            {activeTab === 'clubs' && (
+              <>
+                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border-2 border-cyan-200 p-4 rounded-xl mb-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <UsersRound className="w-6 h-6 text-cyan-600" />
+                    <p className="text-lg font-black text-gray-800">CLUBS & GROUPS</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">
+                    Find your people! Local clubs, groups, and organizations in Chariton.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {displayClubs.map(club => (
+                    <div key={club.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-cyan-100 hover:shadow-lg hover:border-cyan-300 transition-all">
+                      <div className="flex items-center gap-4 mb-3">
+                        {club.logo_url ? (
+                          <img src={club.logo_url} alt={club.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
+                        ) : (
+                          <div className="text-5xl">{club.logo_emoji}</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-black tracking-tight">{club.name}</h3>
+                          <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded font-bold">{club.category}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{club.tagline}&quot;</p>
+                      {club.description && (
+                        <p className="text-xs text-gray-500 font-semibold mb-3">{club.description}</p>
+                      )}
+                      {club.meeting_schedule && (
+                        <div className="flex items-center gap-2 text-xs text-gray-600 font-semibold mb-2">
+                          <Clock className="w-3 h-3 text-cyan-600" />
+                          <span>{club.meeting_schedule}</span>
+                        </div>
+                      )}
+                      {club.meeting_location && (
+                        <div className="flex items-center gap-2 text-xs text-gray-600 font-semibold mb-3">
+                          <MapPin className="w-3 h-3 text-cyan-600" />
+                          <span>{club.meeting_location}</span>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <a
+                          href={`mailto:${club.email}`}
+                          className="flex-1 bg-cyan-600 text-white py-2 rounded-lg text-xs font-black tracking-wide shadow hover:bg-cyan-700 transition-all uppercase flex items-center justify-center gap-2"
+                        >
+                          <span>✉️</span> CONTACT
+                        </a>
+                        {club.website && (
+                          <a
+                            href={club.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>🌐</span> Website
+                          </a>
+                        )}
+                        {club.phone && (
+                          <a
+                            href={`tel:${club.phone}`}
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>📞</span> Call
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA for clubs */}
+                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border-2 border-cyan-300 p-4 rounded-xl mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-2">👥 Have a local club or group?</p>
+                  <p className="text-xs text-gray-600 font-semibold mb-3">Get your club listed here for free so residents can find and join!</p>
+                  <a
+                    href="mailto:thenewpaperchariton@gmail.com?subject=Club%20Listing%20Request&body=Hi!%20I'd%20like%20to%20list%20our%20club/group%20on%20Go%20New%20Paper.%0A%0AClub%20Name:%0ACategory:%0AContact%20Email:%0AMeeting%20Schedule:"
+                    className="w-full bg-cyan-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-cyan-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>✉️</span> GET LISTED FREE
+                  </a>
+                </div>
+              </>
+            )}
+
             {/* Affiliates Tab */}
             {activeTab === 'affiliates' && (
               <>
@@ -1134,9 +1323,28 @@ export default function GoNewPaper() {
                   <button
                     onClick={async () => {
                       try {
-                        await OneSignal.Notifications.requestPermission()
+                        // Use native browser API first (more reliable), then OneSignal picks it up
+                        if ('Notification' in window) {
+                          const permission = await Notification.requestPermission()
+                          console.log('Browser notification permission:', permission)
+                          if (permission === 'granted') {
+                            setNotificationsEnabled(true)
+                            showToast('Notifications enabled!')
+                            // OneSignal will detect the permission change automatically
+                            // Also try to save player ID now
+                            if (user) {
+                              saveOneSignalPlayerId(user.id)
+                            }
+                          } else if (permission === 'denied') {
+                            showToast('Notifications blocked. Check browser settings.')
+                          }
+                        } else {
+                          // Fallback to OneSignal method
+                          await OneSignal.Notifications.requestPermission()
+                        }
                       } catch (err) {
                         console.log('Permission request error:', err)
+                        showToast('Could not request notification permission')
                       }
                     }}
                     className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black"
