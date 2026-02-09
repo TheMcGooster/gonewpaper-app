@@ -6,9 +6,10 @@
 
 ---
 
-## 1. DAILY JOKE GENERATOR
+## 1. DAILY JOKE GENERATOR (Free — No API Key Needed!)
 
-**What it does:** Every morning, AI generates a clean joke and posts it to the Daily Laughs tab.
+**What it does:** Every morning, fetches a clean joke from JokeAPI (free) and posts it to the Daily Laughs tab.
+**Cost:** $0 — uses the free JokeAPI, no API key required.
 
 ### Setup Steps:
 
@@ -17,41 +18,14 @@
 - Frequency: Every Day
 - Time: 6:00 AM (Central Time)
 
-**STEP 1: OpenAI — Generate Joke**
-- Piece: OpenAI (you'll need to connect your OpenAI API key)
-- Action: Ask ChatGPT
-- Model: gpt-3.5-turbo (cheapest, plenty good for jokes)
-- Prompt:
-```
-Generate a single clean, family-friendly joke suitable for a small-town community newspaper app. The joke should be a simple setup and punchline format. Return ONLY a JSON object with exactly two fields, no other text:
-{"setup": "the joke question or setup", "punchline": "the funny answer or punchline"}
-```
-- Temperature: 0.9 (more creative)
+**STEP 1: HTTP Request — Fetch Joke from JokeAPI**
+- Piece: HTTP Request
+- Method: GET
+- URL: `https://sv443.net/jokeapi/v2/joke/Any?blacklistFlags=racist,sexist,explicit,religious&type=twopart`
+- Headers: none needed
+- This returns JSON like: `{ "setup": "Why did...", "delivery": "Because..." }`
 
-**STEP 2: Code — Parse the JSON**
-- Piece: Code
-- Language: JavaScript
-- Code:
-```javascript
-const response = inputs.openai_response;
-// Try to parse the JSON from the AI response
-let joke;
-try {
-  // Handle cases where AI wraps in markdown code blocks
-  const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  joke = JSON.parse(cleaned);
-} catch (e) {
-  // Fallback: try to extract setup/punchline manually
-  joke = { setup: "Why did the chicken cross the road?", punchline: "To get to the other side!" };
-}
-return {
-  title: joke.setup,
-  punchline: joke.punchline
-};
-```
-- Input: Map `openai_response` to the output text from Step 1
-
-**STEP 3: HTTP Request — Insert into Supabase**
+**STEP 2: HTTP Request — Insert into Supabase**
 - Piece: HTTP Request
 - Method: POST
 - URL: `https://hsuqduzndegemopwossk.supabase.co/rest/v1/comics`
@@ -63,18 +37,20 @@ return {
 - Body (JSON):
 ```json
 {
-  "title": "{{step2.title}}",
-  "alt_text": "{{step2.punchline}}",
+  "title": "{{step1.body.setup}}",
+  "alt_text": "{{step1.body.delivery}}",
   "image_url": "",
   "source": "Daily Laughs",
-  "publish_date": "{{trigger.date}}",
+  "publish_date": "{{formatDate(now, 'YYYY-MM-DD')}}",
   "town_id": 1
 }
 ```
 
 > **IMPORTANT:** The `image_url` field has a NOT NULL constraint in the database. Always pass an empty string `""`, never null or omit it.
 
-> **Date format:** Use the trigger's date output, or format as YYYY-MM-DD (e.g., 2026-02-08)
+> **Mapping the joke fields:** JokeAPI returns `setup` (the question) and `delivery` (the punchline). Map `setup` to `title` and `delivery` to `alt_text`.
+
+> **Date format:** Use ActivePieces date formatting: `{{formatDate(now, 'YYYY-MM-DD')}}` or the trigger's date output.
 
 ### Test It:
 - Run the flow manually once
