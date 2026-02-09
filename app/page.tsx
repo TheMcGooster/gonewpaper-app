@@ -64,11 +64,13 @@ export default function GoNewPaper() {
   const [listingError, setListingError] = useState('')
   const [listingLoading, setListingLoading] = useState(false)
   const [listingSuccess, setListingSuccess] = useState(false)
+  const [listingLogo, setListingLogo] = useState<File | null>(null)
+  const [listingLogoPreview, setListingLogoPreview] = useState<string | null>(null)
 
   // Community post form state
   const [showCommunityModal, setShowCommunityModal] = useState(false)
   const [communityForm, setCommunityForm] = useState({
-    title: '', post_type: '' as string, description: '', location: '', date: '', time: '', contact_info: '',
+    title: '', post_type: '' as string, description: '', location: '', start_date: '', end_date: '', hours: '', contact_info: '',
   })
   const [communityError, setCommunityError] = useState('')
   const [communityLoading, setCommunityLoading] = useState(false)
@@ -305,15 +307,31 @@ export default function GoNewPaper() {
     setListingError('')
     setListingSuccess(false)
     setListingType('nonprofit')
+    setListingLogo(null)
+    setListingLogoPreview(null)
   }
 
   const resetCommunityForm = () => {
     setCommunityForm({
-      title: '', post_type: '', description: '', location: '', date: '', time: '', contact_info: '',
+      title: '', post_type: '', description: '', location: '', start_date: '', end_date: '', hours: '', contact_info: '',
     })
     setCommunityError('')
     setCommunitySuccess(false)
     setCommunityLoading(false)
+  }
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setListingError('Logo must be under 2MB')
+        return
+      }
+      setListingLogo(file)
+      const reader = new FileReader()
+      reader.onloadend = () => setListingLogoPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleListingSubmit = async (e: React.FormEvent) => {
@@ -327,11 +345,28 @@ export default function GoNewPaper() {
     if (!listingForm.email.trim()) { setListingError('Email is required'); setListingLoading(false); return }
     if (listingType === 'nonprofit' && !listingForm.donation_url.trim()) { setListingError('Donation URL is required for non-profits'); setListingLoading(false); return }
 
+    let logoUrl: string | null = null
+    if (listingLogo) {
+      const fileExt = listingLogo.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, listingLogo)
+      if (uploadError) {
+        setListingError('Logo upload failed: ' + uploadError.message)
+        setListingLoading(false)
+        return
+      }
+      const { data: urlData } = supabase.storage.from('logos').getPublicUrl(fileName)
+      logoUrl = urlData.publicUrl
+    }
+
     if (listingType === 'nonprofit') {
       const { error } = await supabase.from('nonprofits').insert({
         name: listingForm.name.trim(),
         category: listingForm.category,
         logo_emoji: '🏛️',
+        logo_url: logoUrl,
         tagline: listingForm.tagline.trim(),
         email: listingForm.email.trim(),
         donation_url: listingForm.donation_url.trim(),
@@ -348,6 +383,7 @@ export default function GoNewPaper() {
         name: listingForm.name.trim(),
         category: listingForm.category,
         logo_emoji: '👥',
+        logo_url: logoUrl,
         tagline: listingForm.tagline.trim(),
         email: listingForm.email.trim(),
         description: listingForm.description.trim() || null,
@@ -399,8 +435,8 @@ export default function GoNewPaper() {
       emoji: emojiMap[communityForm.post_type] || '\u{1F4AC}',
       description: communityForm.description.trim() || null,
       location: communityForm.location.trim() || null,
-      date: communityForm.date || null,
-      time: communityForm.time || null,
+      date: communityForm.start_date ? (communityForm.end_date ? `${communityForm.start_date} to ${communityForm.end_date}` : communityForm.start_date) : null,
+      time: communityForm.hours.trim() || null,
       contact_info: communityForm.contact_info.trim() || null,
       image_url: null,
       town_id: 1,
@@ -1697,6 +1733,24 @@ export default function GoNewPaper() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Logo / Image</label>
+                    {listingLogoPreview ? (
+                      <div className="relative mb-2">
+                        <img src={listingLogoPreview} alt="Logo preview" className="w-24 h-24 rounded-xl object-cover shadow-md border-2 border-gray-200" />
+                        <button type="button" onClick={() => { setListingLogo(null); setListingLogoPreview(null) }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-black shadow">X</button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" id="logo-upload" />
+                        <label htmlFor="logo-upload" className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-red-400 focus:border-red-500 cursor-pointer flex items-center justify-center gap-2 text-gray-500 font-semibold text-sm transition-all hover:bg-gray-50">
+                          <Plus className="w-4 h-4" />
+                          Upload Logo (optional, max 2MB)
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Contact Email *</label>
                     <input type="email" value={listingForm.email} onChange={(e) => setListingForm(f => ({...f, email: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="you@example.com" required />
                   </div>
@@ -1806,13 +1860,18 @@ export default function GoNewPaper() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
-                      <input type="date" value={communityForm.date} onChange={(e) => setCommunityForm(f => ({...f, date: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Start Date</label>
+                      <input type="date" value={communityForm.start_date} onChange={(e) => setCommunityForm(f => ({...f, start_date: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
-                      <input type="time" value={communityForm.time} onChange={(e) => setCommunityForm(f => ({...f, time: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
+                      <label className="block text-sm font-bold text-gray-700 mb-1">End Date</label>
+                      <input type="date" value={communityForm.end_date} onChange={(e) => setCommunityForm(f => ({...f, end_date: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Hours / Schedule</label>
+                    <input type="text" value={communityForm.hours} onChange={(e) => setCommunityForm(f => ({...f, hours: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="e.g. Fri 10-2, Sat 8-5, Sun 10-2 (optional)" />
                   </div>
 
                   <div>
