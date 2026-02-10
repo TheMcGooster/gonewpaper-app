@@ -72,7 +72,8 @@ This lets ActivePieces leave `image_url` blank. The app displays text-only jokes
 **TRIGGER: Schedule**
 - Type: Schedule
 - Frequency: Every Day
-- Time: 7:00 AM (Central Time)
+- Time: 2:00 AM (Central Time)
+- Run on weekends: Yes
 
 **STEP 1: HTTP Request — Fetch Fielding Website**
 - Piece: HTTP Request (GET)
@@ -156,7 +157,17 @@ return { obituaries: obituaries, count: obituaries.length };
 
 ---
 
-## 3. EVENT PURGE (Already Set Up!)
+## 3. OBITUARY PURGE (Already Set Up!)
+
+- Endpoint: `https://www.gonewpaper.com/api/cron/purge-obituaries`
+- Schedule: Daily at 6:00 AM UTC
+- Header: `Authorization: Bearer <CRON_SECRET>`
+- **Rule 1:** Deletes entries where `service_date` has passed
+- **Rule 2:** Deletes entries where `passing_date` is 14+ days old (service likely already happened)
+
+---
+
+## 4. EVENT PURGE (Already Set Up!)
 
 - Endpoint: `https://www.gonewpaper.com/api/cron/purge-events`
 - Schedule: Every 30 minutes
@@ -164,7 +175,7 @@ return { obituaries: obituaries, count: obituaries.length };
 
 ---
 
-## 4. EVENT REMINDERS (Already Set Up!)
+## 5. EVENT REMINDERS (Already Set Up!)
 
 - Endpoint: `https://www.gonewpaper.com/api/cron/event-reminders`
 - Schedule: Every 5 minutes

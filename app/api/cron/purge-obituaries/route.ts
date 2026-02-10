@@ -17,28 +17,47 @@ export async function GET(request: Request) {
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0]
 
-    // Find all celebrations_of_life where service_date has passed
-    const { data: pastObituaries, error: fetchError } = await supabase
+    // Calculate the date 14 days ago
+    const fourteenDaysAgo = new Date()
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+    const cutoffDate = fourteenDaysAgo.toISOString().split('T')[0]
+
+    // Rule 1: Find entries where service_date has passed
+    const { data: pastByService, error: serviceError } = await supabase
       .from('celebrations_of_life')
-      .select('id, full_name, service_date')
+      .select('id, full_name, service_date, passing_date')
       .lt('service_date', today)
 
-    if (fetchError) {
-      console.error('Error fetching past obituaries:', fetchError)
-      return NextResponse.json({ error: 'Failed to fetch past obituaries', details: fetchError.message }, { status: 500 })
+    if (serviceError) {
+      console.error('Error fetching past obituaries by service_date:', serviceError)
+      return NextResponse.json({ error: 'Failed to fetch past obituaries', details: serviceError.message }, { status: 500 })
     }
 
-    if (!pastObituaries || pastObituaries.length === 0) {
+    // Rule 2: Find entries where passing_date is 14+ days ago (service likely already happened)
+    const { data: pastByPassing, error: passingError } = await supabase
+      .from('celebrations_of_life')
+      .select('id, full_name, service_date, passing_date')
+      .lt('passing_date', cutoffDate)
+
+    if (passingError) {
+      console.error('Error fetching past obituaries by passing_date:', passingError)
+      return NextResponse.json({ error: 'Failed to fetch stale obituaries', details: passingError.message }, { status: 500 })
+    }
+
+    // Combine both lists, dedup by id
+    const allPast = [...(pastByService || []), ...(pastByPassing || [])]
+    const uniqueIds = [...new Set(allPast.map(o => o.id))]
+    const uniqueNames = [...new Set(allPast.map(o => o.full_name))]
+
+    if (uniqueIds.length === 0) {
       return NextResponse.json({ success: true, message: 'No past obituaries to purge', deleted: 0 })
     }
-
-    const pastIds = pastObituaries.map(o => o.id)
 
     // Delete past obituaries
     const { error: deleteError } = await supabase
       .from('celebrations_of_life')
       .delete()
-      .in('id', pastIds)
+      .in('id', uniqueIds)
 
     if (deleteError) {
       console.error('Error deleting past obituaries:', deleteError)
@@ -47,8 +66,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      deleted: pastIds.length,
-      names: pastObituaries.map(o => o.full_name),
+      deleted: uniqueIds.length,
+      purgedByServiceDate: (pastByService || []).length,
+      purgedByPassingDate: (pastByPassing || []).length,
+      names: uniqueNames,
     })
   } catch (error) {
     console.error('Purge obituaries cron error:', error)
