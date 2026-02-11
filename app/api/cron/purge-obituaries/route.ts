@@ -46,8 +46,8 @@ export async function GET(request: Request) {
 
     // Combine both lists, dedup by id
     const allPast = [...(pastByService || []), ...(pastByPassing || [])]
-    const uniqueIds = [...new Set(allPast.map(o => o.id))]
-    const uniqueNames = [...new Set(allPast.map(o => o.full_name))]
+    const uniqueIds = Array.from(new Set(allPast.map(o => o.id)))
+    const uniqueNames = Array.from(new Set(allPast.map(o => o.full_name)))
 
     if (uniqueIds.length === 0) {
       return NextResponse.json({ success: true, message: 'No past obituaries to purge', deleted: 0 })
