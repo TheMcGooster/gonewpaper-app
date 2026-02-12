@@ -7,10 +7,13 @@ import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLi
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
 
-// Format date from ISO string to readable format
+// Format date from YYYY-MM-DD string to readable format (FIXED - no timezone shift)
 const formatEventDate = (dateStr: string) => {
   try {
-    const date = new Date(dateStr)
+    // Split the date string and create date in local timezone (no UTC conversion)
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month is 0-indexed
+    
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -21,17 +24,20 @@ const formatEventDate = (dateStr: string) => {
   }
 }
 
-// Format time from ISO string
-const formatEventTime = (dateStr: string) => {
+// Format time from 24-hour format (HH:MM:SS) to 12-hour AM/PM
+const formatEventTime = (timeStr: string) => {
   try {
-    const date = new Date(dateStr)
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
+    if (!timeStr) return ''
+    
+    // Parse 24-hour time format "16:00:00" or "16:00"
+    const [hours24, minutes] = timeStr.split(':')
+    const hours = parseInt(hours24, 10)
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hour12 = hours % 12 || 12
+    
+    return `${hour12}:${minutes} ${ampm}`
   } catch {
-    return ''
+    return timeStr
   }
 }
 
