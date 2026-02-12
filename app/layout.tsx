@@ -29,25 +29,26 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="google-site-verification" content="uC4FQ-KE1lYRbTl4P98TkxHhnH4ccUf88ytmj4TbPZI" />
-        
-        {/* OneSignal Push Notifications */}
+      </head>
+      <body className="font-body antialiased">
+        {children}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          defer
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
         <Script id="onesignal-init" strategy="afterInteractive">
           {`
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             OneSignalDeferred.push(async function(OneSignal) {
-              await OneSignal.init({
-                appId: "a7951e0e-737c-42e6-bd9d-fc0931d95766",
-              });
+              if (!OneSignal.appId) {
+                await OneSignal.init({
+                  appId: "a7951e0e-737c-42e6-bd9d-fc0931d95766",
+                });
+              }
             });
           `}
         </Script>
-      </head>
-      <body className="font-body antialiased">{children}</body>
+      </body>
     </html>
   )
 }
