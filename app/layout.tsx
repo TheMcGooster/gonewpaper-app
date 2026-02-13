@@ -39,9 +39,9 @@ export default function RootLayout({
         <Script id="onesignal-init" strategy="afterInteractive">
           {`
             window.OneSignalDeferred = window.OneSignalDeferred || [];
-            OneSignalDeferred.push(async function(OneSignal) {
-              // Only initialize if not already done
-              if (!OneSignal.appId) {
+            if (!window.__oneSignalInitialized) {
+              window.__oneSignalInitialized = true;
+              OneSignalDeferred.push(async function(OneSignal) {
                 try {
                   await OneSignal.init({
                     appId: "a7951e0e-737c-42e6-bd9d-fc0931d95766",
@@ -49,10 +49,14 @@ export default function RootLayout({
                   });
                   console.log("OneSignal initialized successfully");
                 } catch (err) {
-                  console.log("OneSignal init error (may already be initialized):", err);
+                  if (err && err.message && err.message.includes("already initialized")) {
+                    console.log("OneSignal was already initialized, skipping");
+                  } else {
+                    console.error("OneSignal init error:", err);
+                  }
                 }
-              }
-            });
+              });
+            }
           `}
         </Script>
       </body>

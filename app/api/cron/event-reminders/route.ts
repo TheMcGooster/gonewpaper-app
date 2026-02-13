@@ -89,16 +89,42 @@ export async function GET(request: Request) {
   }
 }
 
+// Parse time strings like "9:30 AM", "3:30 PM", "14:00" into hours and minutes
+function parseTimeStr(timeStr: string): { hours: number; minutes: number } | null {
+  if (!timeStr) return null
+  const trimmed = timeStr.trim()
+
+  // Try 12-hour format: "9:30 AM", "12:00 PM"
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (match12) {
+    let hours = parseInt(match12[1], 10)
+    const minutes = parseInt(match12[2], 10)
+    const period = match12[3].toUpperCase()
+    if (period === 'PM' && hours !== 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
+    return { hours, minutes }
+  }
+
+  // Try 24-hour format: "14:00", "09:30"
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})/)
+  if (match24) {
+    return { hours: parseInt(match24[1], 10), minutes: parseInt(match24[2], 10) }
+  }
+
+  return null
+}
+
 // Fallback if the Supabase RPC function hasn't been created yet
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fallbackReminderQuery(supabase: any) {
   try {
-    // Calculate the time window: events starting in 25-35 minutes from now
+    // Get current time in Central Time (Chariton, IA)
     const now = new Date()
-    const from = new Date(now.getTime() + 25 * 60000)
-    const to = new Date(now.getTime() + 35 * 60000)
+    const centralOffset = -6 * 60
+    const centralTime = new Date(now.getTime() + (centralOffset - now.getTimezoneOffset()) * 60000)
+    const todayStr = centralTime.toISOString().split('T')[0] // YYYY-MM-DD
 
-    // Get user interests joined with events and users
+    // Get all user interests for today's events with user data
     const { data: interests, error } = await supabase
       .from('user_interests')
       .select(`
@@ -107,8 +133,7 @@ async function fallbackReminderQuery(supabase: any) {
         events!inner(id, title, date, time, location),
         users!inner(id, onesignal_player_id)
       `)
-      .gte('events.date', from.toISOString())
-      .lte('events.date', to.toISOString())
+      .eq('events.date', todayStr)
       .not('users.onesignal_player_id', 'is', null)
 
     if (error) {
@@ -120,6 +145,11 @@ async function fallbackReminderQuery(supabase: any) {
       return NextResponse.json({ success: true, message: 'No reminders to send (fallback)', sent: 0 })
     }
 
+    // Filter in JS: find events starting in 25-35 minutes from now (Central Time)
+    const centralNowMs = centralTime.getTime()
+    const fromMs = centralNowMs + 25 * 60000
+    const toMs = centralNowMs + 35 * 60000
+
     let sentCount = 0
     const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY!
     const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766'
@@ -128,6 +158,17 @@ async function fallbackReminderQuery(supabase: any) {
       const event = interest.events as any
       const user = interest.users as any
       if (!user?.onesignal_player_id) continue
+
+      // Parse the event time and build a full timestamp in Central Time
+      const parsed = parseTimeStr(event.time)
+      if (!parsed) continue
+
+      const [year, month, day] = event.date.split('-').map(Number)
+      const eventDate = new Date(year, month - 1, day, parsed.hours, parsed.minutes)
+      const eventMs = eventDate.getTime()
+
+      // Check if event is in the 25-35 minute window
+      if (eventMs < fromMs || eventMs > toMs) continue
 
       // Check if already sent
       const { data: alreadySent } = await supabase

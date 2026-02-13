@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS event_reminders_sent (
 -- This finds events starting in 25-35 minutes where:
 -- - User has marked interest
 -- - Reminder hasn't been sent yet
+-- NOTE: date is TEXT 'YYYY-MM-DD', time is TEXT like '9:30 AM' or '3:30 PM'
+-- We combine them into a proper timestamp for comparison using Central Time (UTC-6)
 CREATE OR REPLACE FUNCTION get_upcoming_event_reminders()
 RETURNS TABLE (
   user_id UUID,
@@ -28,7 +30,12 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  now_central TIMESTAMP;
 BEGIN
+  -- Convert current UTC time to Central Time (Chariton, IA is UTC-6)
+  now_central := NOW() AT TIME ZONE 'America/Chicago';
+
   RETURN QUERY
   SELECT
     ui.user_id,
@@ -41,9 +48,10 @@ BEGIN
   JOIN events e ON e.id = ui.event_id
   JOIN users u ON u.id = ui.user_id
   WHERE
-    -- Event is starting in next 25-35 minutes (30 min window)
-    e.date::timestamp >= NOW() + INTERVAL '25 minutes'
-    AND e.date::timestamp <= NOW() + INTERVAL '35 minutes'
+    -- Combine date + time text into a real timestamp for comparison
+    -- e.date is 'YYYY-MM-DD', e.time is like '9:30 AM' or '3:30 PM'
+    (e.date || ' ' || e.time)::timestamp >= now_central + INTERVAL '25 minutes'
+    AND (e.date || ' ' || e.time)::timestamp <= now_central + INTERVAL '35 minutes'
     -- User has OneSignal player ID
     AND u.onesignal_player_id IS NOT NULL
     -- Haven't sent reminder yet

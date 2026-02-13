@@ -102,42 +102,38 @@ export default function GoNewPaper() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [comics, setComics] = useState<Comic[]>([])
 
-  // Initialize OneSignal and track notification status
+  // Track OneSignal notification status (SDK is initialized in layout.tsx)
   useEffect(() => {
-    const initOneSignal = async () => {
+    const checkNotificationStatus = () => {
       try {
-        await OneSignal.init({
-          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766',
-          allowLocalhostAsSecureOrigin: true,
+        // Use OneSignalDeferred to safely access SDK after it's ready
+        window.OneSignalDeferred = window.OneSignalDeferred || []
+        window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
+          // Check current notification permission status
+          const oneSignalPermission = OneSignalSDK.Notifications.permission
+          const browserPermission = 'Notification' in window ? Notification.permission === 'granted' : false
+          const hasPermission = oneSignalPermission || browserPermission
+          console.log('Notification permission - OneSignal:', oneSignalPermission, 'Browser:', browserPermission)
+          setNotificationsEnabled(hasPermission)
+
+          // Listen for permission changes
+          OneSignalSDK.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
+            console.log('Notification permission changed:', newPermission)
+            setNotificationsEnabled(newPermission)
+            if (newPermission) {
+              showToast('Notifications enabled!')
+            }
+          })
         })
-        console.log('OneSignal initialized successfully')
-
-        // Check current notification permission status
-        // Use both OneSignal and native browser API for reliability
-        const oneSignalPermission = OneSignal.Notifications.permission
-        const browserPermission = 'Notification' in window ? Notification.permission === 'granted' : false
-        const hasPermission = oneSignalPermission || browserPermission
-        console.log('Notification permission - OneSignal:', oneSignalPermission, 'Browser:', browserPermission)
-        setNotificationsEnabled(hasPermission)
-
-        // Listen for permission changes
-        OneSignal.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
-          console.log('Notification permission changed:', newPermission)
-          setNotificationsEnabled(newPermission)
-          if (newPermission) {
-            showToast('Notifications enabled!')
-          }
-        })
-
       } catch (error) {
-        console.error('OneSignal initialization error:', error)
+        console.error('OneSignal status check error:', error)
         // Even if OneSignal fails, check native browser permission
         if ('Notification' in window && Notification.permission === 'granted') {
           setNotificationsEnabled(true)
         }
       }
     }
-    initOneSignal()
+    checkNotificationStatus()
   }, [])
 
   // Save OneSignal player ID to Supabase when user logs in
@@ -495,26 +491,23 @@ const handleInterestToggle = async (eventId: number) => {
 
     setUserInterests(prev => [...prev, eventId])
 
-    // ===== NEW: Capture OneSignal Player ID =====
+    // Capture OneSignal Player ID (v16 SDK uses User.PushSubscription.id)
     try {
-      if (typeof window !== 'undefined' && window.OneSignal) {
-        const playerId = await window.OneSignal.getUserId()
-        if (playerId) {
-          // Save to users table
-          const { error: updateError } = await supabase
-            .from('users')
-            .upsert({ 
-              id: user.id, 
-              onesignal_player_id: playerId 
-            }, { 
-              onConflict: 'id' 
-            })
-          
-          if (updateError) {
-            console.error('Error saving OneSignal ID:', updateError)
-          } else {
-            console.log('OneSignal Player ID saved:', playerId)
-          }
+      const playerId = OneSignal.User.PushSubscription.id
+      if (playerId) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .upsert({
+            id: user.id,
+            onesignal_player_id: playerId
+          }, {
+            onConflict: 'id'
+          })
+
+        if (updateError) {
+          console.error('Error saving OneSignal ID:', updateError)
+        } else {
+          console.log('OneSignal Player ID saved:', playerId)
         }
       }
     } catch (err) {
