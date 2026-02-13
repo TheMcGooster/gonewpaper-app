@@ -15,14 +15,16 @@ export async function GET(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Find all events from past days (keep today's events even if the time has passed)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const startOfToday = today.toISOString()
+    // Use Central Time (Chariton, IA) to determine "today" since dates are stored as YYYY-MM-DD text
+    const now = new Date()
+    const centralOffset = -6 * 60
+    const centralTime = new Date(now.getTime() + (centralOffset - now.getTimezoneOffset()) * 60000)
+    const todayStr = centralTime.toISOString().split('T')[0] // YYYY-MM-DD
 
     const { data: pastEvents, error: fetchError } = await supabase
       .from('events')
       .select('id')
-      .lt('date', startOfToday)
+      .lt('date', todayStr)
 
     if (fetchError) {
       console.error('Error fetching past events:', fetchError)
