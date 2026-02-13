@@ -468,32 +468,58 @@ export default function GoNewPaper() {
     setCommunityPosts(prev => prev.filter(p => p.id !== id))
   }
 
-  // Handle interest toggle
-  const handleInterestToggle = async (eventId: number) => {
-    if (!user) {
-      setShowAuthModal(true)
-      return
+// Handle interest toggle
+const handleInterestToggle = async (eventId: number) => {
+  if (!user) {
+    setShowAuthModal(true)
+    return
+  }
+
+  const isInterested = userInterests.includes(eventId)
+
+  if (isInterested) {
+    // Remove interest
+    await supabase
+      .from('user_interests')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('event_id', eventId)
+
+    setUserInterests(prev => prev.filter(id => id !== eventId))
+    showToast('Removed from your interests')
+  } else {
+    // Add interest
+    await supabase
+      .from('user_interests')
+      .insert({ user_id: user.id, event_id: eventId })
+
+    setUserInterests(prev => [...prev, eventId])
+
+    // ===== NEW: Capture OneSignal Player ID =====
+    try {
+      if (typeof window !== 'undefined' && window.OneSignal) {
+        const playerId = await window.OneSignal.getUserId()
+        if (playerId) {
+          // Save to users table
+          const { error: updateError } = await supabase
+            .from('users')
+            .upsert({ 
+              id: user.id, 
+              onesignal_player_id: playerId 
+            }, { 
+              onConflict: 'id' 
+            })
+          
+          if (updateError) {
+            console.error('Error saving OneSignal ID:', updateError)
+          } else {
+            console.log('OneSignal Player ID saved:', playerId)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error getting OneSignal Player ID:', err)
     }
-
-    const isInterested = userInterests.includes(eventId)
-
-    if (isInterested) {
-      // Remove interest
-      await supabase
-        .from('user_interests')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('event_id', eventId)
-
-      setUserInterests(prev => prev.filter(id => id !== eventId))
-      showToast('Removed from your interests')
-    } else {
-      // Add interest
-      await supabase
-        .from('user_interests')
-        .insert({ user_id: user.id, event_id: eventId })
-
-      setUserInterests(prev => [...prev, eventId])
 
       // Show appropriate toast based on notification status
       if (notificationsEnabled) {
