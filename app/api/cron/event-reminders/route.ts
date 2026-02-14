@@ -39,15 +39,16 @@ export async function GET(request: Request) {
       if (!reminder.onesignal_player_id) continue
 
       try {
-        const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        const response = await fetch('https://api.onesignal.com/notifications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Basic ${oneSignalApiKey}`,
+            'Authorization': `Key ${oneSignalApiKey}`,
           },
           body: JSON.stringify({
             app_id: oneSignalAppId,
-            include_player_ids: [reminder.onesignal_player_id],
+            target_channel: 'push',
+            include_subscription_ids: [reminder.onesignal_player_id],
             headings: { en: 'Event Starting Soon!' },
             contents: {
               en: `${reminder.event_title} starts in ~30 minutes${reminder.event_location ? ` at ${reminder.event_location}` : ''}`,
@@ -180,15 +181,16 @@ async function fallbackReminderQuery(supabase: any) {
 
       if (alreadySent && alreadySent.length > 0) continue
 
-      const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      const response = await fetch('https://api.onesignal.com/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${oneSignalApiKey}`,
+          'Authorization': `Key ${oneSignalApiKey}`,
         },
         body: JSON.stringify({
           app_id: oneSignalAppId,
-          include_player_ids: [user.onesignal_player_id],
+          target_channel: 'push',
+          include_subscription_ids: [user.onesignal_player_id],
           headings: { en: 'Event Starting Soon!' },
           contents: {
             en: `${event.title} starts in ~30 minutes${event.location ? ` at ${event.location}` : ''}`,

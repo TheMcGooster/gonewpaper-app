@@ -53,14 +53,15 @@ export async function GET(request: Request) {
     }
 
     // Send push notification to all subscribed users via OneSignal
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${oneSignalApiKey}`,
+        'Authorization': `Key ${oneSignalApiKey}`,
       },
       body: JSON.stringify({
         app_id: oneSignalAppId,
+        target_channel: 'push',
         included_segments: ['Subscribed Users'],
         headings: { en: heading },
         contents: { en: message },
