@@ -22,13 +22,12 @@ export async function GET(request: Request) {
     const centralTime = new Date(now.getTime() + (centralOffset - now.getTimezoneOffset()) * 60000)
     const todayStr = centralTime.toISOString().split('T')[0]
 
-    // Fetch today's events
+    // Fetch today's events (date column is TEXT 'YYYY-MM-DD')
     const { data: todaysEvents, error: eventsError } = await supabase
       .from('events')
       .select('title, time, location, category')
-      .gte('date', todayStr)
-      .lt('date', todayStr + 'T23:59:59')
-      .order('date', { ascending: true })
+      .eq('date', todayStr)
+      .order('time', { ascending: true })
 
     if (eventsError) {
       console.error('Error fetching events:', eventsError)

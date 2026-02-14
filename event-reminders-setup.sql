@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS event_reminders_sent (
   id SERIAL PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id),
-  event_id INTEGER REFERENCES events(id),
+  event_id BIGINT REFERENCES events(id),
   sent_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, event_id)
 );
@@ -23,7 +23,7 @@ CREATE OR REPLACE FUNCTION get_upcoming_event_reminders()
 RETURNS TABLE (
   user_id UUID,
   onesignal_player_id TEXT,
-  event_id INTEGER,
+  event_id BIGINT,
   event_title TEXT,
   event_time TEXT,
   event_location TEXT
