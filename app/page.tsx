@@ -136,51 +136,58 @@ export default function GoNewPaper() {
     checkNotificationStatus()
   }, [])
 
-  // Save OneSignal player ID to Supabase when user logs in
-  const saveOneSignalPlayerId = async (userId: string) => {
+  // Save OneSignal subscription ID to Supabase when user logs in
+  // Uses OneSignalDeferred to safely wait for SDK to be ready (loaded async in layout.tsx)
+  const saveOneSignalPlayerId = (userId: string) => {
     try {
-      // New OneSignal SDK uses User.PushSubscription.id instead of getUserId()
-      const playerId = OneSignal.User.PushSubscription.id
+      window.OneSignalDeferred = window.OneSignalDeferred || []
+      window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
+        try {
+          const playerId = OneSignalSDK.User.PushSubscription.id
 
-      if (playerId) {
-        const { error } = await supabase
-          .from('users')
-          .upsert({
-            id: userId,
-            onesignal_player_id: playerId
-          }, {
-            onConflict: 'id'
-          })
-
-        if (error) {
-          console.error('Supabase upsert error:', error)
-        } else {
-          console.log('OneSignal player ID saved:', playerId)
-        }
-      } else {
-        console.log('No player ID yet - user may not have allowed notifications')
-
-        // Listen for when user subscribes to notifications
-        OneSignal.User.PushSubscription.addEventListener('change', async (event) => {
-          const newPlayerId = event.current.id
-          if (newPlayerId && event.current.optedIn) {
-            console.log('User subscribed! Saving player ID:', newPlayerId)
+          if (playerId) {
             const { error } = await supabase
               .from('users')
               .upsert({
                 id: userId,
-                onesignal_player_id: newPlayerId
+                onesignal_player_id: playerId
               }, {
                 onConflict: 'id'
               })
-            if (!error) {
-              console.log('OneSignal player ID saved after subscription:', newPlayerId)
+
+            if (error) {
+              console.error('Supabase upsert error:', error)
+            } else {
+              console.log('OneSignal subscription ID saved:', playerId)
             }
+          } else {
+            console.log('No subscription ID yet - waiting for user to allow notifications')
           }
-        })
-      }
+
+          // Always listen for subscription changes (new subscription, token refresh, etc.)
+          OneSignalSDK.User.PushSubscription.addEventListener('change', async (event) => {
+            const newPlayerId = event.current.id
+            if (newPlayerId && event.current.optedIn) {
+              console.log('Subscription changed! Saving ID:', newPlayerId)
+              const { error } = await supabase
+                .from('users')
+                .upsert({
+                  id: userId,
+                  onesignal_player_id: newPlayerId
+                }, {
+                  onConflict: 'id'
+                })
+              if (!error) {
+                console.log('OneSignal subscription ID saved after change:', newPlayerId)
+              }
+            }
+          })
+        } catch (innerErr) {
+          console.error('Error inside OneSignal deferred callback:', innerErr)
+        }
+      })
     } catch (error) {
-      console.error('Error saving OneSignal player ID:', error)
+      console.error('Error setting up OneSignal player ID save:', error)
     }
   }
 
@@ -491,28 +498,8 @@ const handleInterestToggle = async (eventId: number) => {
 
     setUserInterests(prev => [...prev, eventId])
 
-    // Capture OneSignal Player ID (v16 SDK uses User.PushSubscription.id)
-    try {
-      const playerId = OneSignal.User.PushSubscription.id
-      if (playerId) {
-        const { error: updateError } = await supabase
-          .from('users')
-          .upsert({
-            id: user.id,
-            onesignal_player_id: playerId
-          }, {
-            onConflict: 'id'
-          })
-
-        if (updateError) {
-          console.error('Error saving OneSignal ID:', updateError)
-        } else {
-          console.log('OneSignal Player ID saved:', playerId)
-        }
-      }
-    } catch (err) {
-      console.error('Error getting OneSignal Player ID:', err)
-    }
+    // Also save OneSignal subscription ID (in case it wasn't captured on login)
+    saveOneSignalPlayerId(user.id)
 
       // Show appropriate toast based on notification status
       if (notificationsEnabled) {
