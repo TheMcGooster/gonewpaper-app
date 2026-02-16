@@ -148,15 +148,11 @@ export default function GoNewPaper() {
           if (playerId) {
             const { error } = await supabase
               .from('users')
-              .upsert({
-                id: userId,
-                onesignal_player_id: playerId
-              }, {
-                onConflict: 'id'
-              })
+              .update({ onesignal_player_id: playerId })
+              .eq('id', userId)
 
             if (error) {
-              console.error('Supabase upsert error:', error)
+              console.error('Supabase update error:', error)
             } else {
               console.log('OneSignal subscription ID saved:', playerId)
             }
@@ -171,12 +167,8 @@ export default function GoNewPaper() {
               console.log('Subscription changed! Saving ID:', newPlayerId)
               const { error } = await supabase
                 .from('users')
-                .upsert({
-                  id: userId,
-                  onesignal_player_id: newPlayerId
-                }, {
-                  onConflict: 'id'
-                })
+                .update({ onesignal_player_id: newPlayerId })
+                .eq('id', userId)
               if (!error) {
                 console.log('OneSignal subscription ID saved after change:', newPlayerId)
               }
@@ -1063,7 +1055,7 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="grid grid-cols-1 gap-4">
                   {displayComics.map((comic, index) => (
                     <div key={comic.id} className={`bg-white rounded-xl shadow-md border-2 overflow-hidden ${index === 0 ? 'border-yellow-300' : 'border-gray-100'}`}>
-                      {comic.image_url ? (
+                      {comic.image_url && comic.image_url.trim() !== '' ? (
                         <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-gray-50" />
                       ) : (
                         <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6">

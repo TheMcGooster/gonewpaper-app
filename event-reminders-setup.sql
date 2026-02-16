@@ -25,6 +25,12 @@ CREATE TABLE IF NOT EXISTS event_reminders_sent (
 -- this table directly from the client side.
 ALTER TABLE event_reminders_sent ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies first (safe if they don't exist yet)
+-- PostgreSQL doesn't support CREATE POLICY IF NOT EXISTS,
+-- so we drop-then-create to make this file safely re-runnable.
+DROP POLICY IF EXISTS "Service role can insert reminders" ON event_reminders_sent;
+DROP POLICY IF EXISTS "Users can view their own sent reminders" ON event_reminders_sent;
+
 -- Policy: Only the service role (used by Edge Functions) can insert rows.
 -- Regular authenticated users have no access to this table.
 CREATE POLICY "Service role can insert reminders"
