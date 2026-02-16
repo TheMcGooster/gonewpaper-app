@@ -187,8 +187,10 @@ export default function GoNewPaper() {
 
   // Listen for PWA install prompt
   useEffect(() => {
-    // Check if already installed as PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    // Only hide the button if CURRENTLY running as installed PWA (standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true  // iOS Safari
+    if (isStandalone) {
       setIsAppInstalled(true)
     }
 
