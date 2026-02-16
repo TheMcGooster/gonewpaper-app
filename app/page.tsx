@@ -2,7 +2,7 @@
 // Go New Paper v2.0.0 - 10 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club, Comic } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
@@ -57,6 +57,8 @@ export default function GoNewPaper() {
   const [authLoading, setAuthLoading] = useState(false)
   const [userInterests, setUserInterests] = useState<number[]>([])
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   // Listing form state
@@ -182,6 +184,28 @@ export default function GoNewPaper() {
       console.error('Error setting up OneSignal player ID save:', error)
     }
   }
+
+  // Listen for PWA install prompt
+  useEffect(() => {
+    // Check if already installed as PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsAppInstalled(true)
+    }
+
+    const handler = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+
+    // Listen for successful install
+    window.addEventListener('appinstalled', () => {
+      setIsAppInstalled(true)
+      setDeferredPrompt(null)
+    })
+
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
 
   // Check auth state on load
   useEffect(() => {
@@ -2001,6 +2025,34 @@ const handleInterestToggle = async (eventId: number) => {
                     Enable Notifications
                   </button>
                 )}
+                {/* Add to Phone Apps Button */}
+                {!isAppInstalled && (
+                  <button
+                    onClick={async () => {
+                      if (deferredPrompt) {
+                        deferredPrompt.prompt()
+                        const { outcome } = await deferredPrompt.userChoice
+                        if (outcome === 'accepted') {
+                          setIsAppInstalled(true)
+                          showToast('App installed! Check your home screen.')
+                        }
+                        setDeferredPrompt(null)
+                      } else {
+                        // Fallback instructions for iOS or when prompt isn't available
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                        if (isIOS) {
+                          showToast('Tap the Share button ⬆️ then "Add to Home Screen"')
+                        } else {
+                          showToast('Open browser menu ⋮ then "Add to Home Screen"')
+                        }
+                      }
+                    }}
+                    className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    Add to your Phone Apps
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-xl mb-4">
@@ -2017,6 +2069,33 @@ const handleInterestToggle = async (eventId: number) => {
                   <LogIn className="w-4 h-4" />
                   LOG IN / SIGN UP
                 </button>
+                {/* Add to Phone Apps Button (not logged in) */}
+                {!isAppInstalled && (
+                  <button
+                    onClick={async () => {
+                      if (deferredPrompt) {
+                        deferredPrompt.prompt()
+                        const { outcome } = await deferredPrompt.userChoice
+                        if (outcome === 'accepted') {
+                          setIsAppInstalled(true)
+                          showToast('App installed! Check your home screen.')
+                        }
+                        setDeferredPrompt(null)
+                      } else {
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                        if (isIOS) {
+                          showToast('Tap the Share button ⬆️ then "Add to Home Screen"')
+                        } else {
+                          showToast('Open browser menu ⋮ then "Add to Home Screen"')
+                        }
+                      }
+                    }}
+                    className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    Add to your Phone Apps
+                  </button>
+                )}
               </div>
             )}
 
