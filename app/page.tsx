@@ -1996,33 +1996,37 @@ const handleInterestToggle = async (eventId: number) => {
                   </div>
                 ) : (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       try {
                         // Use native browser API first (more reliable), then OneSignal picks it up
                         if ('Notification' in window) {
-                          const permission = await Notification.requestPermission()
-                          console.log('Browser notification permission:', permission)
-                          if (permission === 'granted') {
-                            setNotificationsEnabled(true)
-                            showToast('Notifications enabled!')
-                            // OneSignal will detect the permission change automatically
-                            // Also try to save player ID now
-                            if (user) {
-                              saveOneSignalPlayerId(user.id)
+                          Notification.requestPermission().then((permission) => {
+                            console.log('Browser notification permission:', permission)
+                            if (permission === 'granted') {
+                              setNotificationsEnabled(true)
+                              showToast('Notifications enabled!')
+                              // OneSignal will detect the permission change automatically
+                              // Also try to save player ID now
+                              if (user) {
+                                saveOneSignalPlayerId(user.id)
+                              }
+                            } else if (permission === 'denied') {
+                              showToast('Notifications blocked. Check browser settings.')
                             }
-                          } else if (permission === 'denied') {
-                            showToast('Notifications blocked. Check browser settings.')
-                          }
+                          }).catch((err) => {
+                            console.log('Permission request error:', err)
+                            showToast('Could not request notification permission')
+                          })
                         } else {
                           // Fallback to OneSignal method
-                          await OneSignal.Notifications.requestPermission()
+                          OneSignal.Notifications.requestPermission()
                         }
                       } catch (err) {
                         console.log('Permission request error:', err)
                         showToast('Could not request notification permission')
                       }
                     }}
-                    className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black"
+                    className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black active:scale-95"
                   >
                     <Bell className="w-4 h-4" />
                     Enable Notifications
