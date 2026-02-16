@@ -51,10 +51,14 @@ export async function GET(request: Request) {
         message = 'No events scheduled for today. Check out upcoming events in the app!'
       } else if (eventCount === 1) {
         const e = todaysEvents![0]
-        message = `Today: ${e.category} ${e.title} at ${e.time || 'TBD'}${e.location ? ` - ${e.location}` : ''}`
+        const cat = e.category ? `${e.category} ` : ''
+        message = `Today: ${cat}${e.title} at ${e.time || 'TBD'}${e.location ? ` - ${e.location}` : ''}`
       } else {
         // List first 2-3 events, mention total
-        const preview = todaysEvents!.slice(0, 3).map(e => `${e.category} ${e.title}`).join(', ')
+        const preview = todaysEvents!.slice(0, 3).map(e => {
+          const cat = e.category ? `${e.category} ` : ''
+          return `${cat}${e.title}`
+        }).join(', ')
         message = `${eventCount} events today: ${preview}${eventCount > 3 ? ` +${eventCount - 3} more` : ''}`
       }
 
