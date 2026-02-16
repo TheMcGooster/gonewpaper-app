@@ -59,6 +59,7 @@ export default function GoNewPaper() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
+  const [showInstallHelp, setShowInstallHelp] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   // Listing form state
@@ -2029,31 +2030,46 @@ const handleInterestToggle = async (eventId: number) => {
                 )}
                 {/* Add to Phone Apps Button */}
                 {!isAppInstalled && (
-                  <button
-                    onClick={async () => {
-                      if (deferredPrompt) {
-                        deferredPrompt.prompt()
-                        const { outcome } = await deferredPrompt.userChoice
-                        if (outcome === 'accepted') {
-                          setIsAppInstalled(true)
-                          showToast('App installed! Check your home screen.')
-                        }
-                        setDeferredPrompt(null)
-                      } else {
-                        // Fallback instructions for iOS or when prompt isn't available
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-                        if (isIOS) {
-                          showToast('Tap the Share button ⬆️ then "Add to Home Screen"')
+                  <>
+                    <button
+                      onClick={() => {
+                        if (deferredPrompt) {
+                          deferredPrompt.prompt()
+                          deferredPrompt.userChoice.then((result: any) => {
+                            if (result.outcome === 'accepted') {
+                              setIsAppInstalled(true)
+                              showToast('App installed! Check your home screen.')
+                            }
+                            setDeferredPrompt(null)
+                          })
                         } else {
-                          showToast('Open browser menu ⋮ then "Add to Home Screen"')
+                          setShowInstallHelp(true)
                         }
-                      }
-                    }}
-                    className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    Add to your Phone Apps
-                  </button>
+                      }}
+                      className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      Add to your Phone Apps
+                    </button>
+                    {showInstallHelp && (
+                      <div className="mt-2 bg-white/10 rounded-lg p-3 text-xs font-semibold space-y-2">
+                        <p className="font-black text-sm">📲 How to install:</p>
+                        {/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator as any).standalone !== undefined ? (
+                          <div className="space-y-1">
+                            <p>1. Tap the <strong>Share</strong> button <span className="text-lg">⬆️</span> at the bottom of Safari</p>
+                            <p>2. Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong></p>
+                            <p>3. Tap <strong>&quot;Add&quot;</strong> in the top right</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p>1. Tap the <strong>⋮ menu</strong> (3 dots) in your browser</p>
+                            <p>2. Tap <strong>&quot;Add to Home Screen&quot;</strong> or <strong>&quot;Install App&quot;</strong></p>
+                          </div>
+                        )}
+                        <button onClick={() => setShowInstallHelp(false)} className="text-xs underline opacity-70">Dismiss</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
@@ -2073,30 +2089,46 @@ const handleInterestToggle = async (eventId: number) => {
                 </button>
                 {/* Add to Phone Apps Button (not logged in) */}
                 {!isAppInstalled && (
-                  <button
-                    onClick={async () => {
-                      if (deferredPrompt) {
-                        deferredPrompt.prompt()
-                        const { outcome } = await deferredPrompt.userChoice
-                        if (outcome === 'accepted') {
-                          setIsAppInstalled(true)
-                          showToast('App installed! Check your home screen.')
-                        }
-                        setDeferredPrompt(null)
-                      } else {
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-                        if (isIOS) {
-                          showToast('Tap the Share button ⬆️ then "Add to Home Screen"')
+                  <>
+                    <button
+                      onClick={() => {
+                        if (deferredPrompt) {
+                          deferredPrompt.prompt()
+                          deferredPrompt.userChoice.then((result: any) => {
+                            if (result.outcome === 'accepted') {
+                              setIsAppInstalled(true)
+                              showToast('App installed! Check your home screen.')
+                            }
+                            setDeferredPrompt(null)
+                          })
                         } else {
-                          showToast('Open browser menu ⋮ then "Add to Home Screen"')
+                          setShowInstallHelp(true)
                         }
-                      }
-                    }}
-                    className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    Add to your Phone Apps
-                  </button>
+                      }}
+                      className="w-full mt-2 bg-white/20 hover:bg-white/30 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      Add to your Phone Apps
+                    </button>
+                    {showInstallHelp && (
+                      <div className="mt-2 bg-white/10 rounded-lg p-3 text-xs font-semibold space-y-2">
+                        <p className="font-black text-sm">📲 How to install:</p>
+                        {/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator as any).standalone !== undefined ? (
+                          <div className="space-y-1">
+                            <p>1. Tap the <strong>Share</strong> button <span className="text-lg">⬆️</span> at the bottom of Safari</p>
+                            <p>2. Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong></p>
+                            <p>3. Tap <strong>&quot;Add&quot;</strong> in the top right</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p>1. Tap the <strong>⋮ menu</strong> (3 dots) in your browser</p>
+                            <p>2. Tap <strong>&quot;Add to Home Screen&quot;</strong> or <strong>&quot;Install App&quot;</strong></p>
+                          </div>
+                        )}
+                        <button onClick={() => setShowInstallHelp(false)} className="text-xs underline opacity-70">Dismiss</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
