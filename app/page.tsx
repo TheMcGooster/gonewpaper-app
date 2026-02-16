@@ -1055,7 +1055,7 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="grid grid-cols-1 gap-4">
                   {displayComics.map((comic, index) => (
                     <div key={comic.id} className={`bg-white rounded-xl shadow-md border-2 overflow-hidden ${index === 0 ? 'border-yellow-300' : 'border-gray-100'}`}>
-                      {comic.image_url && comic.image_url.trim() !== '' ? (
+                      {comic.image_url && comic.image_url.trim() !== '' && comic.image_url.trim().startsWith('http') ? (
                         <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-gray-50" />
                       ) : (
                         <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
