@@ -16,10 +16,9 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get today's date in Central Time (UTC-6)
-    const now = new Date()
-    const centralOffset = -6 * 60
-    const centralTime = new Date(now.getTime() + (centralOffset - now.getTimezoneOffset()) * 60000)
+    // Get today's date in Central Time — auto-handles DST
+    const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
+    const centralTime = new Date(centralTimeStr)
     const todayStr = centralTime.toISOString().split('T')[0]
 
     // Fetch today's events (date column is TEXT 'YYYY-MM-DD')

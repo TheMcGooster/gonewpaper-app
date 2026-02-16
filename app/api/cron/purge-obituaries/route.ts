@@ -14,11 +14,13 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0]
+    // Get today's date in Central Time — auto-handles DST
+    const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
+    const centralTime = new Date(centralTimeStr)
+    const today = centralTime.toISOString().split('T')[0]
 
-    // Calculate the date 14 days ago
-    const fourteenDaysAgo = new Date()
+    // Calculate the date 14 days ago (in Central Time)
+    const fourteenDaysAgo = new Date(centralTime)
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
     const cutoffDate = fourteenDaysAgo.toISOString().split('T')[0]
 

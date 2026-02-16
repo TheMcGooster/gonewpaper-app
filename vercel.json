@@ -12,15 +12,7 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/purge-obituaries",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/purge-events",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/daily-summary",
+      "path": "/api/cron/daily-morning",
       "schedule": "0 12 * * *"
     },
     {

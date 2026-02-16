@@ -1,8 +1,8 @@
 'use client'
-// Go New Paper v2.0.0 - 8 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, Community, Affiliates
+// Go New Paper v2.0.0 - 10 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club, Comic } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import OneSignal from 'react-onesignal'
@@ -1073,12 +1073,23 @@ const handleInterestToggle = async (eventId: number) => {
                           )}
                         </div>
                       )}
-                      <div className="px-4 py-3 flex items-center justify-between border-t border-gray-100">
-                        <div className="flex items-center gap-2">
-                          {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-xs font-black px-2 py-0.5 rounded">TODAY</span>}
-                          <span className="text-xs text-gray-500 font-semibold">{comic.publish_date}</span>
+                      <div className="px-4 py-3 border-t border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-xs font-black px-2 py-0.5 rounded">TODAY</span>}
+                            <span className="text-xs text-gray-500 font-semibold">{comic.publish_date}</span>
+                          </div>
+                          {comic.source && <span className="text-xs text-gray-400 font-semibold">{comic.source}</span>}
                         </div>
-                        {comic.source && <span className="text-xs text-gray-400 font-semibold">{comic.source}</span>}
+                        {comic.artist_name && (
+                          <div className="mt-1">
+                            <span className="text-xs text-gray-500 font-semibold">
+                              By {comic.artist_url ? (
+                                <a href={comic.artist_url} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-800 underline">{comic.artist_name}</a>
+                              ) : comic.artist_name}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1379,13 +1390,18 @@ const handleInterestToggle = async (eventId: number) => {
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="text-base font-black tracking-tight mb-1">{c.full_name}</h3>
-                            {c.age && <p className="text-sm text-gray-600 font-semibold">Age {c.age}</p>}
-                            {(c.birth_date || c.passing_date) && (
+                            {(() => {
+                              const displayAge = c.age ?? (c.birth_date && c.passing_date ? Math.floor((new Date(c.passing_date).getTime() - new Date(c.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null)
+                              return displayAge != null ? <p className="text-sm text-gray-600 font-semibold">Age {displayAge}</p> : null
+                            })()}
+                            {(c.birth_date || c.passing_date) ? (
                               <p className="text-xs text-gray-500 font-semibold mt-1">
                                 {c.birth_date && `Born: ${c.birth_date}`}
                                 {c.birth_date && c.passing_date && ' • '}
                                 {c.passing_date && `Passed: ${c.passing_date}`}
                               </p>
+                            ) : (
+                              <p className="text-xs text-gray-400 italic font-semibold mt-1">Dates unavailable</p>
                             )}
                           </div>
                         </div>
@@ -1409,14 +1425,21 @@ const handleInterestToggle = async (eventId: number) => {
                             )}
                           </div>
                         )}
-                        {c.funeral_home && (
-                          <div className="mt-3 text-xs text-gray-500 font-semibold">
-                            {c.funeral_home_url ? (
-                              <a href={c.funeral_home_url} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 underline">
-                                {c.funeral_home}
+                        {(c.funeral_home || c.funeral_home_url) && (
+                          <div className="mt-3 flex items-center justify-between">
+                            {c.funeral_home && (
+                              <p className="text-xs text-gray-500 font-semibold">{c.funeral_home}</p>
+                            )}
+                            {c.funeral_home_url && (
+                              <a
+                                href={c.funeral_home_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                View Full Obituary
+                                <ExternalLink className="w-3 h-3" />
                               </a>
-                            ) : (
-                              <span>{c.funeral_home}</span>
                             )}
                           </div>
                         )}
@@ -1552,7 +1575,7 @@ const handleInterestToggle = async (eventId: number) => {
               style={{ minWidth: '72px', flexShrink: 0 }}
             >
               <tab.icon className="w-6 h-6" strokeWidth={activeTab === tab.id ? 3 : 2} />
-              <span className="text-xs font-black tracking-wider uppercase">{tab.id}</span>
+              <span className="text-xs font-black tracking-wider uppercase">{tab.label}</span>
             </button>
           ))}
         </div>

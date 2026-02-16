@@ -6,6 +6,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766'
 const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY!
 
+// NOTE: Vercel Hobby cron runs once per hour at most. This endpoint checks a 10-minute
+// window (25-35 min before event start), so events outside that window will be missed.
+// Plan: migrate to ActivePieces for true 5-minute polling intervals.
 export async function GET(request: Request) {
   // Verify this is called by Vercel Cron
   const authHeader = request.headers.get('authorization')
@@ -119,10 +122,9 @@ function parseTimeStr(timeStr: string): { hours: number; minutes: number } | nul
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fallbackReminderQuery(supabase: any) {
   try {
-    // Get current time in Central Time (Chariton, IA)
-    const now = new Date()
-    const centralOffset = -6 * 60
-    const centralTime = new Date(now.getTime() + (centralOffset - now.getTimezoneOffset()) * 60000)
+    // Get current time in Central Time (Chariton, IA) — auto-handles DST
+    const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
+    const centralTime = new Date(centralTimeStr)
     const todayStr = centralTime.toISOString().split('T')[0] // YYYY-MM-DD
 
     // Get all user interests for today's events with user data
