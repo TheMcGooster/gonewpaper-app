@@ -112,28 +112,36 @@ export default function GoNewPaper() {
         // Use OneSignalDeferred to safely access SDK after it's ready
         window.OneSignalDeferred = window.OneSignalDeferred || []
         window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
-          // Check current notification permission status
+          // Check OneSignal subscription status (NOT just browser permission!)
+          // Browser permission and OneSignal subscription are DIFFERENT things.
+          // User must have a OneSignal subscription (player ID) for notifications to actually work.
           const oneSignalPermission = OneSignalSDK.Notifications.permission
-          const browserPermission = 'Notification' in window ? Notification.permission === 'granted' : false
-          const hasPermission = oneSignalPermission || browserPermission
-          console.log('Notification permission - OneSignal:', oneSignalPermission, 'Browser:', browserPermission)
-          setNotificationsEnabled(hasPermission)
+          const hasSubscription = !!OneSignalSDK.User.PushSubscription.id
+          console.log('OneSignal permission:', oneSignalPermission, 'Has subscription:', hasSubscription, 'Player ID:', OneSignalSDK.User.PushSubscription.id)
+          setNotificationsEnabled(oneSignalPermission && hasSubscription)
 
           // Listen for permission changes
           OneSignalSDK.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
             console.log('Notification permission changed:', newPermission)
-            setNotificationsEnabled(newPermission)
-            if (newPermission) {
+            const subId = OneSignalSDK.User.PushSubscription.id
+            setNotificationsEnabled(newPermission && !!subId)
+            if (newPermission && subId) {
               showToast('Notifications enabled!')
+            }
+          })
+
+          // Listen for subscription changes (player ID created/changed)
+          OneSignalSDK.User.PushSubscription.addEventListener('change', (event: any) => {
+            console.log('Subscription changed:', event.current.id, 'optedIn:', event.current.optedIn)
+            if (event.current.id && event.current.optedIn) {
+              setNotificationsEnabled(true)
             }
           })
         })
       } catch (error) {
         console.error('OneSignal status check error:', error)
-        // Even if OneSignal fails, check native browser permission
-        if ('Notification' in window && Notification.permission === 'granted') {
-          setNotificationsEnabled(true)
-        }
+        // Don't set notifications as enabled based on browser permission alone
+        // OneSignal subscription is required for actual notification delivery
       }
     }
     checkNotificationStatus()
@@ -1998,29 +2006,30 @@ const handleInterestToggle = async (eventId: number) => {
                   <button
                     onClick={() => {
                       try {
-                        // Use native browser API first (more reliable), then OneSignal picks it up
-                        if ('Notification' in window) {
-                          Notification.requestPermission().then((permission) => {
-                            console.log('Browser notification permission:', permission)
-                            if (permission === 'granted') {
+                        // Use OneSignal SDK to request permission AND create push subscription
+                        // This is the correct approach - Notification.requestPermission() alone
+                        // only grants browser permission but does NOT create a OneSignal subscription
+                        window.OneSignalDeferred = window.OneSignalDeferred || []
+                        window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
+                          OneSignalSDK.Notifications.requestPermission().then(() => {
+                            const playerId = OneSignalSDK.User.PushSubscription.id
+                            const permission = OneSignalSDK.Notifications.permission
+                            console.log('OneSignal permission after request:', permission, 'Player ID:', playerId)
+                            if (permission) {
                               setNotificationsEnabled(true)
                               showToast('Notifications enabled!')
-                              // OneSignal will detect the permission change automatically
-                              // Also try to save player ID now
+                              // Save player ID to Supabase
                               if (user) {
                                 saveOneSignalPlayerId(user.id)
                               }
-                            } else if (permission === 'denied') {
+                            } else {
                               showToast('Notifications blocked. Check browser settings.')
                             }
-                          }).catch((err) => {
-                            console.log('Permission request error:', err)
-                            showToast('Could not request notification permission')
+                          }).catch((err: any) => {
+                            console.log('OneSignal permission request error:', err)
+                            showToast('Could not enable notifications')
                           })
-                        } else {
-                          // Fallback to OneSignal method
-                          OneSignal.Notifications.requestPermission()
-                        }
+                        })
                       } catch (err) {
                         console.log('Permission request error:', err)
                         showToast('Could not request notification permission')

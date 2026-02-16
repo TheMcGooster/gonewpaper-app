@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       body: JSON.stringify({
         app_id: oneSignalAppId,
         target_channel: 'push',
-        included_segments: ['Subscribed Users'],
+        included_segments: ['Total Subscriptions'],
         headings: { en: heading },
         contents: { en: message },
         url: 'https://www.gonewpaper.com',
