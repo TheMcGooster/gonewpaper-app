@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     dailySummary?: Record<string, unknown>
     purgeObituaries?: Record<string, unknown>
     purgeEvents?: Record<string, unknown>
+    purgeHousing?: Record<string, unknown>
   } = {}
 
   // --- 1. Daily Summary Notification ---
@@ -213,6 +214,44 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Purge events error:', error)
     results.purgeEvents = { error: 'Purge events failed' }
+  }
+
+  // --- 4. Purge Expired Housing Listings ---
+  try {
+    const { data: expiredHousing, error: fetchError } = await supabase
+      .from('housing')
+      .select('id, title')
+      .lt('expires_at', new Date().toISOString())
+      .eq('is_active', true)
+
+    if (fetchError) {
+      console.error('Error fetching expired housing:', fetchError)
+      results.purgeHousing = { error: 'Failed to fetch expired housing', details: fetchError.message }
+    } else if (!expiredHousing || expiredHousing.length === 0) {
+      results.purgeHousing = { success: true, message: 'No expired housing to purge', deactivated: 0 }
+    } else {
+      const expiredIds = expiredHousing.map(h => h.id)
+
+      // Soft-delete: deactivate and mark as expired (keeps data for records)
+      const { error: updateError } = await supabase
+        .from('housing')
+        .update({ is_active: false, payment_status: 'expired' })
+        .in('id', expiredIds)
+
+      if (updateError) {
+        console.error('Error deactivating expired housing:', updateError)
+        results.purgeHousing = { error: 'Failed to deactivate expired housing', details: updateError.message }
+      } else {
+        results.purgeHousing = {
+          success: true,
+          deactivated: expiredIds.length,
+          titles: expiredHousing.map(h => h.title),
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Purge housing error:', error)
+    results.purgeHousing = { error: 'Purge housing failed' }
   }
 
   return NextResponse.json({ success: true, ...results })

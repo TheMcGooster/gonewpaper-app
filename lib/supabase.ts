@@ -86,9 +86,13 @@ export type Housing = {
   image_url?: string
   contact_name?: string
   contact_phone?: string
+  contact_email?: string
   pets_allowed: boolean
   town_id: number
   is_active: boolean
+  created_at?: string
+  expires_at?: string
+  payment_status?: string
 }
 
 export type CommunityPost = {

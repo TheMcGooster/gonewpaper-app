@@ -958,9 +958,42 @@ const handleInterestToggle = async (eventId: number) => {
               <>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-black tracking-tight font-display">HOUSING</h2>
-                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                  <a
+                    href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide"
+                  >
                     <Plus className="w-4 h-4" />POST
-                  </button>
+                  </a>
+                </div>
+                {/* Pricing Info Banner */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mb-4 shadow-md">
+                  <p className="text-sm font-bold text-gray-800 mb-1">Post your rental or property listing!</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-gray-600 font-semibold">Single post: <span className="font-black text-green-700">$8</span> (30 days)</p>
+                      <a
+                        href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-black tracking-wide shadow-lg hover:shadow-xl transition-all"
+                      >
+                        POST NOW
+                      </a>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-gray-600 font-semibold">5-Pack: <span className="font-black text-green-700">$30</span> (save $10!)</p>
+                      <a
+                        href="https://buy.stripe.com/eVq8wQ3Cm8x38ddgan5ZC08"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-gradient-to-r from-emerald-600 to-green-700 text-white px-4 py-2 rounded-lg text-xs font-black tracking-wide shadow-lg hover:shadow-xl transition-all"
+                      >
+                        5-PACK
+                      </a>
+                    </div>
+                  </div>
                 </div>
                 {displayHousing.map(h => (
                   <Card key={h.id}>
@@ -972,6 +1005,11 @@ const handleInterestToggle = async (eventId: number) => {
                       <span className="text-xl font-black charger-red-text">{h.price}</span>
                     </div>
                     <p className="text-sm text-gray-700 font-semibold mb-3">{h.details}</p>
+                    {h.expires_at && (
+                      <p className="text-xs text-gray-400 font-semibold mb-2">
+                        Expires {new Date(h.expires_at).toLocaleDateString()}
+                      </p>
+                    )}
                     <button className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
                       CONTACT
                     </button>
