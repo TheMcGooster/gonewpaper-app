@@ -25,6 +25,18 @@ h1, h2, h3, .font-display {
   color: #DC143C;
 }
 
+.panther-gold {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.panther-gold-text {
+  color: #D4A843;
+}
+
+.panther-gold-accent {
+  background: linear-gradient(135deg, #D4A843 0%, #B8902F 100%);
+}
+
 /* AI badge animation */
 .ai-badge {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -59,11 +71,17 @@ html {
   box-shadow: 0 10px 40px rgba(0,0,0,0.12);
 }
 
-/* Tab active state */
+/* Tab active state - default (Chariton) */
 .tab-active {
   background: white;
   color: #DC143C;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Knoxville Panthers gold accent for buttons */
+.panther-btn {
+  background: linear-gradient(135deg, #D4A843 0%, #B8902F 100%);
+  color: #1a1a1a;
 }
 
 /* PWA safe area padding */

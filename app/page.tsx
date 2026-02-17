@@ -10,10 +10,12 @@ import OneSignal from 'react-onesignal'
 // Format date from YYYY-MM-DD string to readable format (FIXED - no timezone shift)
 const formatEventDate = (dateStr: string) => {
   try {
-    // Split the date string and create date in local timezone (no UTC conversion)
-    const [year, month, day] = dateStr.split('-').map(Number)
+    // Handle ISO timestamps like "2025-01-10T00:00:00Z" — extract just the date part
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-').map(Number)
+    if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) return dateStr
     const date = new Date(year, month - 1, day) // month is 0-indexed
-    
+
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -63,6 +65,13 @@ export default function GoNewPaper() {
   const [toast, setToast] = useState<string | null>(null)
   const [selectedTownId, setSelectedTownId] = useState(1) // Default to Chariton
   const [selectedTownName, setSelectedTownName] = useState('Chariton')
+
+  // Town theme configuration — colors, branding, etc.
+  const townThemes: Record<number, { name: string; mascot: string; letter: string; primaryColor: string; darkColor: string; accentClass: string; accentTextClass: string; accentBg: string; tabActiveText: string; shieldFill: string; selectorBg: string; selectorBorder: string; selectorEmoji: string; colorLabel: string }> = {
+    1: { name: 'Chariton', mascot: 'Chargers', letter: 'C', primaryColor: '#DC143C', darkColor: '#A01020', accentClass: 'charger-red', accentTextClass: 'charger-red-text', accentBg: 'bg-red-600', tabActiveText: 'text-red-600', shieldFill: '#DC143C', selectorBg: 'bg-red-50', selectorBorder: 'border-red-400', selectorEmoji: '🔴', colorLabel: 'Chargers Red/White' },
+    2: { name: 'Knoxville', mascot: 'Panthers', letter: 'K', primaryColor: '#D4A843', darkColor: '#1a1a1a', accentClass: 'panther-gold', accentTextClass: 'panther-gold-text', accentBg: 'bg-yellow-600', tabActiveText: 'text-yellow-700', shieldFill: '#1a1a1a', selectorBg: 'bg-yellow-50', selectorBorder: 'border-yellow-500', selectorEmoji: '🟡', colorLabel: 'Panthers Black/Gold' },
+  }
+  const theme = townThemes[selectedTownId] || townThemes[1]
 
   // Listing form state
   const [showListingModal, setShowListingModal] = useState(false)
@@ -495,7 +504,7 @@ export default function GoNewPaper() {
         description: listingForm.description.trim() || null,
         website: listingForm.website.trim() || null,
         phone: listingForm.phone.trim() || null,
-        town_id: 1,
+        town_id: selectedTownId,
         is_active: true,
         display_order: 999,
       })
@@ -513,7 +522,7 @@ export default function GoNewPaper() {
         phone: listingForm.phone.trim() || null,
         meeting_schedule: listingForm.meeting_schedule.trim() || null,
         meeting_location: listingForm.meeting_location.trim() || null,
-        town_id: 1,
+        town_id: selectedTownId,
         is_active: true,
         display_order: 999,
       })
@@ -524,12 +533,12 @@ export default function GoNewPaper() {
     setListingLoading(false)
     showToast(`${listingType === 'nonprofit' ? 'Non-profit' : 'Club'} listed successfully!`)
 
-    // Re-fetch data so the new entry appears immediately
+    // Re-fetch data so the new entry appears immediately (filtered by current town)
     if (listingType === 'nonprofit') {
-      const { data } = await supabase.from('nonprofits').select('*').eq('is_active', true).order('display_order', { ascending: true })
+      const { data } = await supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true })
       if (data) setNonprofits(data)
     } else {
-      const { data } = await supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true })
+      const { data } = await supabase.from('clubs').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true })
       if (data) setClubs(data)
     }
   }
@@ -561,7 +570,7 @@ export default function GoNewPaper() {
       time: communityForm.hours.trim() || null,
       contact_info: communityForm.contact_info.trim() || null,
       image_url: null,
-      town_id: 1,
+      town_id: selectedTownId,
       is_active: true,
     })
 
@@ -571,8 +580,8 @@ export default function GoNewPaper() {
     setCommunityLoading(false)
     showToast('Community post submitted!')
 
-    // Re-fetch community posts
-    const { data } = await supabase.from('community_posts').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(20)
+    // Re-fetch community posts (filtered by current town)
+    const { data } = await supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20)
     if (data) setCommunityPosts(data)
   }
 
@@ -826,16 +835,16 @@ const handleInterestToggle = async (eventId: number) => {
         <div className="p-4">
           {/* Top Row: Town Badge + Go New Paper Logo */}
           <div className="flex items-center justify-between mb-3">
-            {/* Left: Chariton Badge */}
+            {/* Left: Town Badge — dynamic per selected town */}
             <div className="flex items-center gap-3">
               <svg width="50" height="50" viewBox="0 0 100 100" className="drop-shadow-xl">
-                <path d="M50 5 L90 15 L90 65 Q90 85 50 95 Q10 85 10 65 L10 15 Z" fill="#DC143C" stroke="#000" strokeWidth="4"/>
-                <path d="M50 12 L83 20 L83 65 Q83 80 50 88 Q17 80 17 65 L17 20 Z" fill="#DC143C" stroke="#fff" strokeWidth="3"/>
-                <text x="50" y="72" fontSize="52" fontWeight="900" fill="#fff" textAnchor="middle" fontFamily="Archivo Black" stroke="#000" strokeWidth="2">C</text>
-                <text x="50" y="72" fontSize="52" fontWeight="900" fill="#fff" textAnchor="middle" fontFamily="Archivo Black">C</text>
+                <path d="M50 5 L90 15 L90 65 Q90 85 50 95 Q10 85 10 65 L10 15 Z" fill={theme.shieldFill} stroke="#000" strokeWidth="4"/>
+                <path d="M50 12 L83 20 L83 65 Q83 80 50 88 Q17 80 17 65 L17 20 Z" fill={theme.shieldFill} stroke={selectedTownId === 2 ? '#D4A843' : '#fff'} strokeWidth="3"/>
+                <text x="50" y="72" fontSize="52" fontWeight="900" fill={selectedTownId === 2 ? '#D4A843' : '#fff'} textAnchor="middle" fontFamily="Archivo Black" stroke="#000" strokeWidth="2">{theme.letter}</text>
+                <text x="50" y="72" fontSize="52" fontWeight="900" fill={selectedTownId === 2 ? '#D4A843' : '#fff'} textAnchor="middle" fontFamily="Archivo Black">{theme.letter}</text>
               </svg>
               <div>
-                <h2 className="text-xl font-black tracking-tight font-display">CHARITON EDITION</h2>
+                <h2 className="text-xl font-black tracking-tight font-display">{theme.name.toUpperCase()} EDITION</h2>
               </div>
             </div>
 
@@ -885,7 +894,7 @@ const handleInterestToggle = async (eventId: number) => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap font-black text-xs tracking-wider transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-red-600 shadow-lg'
+                  ? `bg-white ${theme.tabActiveText} shadow-lg`
                   : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -923,12 +932,12 @@ const handleInterestToggle = async (eventId: number) => {
               })
 
               return (
-                <div className="charger-red text-white rounded-xl p-5 mb-4 shadow-xl border-2 border-white/20">
+                <div className={`${theme.accentClass} text-white rounded-xl p-5 mb-4 shadow-xl border-2 ${selectedTownId === 2 ? 'border-yellow-500/40' : 'border-white/20'}`}>
                   <div className="flex items-center gap-2 mb-3">
                     <Bell className="w-6 h-6" />
                     <h3 className="text-lg font-black tracking-tight font-display">{greeting} {selectedTownName.toUpperCase()}!</h3>
                   </div>
-                  <p className="text-sm font-semibold mb-3 text-red-50">
+                  <p className="text-sm font-semibold mb-3 text-white/80">
                     {todaysEvents.length > 0
                       ? `Here's what's happening today:`
                       : `No events scheduled for today. Check out upcoming events below!`}
@@ -952,7 +961,7 @@ const handleInterestToggle = async (eventId: number) => {
               <>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-black tracking-tight font-display">UPCOMING EVENTS</h2>
-                  <button className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide">
+                  <button className={`${theme.accentTextClass} text-sm font-black flex items-center gap-1 tracking-wide`}>
                     <Plus className="w-4 h-4" />POST
                   </button>
                 </div>
@@ -969,19 +978,19 @@ const handleInterestToggle = async (eventId: number) => {
                                           </div>
                     <div className="text-sm text-gray-700 space-y-2 font-semibold">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 charger-red-text" />
+                        <Calendar className={`w-4 h-4 ${theme.accentTextClass}`} />
                         <span className="font-bold">{formatEventDate(event.date)}</span>
                         <span className="mx-1 text-gray-400">&bull;</span>
-                        <Clock className="w-4 h-4 charger-red-text" />
+                        <Clock className={`w-4 h-4 ${theme.accentTextClass}`} />
                         <span className="font-bold">{event.time || formatEventTime(event.date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 charger-red-text" />
+                        <MapPin className={`w-4 h-4 ${theme.accentTextClass}`} />
                         <span>{event.location || 'TBD'}</span>
                         {event.price && (
                           <>
                             <span className="mx-1 text-gray-400">&bull;</span>
-                            <span className="font-black charger-red-text">{event.price}</span>
+                            <span className={`font-black ${theme.accentTextClass}`}>{event.price}</span>
                           </>
                         )}
                       </div>
@@ -991,7 +1000,7 @@ const handleInterestToggle = async (eventId: number) => {
                       className={`w-full mt-4 py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2 ${
                         userInterests.includes(event.id)
                           ? 'bg-green-600 text-white'
-                          : 'charger-red text-white'
+                          : `${theme.accentClass} text-white`
                       }`}
                     >
                       {userInterests.includes(event.id) ? (
@@ -1032,7 +1041,7 @@ const handleInterestToggle = async (eventId: number) => {
                       </div>
                       <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-black uppercase tracking-wide">{job.type}</span>
                     </div>
-                    <p className="text-sm font-bold mb-3 charger-red-text">{job.pay}</p>
+                    <p className={`text-sm font-bold mb-3 ${theme.accentTextClass}`}>{job.pay}</p>
                     <button
                       onClick={() => job.apply_url && window.open(job.apply_url, '_blank')}
                       className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase"
@@ -1053,7 +1062,7 @@ const handleInterestToggle = async (eventId: number) => {
                     href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="charger-red-text text-sm font-black flex items-center gap-1 tracking-wide"
+                    className={`${theme.accentTextClass} text-sm font-black flex items-center gap-1 tracking-wide`}
                   >
                     <Plus className="w-4 h-4" />POST
                   </a>
@@ -1093,7 +1102,7 @@ const handleInterestToggle = async (eventId: number) => {
                         <h3 className="text-lg font-black tracking-tight">{h.title}</h3>
                         <p className="text-sm text-gray-700 font-bold">{h.location}</p>
                       </div>
-                      <span className="text-xl font-black charger-red-text">{h.price}</span>
+                      <span className={`text-xl font-black ${theme.accentTextClass}`}>{h.price}</span>
                     </div>
                     <p className="text-sm text-gray-700 font-semibold mb-3">{h.details}</p>
                     {h.expires_at && (
@@ -1847,7 +1856,7 @@ const handleInterestToggle = async (eventId: number) => {
                     setAuthMode(authMode === 'login' ? 'signup' : 'login')
                     setAuthError('')
                   }}
-                  className="charger-red-text font-black"
+                  className={`${theme.accentTextClass} font-black`}
                 >
                   {authMode === 'login' ? 'Sign Up' : 'Log In'}
                 </button>
@@ -2301,13 +2310,13 @@ const handleInterestToggle = async (eventId: number) => {
               {/* Knoxville - Active */}
               <button
                 onClick={() => { handleTownChange(2, 'Knoxville'); setShowMenu(false) }}
-                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 2 ? 'bg-green-50 border-2 border-green-400 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'}`}
+                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 2 ? 'bg-yellow-50 border-2 border-yellow-500 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-yellow-400'}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">🟢</span>
+                  <span className="text-2xl">🟡</span>
                   <div>
                     <p className="font-black text-sm">Knoxville</p>
-                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 2 ? 'Current' : 'Tap to switch'} &bull; Panthers Blue/White</p>
+                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 2 ? 'Current' : 'Tap to switch'} &bull; Panthers Black/Gold</p>
                   </div>
                 </div>
               </button>

@@ -11,6 +11,8 @@ const config: Config = {
       colors: {
         'charger-red': '#DC143C',
         'charger-dark': '#A01020',
+        'panther-gold': '#D4A843',
+        'panther-dark': '#1a1a1a',
         'gnp-dark': '#2c3e50',
         'gnp-slate': '#34495e',
       },
