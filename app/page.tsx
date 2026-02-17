@@ -909,7 +909,7 @@ const handleInterestToggle = async (eventId: number) => {
       <main className="p-4 pb-24">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-charger-red"></div>
+            <div className={`animate-spin rounded-full h-12 w-12 border-b-2`} style={{ borderColor: theme.primaryColor }}></div>
           </div>
         ) : (
           <>
@@ -1044,7 +1044,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className={`text-sm font-bold mb-3 ${theme.accentTextClass}`}>{job.pay}</p>
                     <button
                       onClick={() => job.apply_url && window.open(job.apply_url, '_blank')}
-                      className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase"
+                      className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}
                     >
                       APPLY NOW
                     </button>
@@ -1110,7 +1110,7 @@ const handleInterestToggle = async (eventId: number) => {
                         Expires {new Date(h.expires_at).toLocaleDateString()}
                       </p>
                     )}
-                    <button className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                    <button className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}>
                       CONTACT
                     </button>
                   </Card>
@@ -1147,7 +1147,7 @@ const handleInterestToggle = async (eventId: number) => {
                         </div>
                         <button
                           onClick={() => trackBusinessClick(b)}
-                          className="w-full charger-red text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase"
+                          className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}
                         >
                           VISIT WEBSITE &rarr;
                         </button>
@@ -1365,7 +1365,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-lg font-black text-gray-800">LOCAL NON-PROFITS</p>
                   </div>
                   <p className="text-xs font-semibold text-gray-600">
-                    Support the organizations that make Chariton great. Donate directly!
+                    Support the organizations that make {selectedTownName} great. Donate directly!
                   </p>
                 </div>
 
@@ -1396,7 +1396,7 @@ const handleInterestToggle = async (eventId: number) => {
                         href={np.donation_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:bg-rose-700 transition-all uppercase flex items-center justify-center gap-2"
+                        className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg transition-all uppercase flex items-center justify-center gap-2`}
                       >
                         <span>💝</span> DONATE NOW
                       </a>
@@ -1428,7 +1428,7 @@ const handleInterestToggle = async (eventId: number) => {
                   <p className="text-xs text-gray-600 font-semibold mb-3">Get your organization listed here for free so residents can find and support you!</p>
                   <button
                     onClick={() => { resetListingForm(); setListingType('nonprofit'); setShowListingModal(true) }}
-                    className="w-full bg-rose-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
+                    className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2`}
                   >
                     <span>📝</span> GET LISTED FREE
                   </button>
@@ -1520,7 +1520,7 @@ const handleInterestToggle = async (eventId: number) => {
                   <p className="text-xs text-gray-600 font-semibold mb-3">Get your club listed here for free so residents can find and join!</p>
                   <button
                     onClick={() => { resetListingForm(); setListingType('club'); setShowListingModal(true) }}
-                    className="w-full bg-cyan-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-cyan-700 transition-all flex items-center justify-center gap-2"
+                    className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2`}
                   >
                     <span>📝</span> GET LISTED FREE
                   </button>
@@ -1672,7 +1672,7 @@ const handleInterestToggle = async (eventId: number) => {
                             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
                           </div>
                           <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
-                          <button className="w-full charger-red text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
+                          <button className={`w-full ${theme.accentClass} text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}>
                             CHECK IT OUT &rarr;
                           </button>
                         </div>
@@ -1735,7 +1735,7 @@ const handleInterestToggle = async (eventId: number) => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center gap-1 p-2 transition-all ${
-                activeTab === tab.id ? 'text-red-600 scale-110' : 'text-gray-500'
+                activeTab === tab.id ? `${theme.accentTextClass} scale-110` : 'text-gray-500'
               }`}
               style={{ minWidth: '72px', flexShrink: 0 }}
             >
@@ -1817,7 +1817,7 @@ const handleInterestToggle = async (eventId: number) => {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full charger-red text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50"
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}
                 >
                   {authLoading ? 'LOADING...' : (authMode === 'login' ? 'LOG IN' : 'SIGN UP')}
                 </button>
@@ -1886,7 +1886,7 @@ const handleInterestToggle = async (eventId: number) => {
                 </p>
                 <button
                   onClick={() => { setShowListingModal(false); resetListingForm(); setActiveTab(listingType === 'nonprofit' ? 'nonprofits' : 'clubs') }}
-                  className="w-full bg-red-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg"
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg`}
                 >
                   VIEW MY LISTING
                 </button>
@@ -1992,7 +1992,7 @@ const handleInterestToggle = async (eventId: number) => {
 
                   {listingError && <p className="text-red-600 text-sm font-bold">{listingError}</p>}
 
-                  <button type="submit" disabled={listingLoading} className="w-full bg-red-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
+                  <button type="submit" disabled={listingLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
                     {listingLoading ? 'SUBMITTING...' : 'SUBMIT LISTING'}
                   </button>
                 </div>
@@ -2233,7 +2233,7 @@ const handleInterestToggle = async (eventId: number) => {
                     setShowAuthModal(true)
                     setAuthMode('login')
                   }}
-                  className="w-full bg-white text-red-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-100 transition-all"
+                  className={`w-full bg-white ${theme.accentTextClass} py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-100 transition-all`}
                 >
                   <LogIn className="w-4 h-4" />
                   LOG IN / SIGN UP
