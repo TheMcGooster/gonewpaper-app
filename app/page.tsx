@@ -133,10 +133,22 @@ export default function GoNewPaper() {
           })
 
           // Listen for subscription changes (player ID created/changed)
-          OneSignalSDK.User.PushSubscription.addEventListener('change', (event: any) => {
+          // Also save the player ID to the database when it first becomes available
+          OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
             console.log('Subscription changed:', event.current.id, 'optedIn:', event.current.optedIn)
             if (event.current.id && event.current.optedIn) {
               setNotificationsEnabled(true)
+              // Save player ID to DB - get current user session
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.user) {
+                const { error } = await supabase
+                  .from('users')
+                  .update({ onesignal_player_id: event.current.id })
+                  .eq('id', session.user.id)
+                if (!error) {
+                  console.log('Player ID saved from status listener:', event.current.id)
+                }
+              }
             }
           })
         })
@@ -149,28 +161,45 @@ export default function GoNewPaper() {
     checkNotificationStatus()
   }, [])
 
-  // Save OneSignal subscription ID to Supabase when user logs in
+  // Save OneSignal subscription ID to Supabase
   // Uses OneSignalDeferred to safely wait for SDK to be ready (loaded async in layout.tsx)
+  // Handles: immediate capture, delayed capture via polling, and subscription change events
   const saveOneSignalPlayerId = (userId: string) => {
     try {
       window.OneSignalDeferred = window.OneSignalDeferred || []
       window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
         try {
-          const playerId = OneSignalSDK.User.PushSubscription.id
-
-          if (playerId) {
+          const saveId = async (playerId: string) => {
             const { error } = await supabase
               .from('users')
               .update({ onesignal_player_id: playerId })
               .eq('id', userId)
-
             if (error) {
               console.error('Supabase update error:', error)
             } else {
               console.log('OneSignal subscription ID saved:', playerId)
             }
+          }
+
+          // Try to get player ID immediately
+          const playerId = OneSignalSDK.User.PushSubscription.id
+          if (playerId) {
+            await saveId(playerId)
           } else {
-            console.log('No subscription ID yet - waiting for user to allow notifications')
+            console.log('No subscription ID yet - will poll and listen for changes')
+            // Poll a few times in case SDK is still initializing the subscription
+            let attempts = 0
+            const pollInterval = setInterval(async () => {
+              attempts++
+              const id = OneSignalSDK.User.PushSubscription.id
+              if (id) {
+                clearInterval(pollInterval)
+                await saveId(id)
+              } else if (attempts >= 10) {
+                clearInterval(pollInterval)
+                console.log('OneSignal: no subscription ID after polling - user may not have granted permission yet')
+              }
+            }, 2000)
           }
 
           // Always listen for subscription changes (new subscription, token refresh, etc.)
@@ -178,13 +207,7 @@ export default function GoNewPaper() {
             const newPlayerId = event.current.id
             if (newPlayerId && event.current.optedIn) {
               console.log('Subscription changed! Saving ID:', newPlayerId)
-              const { error } = await supabase
-                .from('users')
-                .update({ onesignal_player_id: newPlayerId })
-                .eq('id', userId)
-              if (!error) {
-                console.log('OneSignal subscription ID saved after change:', newPlayerId)
-              }
+              await saveId(newPlayerId)
             }
           })
         } catch (innerErr) {
