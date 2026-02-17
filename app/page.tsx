@@ -61,6 +61,8 @@ export default function GoNewPaper() {
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [showInstallHelp, setShowInstallHelp] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [selectedTownId, setSelectedTownId] = useState(1) // Default to Chariton
+  const [selectedTownName, setSelectedTownName] = useState('Chariton')
 
   // Listing form state
   const [showListingModal, setShowListingModal] = useState(false)
@@ -194,6 +196,62 @@ export default function GoNewPaper() {
     }
   }
 
+  // Handle town selection: save to DB, set OneSignal tag, refetch data
+  const handleTownChange = async (townId: number, townName: string) => {
+    setSelectedTownId(townId)
+    setSelectedTownName(townName)
+
+    // Save to Supabase if logged in
+    if (user) {
+      await supabase.from('users').update({ town_id: townId }).eq('id', user.id)
+    }
+
+    // Save to localStorage for non-logged-in users and persistence
+    localStorage.setItem('selectedTownId', String(townId))
+    localStorage.setItem('selectedTownName', townName)
+
+    // Set OneSignal tag so push notifications are filtered by town
+    try {
+      window.OneSignalDeferred = window.OneSignalDeferred || []
+      window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
+        OneSignalSDK.User.addTag('town_id', String(townId))
+        console.log('OneSignal town_id tag set to:', townId)
+      })
+    } catch (err) {
+      console.error('Error setting OneSignal town tag:', err)
+    }
+
+    showToast(`Switched to ${townName}!`)
+  }
+
+  // Load user's town from Supabase or localStorage
+  const loadUserTown = async (userId?: string) => {
+    if (userId) {
+      const { data } = await supabase.from('users').select('town_id').eq('id', userId).single()
+      if (data?.town_id) {
+        setSelectedTownId(data.town_id)
+        // Look up town name
+        const { data: town } = await supabase.from('towns').select('name').eq('id', data.town_id).single()
+        if (town?.name) setSelectedTownName(town.name)
+        localStorage.setItem('selectedTownId', String(data.town_id))
+        if (town?.name) localStorage.setItem('selectedTownName', town.name)
+        // Set OneSignal tag
+        try {
+          window.OneSignalDeferred = window.OneSignalDeferred || []
+          window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
+            OneSignalSDK.User.addTag('town_id', String(data.town_id))
+          })
+        } catch (err) { /* ignore */ }
+        return
+      }
+    }
+    // Fallback to localStorage
+    const savedId = localStorage.getItem('selectedTownId')
+    const savedName = localStorage.getItem('selectedTownName')
+    if (savedId) setSelectedTownId(Number(savedId))
+    if (savedName) setSelectedTownName(savedName)
+  }
+
   // Listen for PWA install prompt
   useEffect(() => {
     // Only hide the button if CURRENTLY running as installed PWA (standalone mode)
@@ -220,12 +278,16 @@ export default function GoNewPaper() {
 
   // Check auth state on load
   useEffect(() => {
+    // Load town from localStorage first (works for logged-out users too)
+    loadUserTown()
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
+        loadUserTown(session.user.id)
       }
     })
 
@@ -235,6 +297,7 @@ export default function GoNewPaper() {
       if (session?.user) {
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
+        loadUserTown(session.user.id)
       } else {
         setUserInterests([])
       }
@@ -556,17 +619,21 @@ const handleInterestToggle = async (eventId: number) => {
           clubsRes,
           comicsRes
         ] = await Promise.all([
-          supabase.from('events').select('*').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
-          supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
-          supabase.from('businesses').select('*').order('featured', { ascending: false }).limit(20),
-          supabase.from('housing').select('*').eq('is_active', true).limit(20),
-          supabase.from('community_posts').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(20),
-          supabase.from('celebrations_of_life').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
+          // Town-specific content (filtered by selectedTownId)
+          supabase.from('events').select('*').eq('town_id', selectedTownId).gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
+          supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
+          supabase.from('businesses').select('*').eq('town_id', selectedTownId).order('featured', { ascending: false }).limit(20),
+          supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
+          supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20),
+          supabase.from('celebrations_of_life').select('*').eq('town_id', selectedTownId).eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
+          // Global content (same for all towns — no town_id filter)
           supabase.from('market_recap').select('*').order('recap_date', { ascending: false }).limit(1),
           supabase.from('top_stories').select('*').order('priority', { ascending: true }).limit(5),
           supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-          supabase.from('nonprofits').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-          supabase.from('clubs').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+          // Town-specific organizations
+          supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
+          supabase.from('clubs').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
+          // Comics are global
           supabase.from('comics').select('*').order('publish_date', { ascending: false }).limit(10)
         ])
 
@@ -588,7 +655,8 @@ const handleInterestToggle = async (eventId: number) => {
       setLoading(false)
     }
     fetchData()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTownId])
 
   // Track business clicks
   const trackBusinessClick = async (business: Business) => {
@@ -835,7 +903,7 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="charger-red text-white rounded-xl p-5 mb-4 shadow-xl border-2 border-white/20">
                   <div className="flex items-center gap-2 mb-3">
                     <Bell className="w-6 h-6" />
-                    <h3 className="text-lg font-black tracking-tight font-display">{greeting} CHARITON!</h3>
+                    <h3 className="text-lg font-black tracking-tight font-display">{greeting} {selectedTownName.toUpperCase()}!</h3>
                   </div>
                   <p className="text-sm font-semibold mb-3 text-red-50">
                     {todaysEvents.length > 0
@@ -2193,22 +2261,40 @@ const handleInterestToggle = async (eventId: number) => {
             <div className="space-y-2 mb-6">
               <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase">Switch Town Edition</h3>
 
-              <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+              {/* Chariton - Always available */}
+              <button
+                onClick={() => { handleTownChange(1, 'Chariton'); setShowMenu(false) }}
+                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 1 ? 'bg-red-50 border-2 border-red-400 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-red-300'}`}
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🔴</span>
                   <div>
                     <p className="font-black text-sm">Chariton</p>
-                    <p className="text-xs text-gray-600 font-semibold">Current &bull; Chargers Red/White</p>
+                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 1 ? 'Current' : 'Tap to switch'} &bull; Chargers Red/White</p>
                   </div>
                 </div>
-              </div>
+              </button>
 
+              {/* Knoxville - Active */}
+              <button
+                onClick={() => { handleTownChange(2, 'Knoxville'); setShowMenu(false) }}
+                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 2 ? 'bg-green-50 border-2 border-green-400 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🟢</span>
+                  <div>
+                    <p className="font-black text-sm">Knoxville</p>
+                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 2 ? 'Current' : 'Tap to switch'} &bull; Panthers Blue/White</p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Coming Soon Towns */}
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
                 <p className="text-xs font-black text-blue-800 mb-2 uppercase">Coming Soon</p>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p>🔵 Indianola</p>
                   <p>🟣 Osceola</p>
-                  <p>🟢 Knoxville</p>
                   <p>⚫ Centerville</p>
                 </div>
               </div>

@@ -29,65 +29,86 @@ export async function GET(request: Request) {
     purgeHousing?: Record<string, unknown>
   } = {}
 
-  // --- 1. Daily Summary Notification ---
+  // --- 1. Daily Summary Notification (Per-Town) ---
   try {
-    // Fetch today's events (date column is TEXT 'YYYY-MM-DD')
-    const { data: todaysEvents, error: eventsError } = await supabase
-      .from('events')
-      .select('title, time, location, category')
-      .eq('date', todayStr)
-      .order('time', { ascending: true })
+    // Get all active towns
+    const { data: activeTowns, error: townsError } = await supabase
+      .from('towns')
+      .select('id, name')
+      .eq('is_active', true)
 
-    if (eventsError) {
-      console.error('Error fetching events:', eventsError)
-      results.dailySummary = { error: 'Failed to fetch events', details: eventsError.message }
+    if (townsError) {
+      console.error('Error fetching towns:', townsError)
+      results.dailySummary = { error: 'Failed to fetch towns', details: townsError.message }
     } else {
-      const eventCount = todaysEvents?.length || 0
+      const townResults: Record<string, unknown>[] = []
 
-      // Build notification message
-      const heading = 'Good Morning Chariton!'
-      let message: string
+      for (const town of (activeTowns || [])) {
+        // Fetch today's events for this town
+        const { data: todaysEvents, error: eventsError } = await supabase
+          .from('events')
+          .select('title, time, location, category')
+          .eq('date', todayStr)
+          .eq('town_id', town.id)
+          .order('time', { ascending: true })
 
-      if (eventCount === 0) {
-        message = 'No events scheduled for today. Check out upcoming events in the app!'
-      } else if (eventCount === 1) {
-        const e = todaysEvents![0]
-        const cat = e.category ? `${e.category} ` : ''
-        message = `Today: ${cat}${e.title} at ${e.time || 'TBD'}${e.location ? ` - ${e.location}` : ''}`
-      } else {
-        // List first 2-3 events, mention total
-        const preview = todaysEvents!.slice(0, 3).map(e => {
+        if (eventsError) {
+          console.error(`Error fetching events for ${town.name}:`, eventsError)
+          townResults.push({ town: town.name, error: eventsError.message })
+          continue
+        }
+
+        const eventCount = todaysEvents?.length || 0
+
+        // Build notification message
+        const heading = `Good Morning ${town.name}!`
+        let message: string
+
+        if (eventCount === 0) {
+          message = 'No events scheduled for today. Check out upcoming events in the app!'
+        } else if (eventCount === 1) {
+          const e = todaysEvents![0]
           const cat = e.category ? `${e.category} ` : ''
-          return `${cat}${e.title}`
-        }).join(', ')
-        message = `${eventCount} events today: ${preview}${eventCount > 3 ? ` +${eventCount - 3} more` : ''}`
+          message = `Today: ${cat}${e.title} at ${e.time || 'TBD'}${e.location ? ` - ${e.location}` : ''}`
+        } else {
+          const preview = todaysEvents!.slice(0, 3).map(e => {
+            const cat = e.category ? `${e.category} ` : ''
+            return `${cat}${e.title}`
+          }).join(', ')
+          message = `${eventCount} events today: ${preview}${eventCount > 3 ? ` +${eventCount - 3} more` : ''}`
+        }
+
+        // Send push notification filtered by town_id tag
+        // Users get tagged with town_id when they select their town in the app
+        const response = await fetch('https://api.onesignal.com/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Key ${oneSignalApiKey}`,
+          },
+          body: JSON.stringify({
+            app_id: oneSignalAppId,
+            target_channel: 'push',
+            filters: [
+              { field: 'tag', key: 'town_id', relation: '=', value: String(town.id) }
+            ],
+            headings: { en: heading },
+            contents: { en: message },
+            url: 'https://www.gonewpaper.com',
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          console.error(`OneSignal API error for ${town.name}:`, result)
+          townResults.push({ town: town.name, error: 'OneSignal send failed', details: result })
+        } else {
+          townResults.push({ town: town.name, success: true, eventCount, message, oneSignalResponse: result })
+        }
       }
 
-      // Send push notification to all subscribed users via OneSignal
-      const response = await fetch('https://api.onesignal.com/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Key ${oneSignalApiKey}`,
-        },
-        body: JSON.stringify({
-          app_id: oneSignalAppId,
-          target_channel: 'push',
-          included_segments: ['Total Subscriptions'],
-          headings: { en: heading },
-          contents: { en: message },
-          url: 'https://www.gonewpaper.com',
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        console.error('OneSignal API error:', result)
-        results.dailySummary = { error: 'OneSignal send failed', details: result }
-      } else {
-        results.dailySummary = { success: true, eventCount, message, oneSignalResponse: result }
-      }
+      results.dailySummary = { success: true, towns: townResults }
     }
   } catch (error) {
     console.error('Daily summary error:', error)
