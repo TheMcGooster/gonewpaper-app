@@ -70,6 +70,7 @@ export type Business = {
   address?: string
   email?: string
   hours?: string
+  additional_town_ids?: number[]
 }
 
 export type Housing = {

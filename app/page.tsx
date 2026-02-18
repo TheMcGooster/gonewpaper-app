@@ -654,7 +654,7 @@ const handleInterestToggle = async (eventId: number) => {
           // Town-specific content (filtered by selectedTownId)
           supabase.from('events').select('*').eq('town_id', selectedTownId).gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
-          supabase.from('businesses').select('*').eq('town_id', selectedTownId).order('featured', { ascending: false }).limit(20),
+          supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
           supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20),
           supabase.from('celebrations_of_life').select('*').eq('town_id', selectedTownId).eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
