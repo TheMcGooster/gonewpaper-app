@@ -120,6 +120,14 @@ export default function GoNewPaper() {
   useEffect(() => {
     const checkNotificationStatus = () => {
       try {
+        // FAST CHECK: If browser already granted permission, show green immediately
+        // while we wait for OneSignal SDK to fully load and confirm subscription.
+        // This prevents the button from flashing yellow on every page load for users
+        // who have already enabled notifications.
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          setNotificationsEnabled(true)
+        }
+
         // Use OneSignalDeferred to safely access SDK after it's ready
         window.OneSignalDeferred = window.OneSignalDeferred || []
         window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
