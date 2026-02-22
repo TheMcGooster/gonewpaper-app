@@ -44,7 +44,11 @@ const formatEventTime = (timeStr: string) => {
 }
 
 export default function GoNewPaper() {
-  const [activeTab, setActiveTab] = useState('events')
+  const [activeTab, setActiveTabRaw] = useState('events')
+  const setActiveTab = (tab: string) => {
+    setActiveTabRaw(tab)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1272,28 +1276,28 @@ const handleInterestToggle = async (eventId: number) => {
 
                 <div className="grid grid-cols-1 gap-4">
                   {displayComics.map((comic, index) => (
-                    <div key={comic.id} className={`bg-white rounded-xl shadow-md border-2 overflow-hidden ${index === 0 ? 'border-yellow-300' : 'border-gray-100'}`}>
+                    <div key={comic.id} className={`bg-white rounded-[14px] overflow-hidden card-hover animate-fade-in-up stagger-${Math.min(index + 1, 8)} ${index === 0 ? 'border-[1.5px] border-amber-300' : 'border-[1.5px] border-[#e8e6e1]'}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       {comic.image_url && comic.image_url.trim() !== '' && comic.image_url.trim().startsWith('http') ? (
-                        <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-gray-50" />
+                        <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-[#f5f4f0]" />
                       ) : (
-                        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
-                          <p className="text-lg font-black text-gray-800 text-center">{comic.title}</p>
+                        <div className="bg-gradient-to-br from-amber-50/80 to-white p-6">
+                          <p className="text-lg font-bold text-gray-800 text-center">{comic.title}</p>
                           {comic.alt_text && (
-                            <p className="text-base font-bold text-yellow-700 text-center mt-3">{comic.alt_text}</p>
+                            <p className="text-base font-medium text-amber-700 text-center mt-3 font-editorial italic">{comic.alt_text}</p>
                           )}
                         </div>
                       )}
-                      <div className="px-4 py-3 border-t border-gray-100">
+                      <div className="px-4 py-3 border-t border-[#e8e6e1]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-xs font-black px-2 py-0.5 rounded">TODAY</span>}
-                            <span className="text-xs text-gray-500 font-semibold">{comic.publish_date}</span>
+                            {index === 0 && <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Today</span>}
+                            <span className="text-xs text-[#8a8778] font-medium">{comic.publish_date}</span>
                           </div>
-                          {comic.source && <span className="text-xs text-gray-400 font-semibold">{comic.source}</span>}
+                          {comic.source && <span className="text-xs text-[#8a8778] font-medium">{comic.source}</span>}
                         </div>
                         {comic.artist_name && (
                           <div className="mt-1">
-                            <span className="text-xs text-gray-500 font-semibold">
+                            <span className="text-xs text-[#8a8778] font-medium">
                               By {comic.artist_url ? (
                                 <a href={comic.artist_url} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-800 underline">{comic.artist_name}</a>
                               ) : comic.artist_name}
@@ -1306,10 +1310,10 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 {displayComics.length === 0 && (
-                  <div className="text-center py-12">
-                    <div className="text-5xl mb-4">😄</div>
-                    <p className="text-lg font-black text-gray-700 mb-2">No jokes yet!</p>
-                    <p className="text-sm text-gray-500 font-semibold">Check back tomorrow for your daily laugh.</p>
+                  <div className="empty-state animate-fade-in-up">
+                    <span className="empty-state-icon">😄</span>
+                    <p className="empty-state-title">No jokes yet!</p>
+                    <p className="empty-state-text">Check back tomorrow for your daily laugh.</p>
                   </div>
                 )}
               </>
@@ -1331,15 +1335,16 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="flex justify-end mb-3">
                   <button
                     onClick={() => { resetCommunityForm(); setShowCommunityModal(true) }}
-                    className="bg-green-600 text-white text-sm font-black flex items-center gap-1 tracking-wide px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-all"
+                    className="btn-cta bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 tracking-wide px-4 py-2 rounded-lg"
+                    style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}
                   >
-                    <Plus className="w-4 h-4" />POST
+                    <Plus className="w-3.5 h-3.5" />Post
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  {displayCommunity.map(post => (
-                    <div key={post.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-green-100 hover:shadow-lg hover:border-green-300 transition-all relative">
+                  {displayCommunity.map((post, idx) => (
+                    <div key={post.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-emerald-100 card-hover relative animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       {isAdmin && (
                         <button onClick={() => handleDeleteCommunityPost(post.id, post.title)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove post">
                           <Trash2 className="w-4 h-4 text-red-500" />
@@ -1348,8 +1353,8 @@ const handleInterestToggle = async (eventId: number) => {
                       <div className="flex items-start gap-3">
                         <span className="text-2xl">{post.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-black text-base tracking-tight mb-1">{post.title}</h3>
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">
+                          <h3 className="font-bold text-[15px] tracking-tight mb-1">{post.title}</h3>
+                          <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {post.post_type === 'lost_pet' ? 'Lost Pet' : post.post_type === 'found_pet' ? 'Found Pet' : post.post_type === 'garage_sale' ? 'Garage Sale' : post.post_type === 'volunteer' ? 'Volunteer' : post.post_type === 'announcement' ? 'Announcement' : 'Other'}
                           </span>
                           {post.description && (
@@ -1380,22 +1385,23 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 {displayCommunity.length === 0 && (
-                  <div className="text-center py-12">
-                    <div className="text-5xl mb-4">📋</div>
-                    <p className="text-lg font-black text-gray-700 mb-2">No posts yet!</p>
-                    <p className="text-sm text-gray-500 font-semibold">Be the first to post something to the community board.</p>
+                  <div className="empty-state animate-fade-in-up">
+                    <span className="empty-state-icon">📋</span>
+                    <p className="empty-state-title">No posts yet!</p>
+                    <p className="empty-state-text">Be the first to post something to the community board.</p>
                   </div>
                 )}
 
                 {/* CTA for community posts */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mt-6">
-                  <p className="text-sm font-bold text-gray-800 mb-2">📢 Got something to share?</p>
-                  <p className="text-xs text-gray-600 font-semibold mb-3">Post lost/found pets, garage sales, volunteer needs, or announcements for free!</p>
+                <div className="section-banner bg-emerald-50/80 border-emerald-200 mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-1.5">Got something to share?</p>
+                  <p className="text-xs text-[#8a8778] font-medium mb-3">Post lost/found pets, garage sales, volunteer needs, or announcements for free!</p>
                   <button
                     onClick={() => { resetCommunityForm(); setShowCommunityModal(true) }}
-                    className="w-full bg-green-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                    className="btn-cta w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2"
+                    style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.25)' }}
                   >
-                    <span>📝</span> POST FOR FREE
+                    <span>📝</span> Post for Free
                   </button>
                 </div>
               </>
@@ -1415,8 +1421,8 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  {displayNonprofits.map(np => (
-                    <div key={np.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-rose-100 hover:shadow-lg hover:border-rose-300 transition-all relative">
+                  {displayNonprofits.map((np, idx) => (
+                    <div key={np.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-rose-100 card-hover relative animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       {isAdmin && (
                         <button onClick={() => handleDeleteListing('nonprofits', np.id, np.name)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove listing">
                           <Trash2 className="w-4 h-4 text-red-500" />
@@ -1429,8 +1435,8 @@ const handleInterestToggle = async (eventId: number) => {
                           <div className="text-5xl">{np.logo_emoji}</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-black tracking-tight">{np.name}</h3>
-                          <span className="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">{np.category}</span>
+                          <h3 className="text-[15px] font-bold tracking-tight">{np.name}</h3>
+                          <span className="badge bg-rose-50 text-rose-600 border border-rose-200">{np.category}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{np.tagline}&quot;</p>
@@ -1441,9 +1447,10 @@ const handleInterestToggle = async (eventId: number) => {
                         href={np.donation_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg transition-all uppercase flex items-center justify-center gap-2`}
+                        className={`btn-interest btn-cta w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-2`}
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                       >
-                        <span>💝</span> DONATE NOW
+                        <span>💝</span> Donate Now
                       </a>
                       <div className="flex gap-2 mt-2">
                         <a
@@ -1468,14 +1475,15 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 {/* CTA for nonprofits */}
-                <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-300 p-4 rounded-xl mt-6">
-                  <p className="text-sm font-bold text-gray-800 mb-2">🏛️ Run a local non-profit?</p>
-                  <p className="text-xs text-gray-600 font-semibold mb-3">Get your organization listed here for free so residents can find and support you!</p>
+                <div className="section-banner bg-rose-50/80 border-rose-200 mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-1.5">Run a local non-profit?</p>
+                  <p className="text-xs text-[#8a8778] font-medium mb-3">Get your organization listed here for free so residents can find and support you!</p>
                   <button
                     onClick={() => { resetListingForm(); setListingType('nonprofit'); setShowListingModal(true) }}
-                    className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2`}
+                    className={`btn-cta w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2`}
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                   >
-                    <span>📝</span> GET LISTED FREE
+                    <span>📝</span> Get Listed Free
                   </button>
                 </div>
               </>
@@ -1495,8 +1503,8 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  {displayClubs.map(club => (
-                    <div key={club.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-cyan-100 hover:shadow-lg hover:border-cyan-300 transition-all relative">
+                  {displayClubs.map((club, idx) => (
+                    <div key={club.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-cyan-100 card-hover relative animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       {isAdmin && (
                         <button onClick={() => handleDeleteListing('clubs', club.id, club.name)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove listing">
                           <Trash2 className="w-4 h-4 text-red-500" />
@@ -1509,8 +1517,8 @@ const handleInterestToggle = async (eventId: number) => {
                           <div className="text-5xl">{club.logo_emoji}</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-black tracking-tight">{club.name}</h3>
-                          <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded font-bold">{club.category}</span>
+                          <h3 className="text-[15px] font-bold tracking-tight">{club.name}</h3>
+                          <span className="badge bg-cyan-50 text-cyan-700 border border-cyan-200">{club.category}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{club.tagline}&quot;</p>
@@ -1532,9 +1540,10 @@ const handleInterestToggle = async (eventId: number) => {
                       <div className="flex gap-2">
                         <a
                           href={`mailto:${club.email}`}
-                          className="flex-1 bg-cyan-600 text-white py-2 rounded-lg text-xs font-black tracking-wide shadow hover:bg-cyan-700 transition-all uppercase flex items-center justify-center gap-2"
+                          className="btn-interest flex-1 bg-cyan-600 text-white py-2 rounded-lg text-xs font-bold tracking-wide uppercase flex items-center justify-center gap-2"
+                          style={{ boxShadow: '0 2px 6px rgba(8,145,178,0.25)' }}
                         >
-                          <span>✉️</span> CONTACT
+                          <span>✉️</span> Contact
                         </a>
                         {club.website && (
                           <a
@@ -1560,14 +1569,15 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 {/* CTA for clubs */}
-                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border-2 border-cyan-300 p-4 rounded-xl mt-6">
-                  <p className="text-sm font-bold text-gray-800 mb-2">👥 Have a local club or group?</p>
-                  <p className="text-xs text-gray-600 font-semibold mb-3">Get your club listed here for free so residents can find and join!</p>
+                <div className="section-banner bg-cyan-50/80 border-cyan-200 mt-6">
+                  <p className="text-sm font-bold text-gray-800 mb-1.5">Have a local club or group?</p>
+                  <p className="text-xs text-[#8a8778] font-medium mb-3">Get your club listed here for free so residents can find and join!</p>
                   <button
                     onClick={() => { resetListingForm(); setListingType('club'); setShowListingModal(true) }}
-                    className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black shadow-lg transition-all flex items-center justify-center gap-2`}
+                    className={`btn-cta w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2`}
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                   >
-                    <span>📝</span> GET LISTED FREE
+                    <span>📝</span> Get Listed Free
                   </button>
                 </div>
               </>
@@ -1588,8 +1598,8 @@ const handleInterestToggle = async (eventId: number) => {
 
                 {celebrations.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
-                    {celebrations.map(c => (
-                      <div key={c.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-purple-100 hover:shadow-lg transition-all">
+                    {celebrations.map((c, idx) => (
+                      <div key={c.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-purple-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                         <div className="flex items-start gap-4">
                           {c.photo_url ? (
                             <img src={c.photo_url} alt={c.full_name} className="w-20 h-20 rounded-xl object-cover shadow-md" />
@@ -1657,10 +1667,10 @@ const handleInterestToggle = async (eventId: number) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="text-5xl mb-4">🕊️</div>
-                    <p className="text-lg font-black text-gray-700 mb-2">No current listings</p>
-                    <p className="text-sm text-gray-500 font-semibold">Celebrations of life will appear here when available.</p>
+                  <div className="empty-state animate-fade-in-up">
+                    <span className="empty-state-icon">🕊️</span>
+                    <p className="empty-state-title">No current listings</p>
+                    <p className="empty-state-text">Celebrations of life will appear here when available.</p>
                   </div>
                 )}
               </>
@@ -1681,8 +1691,8 @@ const handleInterestToggle = async (eventId: number) => {
 
                 {/* Market Snapshot */}
                 <div className="mb-4">
-                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>📈</span> MARKET SNAPSHOT
+                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>📈</span> Market Snapshot
                   </h3>
                   <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white">
                     <div className="space-y-2">
@@ -1704,8 +1714,8 @@ const handleInterestToggle = async (eventId: number) => {
 
                 {/* Trading Partners */}
                 <div className="mb-4">
-                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>🤝</span> TRADING PARTNERS
+                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>🤝</span> Trading Partners
                   </h3>
                   {displayAffiliates.filter(a => a.category === 'Trading' || a.category === 'Broker').map(aff => (
                     <Card key={aff.id} className="border-blue-200 hover:shadow-xl transition-all cursor-pointer">
@@ -1717,8 +1727,8 @@ const handleInterestToggle = async (eventId: number) => {
                             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
                           </div>
                           <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
-                          <button className={`w-full ${theme.accentClass} text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}>
-                            CHECK IT OUT &rarr;
+                          <button className={`btn-interest btn-cta w-full ${theme.accentClass} text-white py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                            Check It Out &rarr;
                           </button>
                         </div>
                       </div>
@@ -1728,8 +1738,8 @@ const handleInterestToggle = async (eventId: number) => {
 
                 {/* Other Affiliate Partners */}
                 <div className="mb-4">
-                  <h3 className="text-xl font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>⭐</span> PARTNER DEALS
+                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
+                    <span>⭐</span> Partner Deals
                   </h3>
                   {displayAffiliates.filter(a => a.category !== 'Trading' && a.category !== 'Broker').map(aff => (
                     <Card key={aff.id} className="border-purple-200 hover:shadow-xl transition-all cursor-pointer">
@@ -1741,8 +1751,8 @@ const handleInterestToggle = async (eventId: number) => {
                             <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
                           </div>
                           <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
-                          <button className="w-full bg-purple-600 text-white py-2 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase">
-                            GET DEAL &rarr;
+                          <button className="btn-interest btn-cta w-full bg-purple-600 text-white py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase" style={{ boxShadow: '0 2px 8px rgba(147,51,234,0.25)' }}>
+                            Get Deal &rarr;
                           </button>
                         </div>
                       </div>
@@ -1750,8 +1760,8 @@ const handleInterestToggle = async (eventId: number) => {
                   ))}
                 </div>
 
-                <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl">
-                  <p className="text-xs text-gray-600 font-semibold text-center italic">
+                <div className="bg-white border-[1.5px] border-[#e8e6e1] p-4 rounded-[14px]">
+                  <p className="text-xs text-[#8a8778] font-medium text-center font-editorial italic leading-relaxed">
                     These affiliate partnerships help keep Go New Paper free for everyone! When you sign up through our links, we may earn a small commission at no extra cost to you.
                   </p>
                 </div>
@@ -1765,7 +1775,7 @@ const handleInterestToggle = async (eventId: number) => {
           <span className="text-[#e8e6e1]">|</span>
           <a href="/terms" className="underline hover:text-gray-600 transition-colors">Terms of Service</a>
           <span className="text-[#e8e6e1]">|</span>
-          <span>&copy; 2025 Go New Paper</span>
+          <span>&copy; 2026 Go New Paper</span>
         </div>
       </main>
 
@@ -2141,16 +2151,16 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Menu Sidebar */}
       {showMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 backdrop-blur-sm" onClick={() => setShowMenu(false)}>
-          <div className="bg-white w-80 h-full ml-auto p-6 shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-black tracking-tight font-display">MENU</h2>
-              <button onClick={() => setShowMenu(false)}><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 modal-overlay z-50" onClick={() => setShowMenu(false)}>
+          <div className="bg-[#fafaf8] w-80 h-full ml-auto p-6 overflow-y-auto" style={{ boxShadow: '-8px 0 40px rgba(26,26,46,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-black tracking-tight font-display">Menu</h2>
+              <button onClick={() => setShowMenu(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
 
             {/* User Account Section */}
             {user ? (
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl mb-4">
+              <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-4 rounded-[14px] mb-4" style={{ boxShadow: '0 4px 16px rgba(16,185,129,0.25)' }}>
                 <div className="flex items-center gap-3 mb-2">
                   <img
                     src={(() => {
@@ -2332,47 +2342,51 @@ const handleInterestToggle = async (eventId: number) => {
               </div>
             )}
 
-            <div className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 rounded-xl mb-4">
-              <p className="text-xs font-bold mb-2 text-gray-300">OUR MISSION</p>
-              <p className="text-sm font-semibold italic">&quot;Bringing back the town newspaper&mdash;but faster &amp; in your pocket.&quot;</p>
+            <div className="bg-[#1a1a2e] text-white p-4 rounded-[14px] mb-5" style={{ boxShadow: '0 4px 16px rgba(26,26,46,0.2)' }}>
+              <p className="text-[10px] font-bold mb-1.5 text-white/40 tracking-[0.15em] uppercase">Our Mission</p>
+              <p className="text-sm font-medium font-editorial italic text-white/80 leading-relaxed">&quot;Bringing back the town newspaper&mdash;but faster &amp; in your pocket.&quot;</p>
             </div>
 
             {/* Town Selector */}
-            <div className="space-y-2 mb-6">
-              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase">Switch Town Edition</h3>
+            <div className="space-y-2 mb-5">
+              <h3 className="text-[10px] font-bold text-[#8a8778] tracking-[0.15em] mb-3 uppercase">Switch Town Edition</h3>
 
               {/* Chariton - Always available */}
               <button
                 onClick={() => { handleTownChange(1, 'Chariton'); setShowMenu(false) }}
-                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 1 ? 'bg-red-50 border-2 border-red-400 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-red-300'}`}
+                className={`w-full p-3 rounded-[12px] text-left transition-all ${selectedTownId === 1 ? 'bg-red-50 border-[1.5px] border-red-300' : 'bg-white border-[1.5px] border-[#e8e6e1] hover:border-red-200'}`}
+                style={selectedTownId === 1 ? { boxShadow: '0 2px 8px rgba(220,20,60,0.12)' } : undefined}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🔴</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🔴</span>
                   <div>
-                    <p className="font-black text-sm">Chariton</p>
-                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 1 ? 'Current' : 'Tap to switch'} &bull; Chargers Red/White</p>
+                    <p className="font-bold text-sm">Chariton</p>
+                    <p className="text-[11px] text-[#8a8778] font-medium">{selectedTownId === 1 ? 'Current Edition' : 'Tap to switch'} &bull; Chargers</p>
                   </div>
+                  {selectedTownId === 1 && <Check className="w-4 h-4 text-red-500 ml-auto" />}
                 </div>
               </button>
 
               {/* Knoxville - Active */}
               <button
                 onClick={() => { handleTownChange(2, 'Knoxville'); setShowMenu(false) }}
-                className={`w-full p-3 rounded-xl text-left transition-all ${selectedTownId === 2 ? 'bg-yellow-50 border-2 border-yellow-500 shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-yellow-400'}`}
+                className={`w-full p-3 rounded-[12px] text-left transition-all ${selectedTownId === 2 ? 'bg-amber-50 border-[1.5px] border-amber-300' : 'bg-white border-[1.5px] border-[#e8e6e1] hover:border-amber-200'}`}
+                style={selectedTownId === 2 ? { boxShadow: '0 2px 8px rgba(212,168,67,0.15)' } : undefined}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🟡</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🟡</span>
                   <div>
-                    <p className="font-black text-sm">Knoxville</p>
-                    <p className="text-xs text-gray-600 font-semibold">{selectedTownId === 2 ? 'Current' : 'Tap to switch'} &bull; Panthers Black/Gold</p>
+                    <p className="font-bold text-sm">Knoxville</p>
+                    <p className="text-[11px] text-[#8a8778] font-medium">{selectedTownId === 2 ? 'Current Edition' : 'Tap to switch'} &bull; Panthers</p>
                   </div>
+                  {selectedTownId === 2 && <Check className="w-4 h-4 text-amber-500 ml-auto" />}
                 </div>
               </button>
 
               {/* Coming Soon Towns */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
-                <p className="text-xs font-black text-blue-800 mb-2 uppercase">Coming Soon</p>
-                <div className="space-y-2 text-sm text-gray-600">
+              <div className="bg-white border-[1.5px] border-[#e8e6e1] rounded-[12px] p-3">
+                <p className="text-[10px] font-bold text-[#8a8778] mb-2 tracking-[0.15em] uppercase">Coming Soon</p>
+                <div className="space-y-1.5 text-sm text-gray-500 font-medium">
                   <p>🔵 Indianola</p>
                   <p>🟣 Osceola</p>
                   <p>⚫ Centerville</p>
@@ -2381,30 +2395,33 @@ const handleInterestToggle = async (eventId: number) => {
             </div>
 
             {/* Affiliates Quick Link */}
-            <div className="border-t-2 border-gray-200 pt-4 mb-4">
+            <div className="section-divider"></div>
+            <div className="mb-4">
               <button
                 onClick={() => {
                   setActiveTab('affiliates')
                   setShowMenu(false)
                 }}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white p-3 rounded-xl flex items-center justify-between hover:from-green-700 hover:to-emerald-700 transition-all"
+                className="btn-cta w-full bg-emerald-600 text-white p-3 rounded-[12px] flex items-center justify-between transition-all"
+                style={{ boxShadow: '0 2px 10px rgba(16,185,129,0.25)' }}
               >
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
+                <div className="flex items-center gap-2.5">
+                  <TrendingUp className="w-4 h-4" />
                   <div className="text-left">
-                    <p className="text-sm font-black">Market & Partners</p>
-                    <p className="text-xs font-semibold text-green-100">Stocks, Trading & Deals</p>
+                    <p className="text-sm font-bold">Market & Partners</p>
+                    <p className="text-[11px] font-medium text-emerald-100">Stocks, Trading & Deals</p>
                   </div>
                 </div>
-                <span className="text-xl">&rarr;</span>
+                <span className="text-lg opacity-60">&rarr;</span>
               </button>
             </div>
 
             {/* Quick Links */}
-            <div className="border-t-2 border-gray-200 pt-4">
-              <h3 className="text-xs font-black text-gray-500 tracking-wider mb-3 uppercase">Quick Links - Chariton</h3>
-              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="block p-3 hover:bg-red-50 rounded-xl font-bold text-gray-800 transition-all mb-2">🎓 School District</a>
-              <a href="https://www.visioniitheatre.com/" target="_blank" rel="noopener noreferrer" className="block p-3 hover:bg-red-50 rounded-xl font-bold text-gray-800 transition-all">🎬 Vision II Theatre</a>
+            <div className="section-divider"></div>
+            <div>
+              <h3 className="text-[10px] font-bold text-[#8a8778] tracking-[0.15em] mb-3 uppercase">Quick Links</h3>
+              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🎓 School District</a>
+              <a href="https://www.visioniitheatre.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎬 Vision II Theatre</a>
             </div>
           </div>
         </div>
