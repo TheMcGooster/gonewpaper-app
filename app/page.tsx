@@ -735,7 +735,8 @@ const handleInterestToggle = async (eventId: number) => {
 
   const Card = ({ children, className = '', onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
     <div
-      className={`bg-white rounded-xl p-4 mb-3 shadow-md border-2 border-gray-100 card-hover ${className}`}
+      className={`bg-white rounded-[14px] p-5 mb-3 border-[1.5px] border-[#e8e6e1] card-hover ${className}`}
+      style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06), 0 1px 2px rgba(26,26,46,0.04)' }}
       onClick={onClick}
     >
       {children}
@@ -837,76 +838,83 @@ const handleInterestToggle = async (eventId: number) => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen" style={{ background: '#fafaf8' }}>
       {/* Header */}
-      <header className="gnp-gradient text-white sticky top-0 z-40 shadow-2xl safe-top">
-        <div className="p-4">
+      <header className="gnp-gradient text-white sticky top-0 z-40 safe-top" style={{ boxShadow: '0 4px 20px rgba(26,26,46,0.25)' }}>
+        <div className="px-4 pt-4 pb-3">
           {/* Top Row: Town Badge + Go New Paper Logo */}
           <div className="flex items-center justify-between mb-3">
             {/* Left: Town Badge — dynamic per selected town */}
             <div className="flex items-center gap-3">
-              <svg width="50" height="50" viewBox="0 0 100 100" className="drop-shadow-xl">
-                <path d="M50 5 L90 15 L90 65 Q90 85 50 95 Q10 85 10 65 L10 15 Z" fill={theme.shieldFill} stroke="#000" strokeWidth="4"/>
-                <path d="M50 12 L83 20 L83 65 Q83 80 50 88 Q17 80 17 65 L17 20 Z" fill={theme.shieldFill} stroke={selectedTownId === 2 ? '#D4A843' : '#fff'} strokeWidth="3"/>
-                <text x="50" y="72" fontSize="52" fontWeight="900" fill={selectedTownId === 2 ? '#D4A843' : '#fff'} textAnchor="middle" fontFamily="Archivo Black" stroke="#000" strokeWidth="2">{theme.letter}</text>
-                <text x="50" y="72" fontSize="52" fontWeight="900" fill={selectedTownId === 2 ? '#D4A843' : '#fff'} textAnchor="middle" fontFamily="Archivo Black">{theme.letter}</text>
+              <svg width="44" height="44" viewBox="0 0 100 100" className="shield-glow">
+                <defs>
+                  <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={theme.shieldFill} />
+                    <stop offset="100%" stopColor={selectedTownId === 2 ? '#111' : '#A01020'} />
+                  </linearGradient>
+                </defs>
+                <path d="M50 5 L90 15 L90 65 Q90 85 50 95 Q10 85 10 65 L10 15 Z" fill="url(#shieldGrad)" stroke="rgba(255,255,255,0.25)" strokeWidth="3"/>
+                <path d="M50 14 L82 22 L82 63 Q82 78 50 86 Q18 78 18 63 L18 22 Z" fill="none" stroke={selectedTownId === 2 ? '#D4A843' : 'rgba(255,255,255,0.35)'} strokeWidth="1.5"/>
+                <text x="50" y="68" fontSize="46" fontWeight="900" fill={selectedTownId === 2 ? '#D4A843' : '#fff'} textAnchor="middle" fontFamily="Archivo Black">{theme.letter}</text>
               </svg>
               <div>
-                <h2 className="text-xl font-black tracking-tight font-display">{theme.name.toUpperCase()} EDITION</h2>
+                <h2 className="text-lg font-black tracking-tight font-display leading-tight">{theme.name.toUpperCase()}</h2>
+                <p className="text-[10px] font-semibold text-white/50 tracking-widest uppercase">Edition</p>
               </div>
             </div>
 
-            {/* Right: Go New Paper Logo */}
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1">
-                <div className="bg-white text-green-600 px-2 py-1 rounded font-display text-sm font-black">GO</div>
-                <span className="font-display text-lg">NEW PAPER</span>
-              </div>
-              <p className="text-[9px] font-bold text-gray-300 mt-0.5 tracking-wide">Everything Local &bull; All In Your Pocket</p>
+            {/* Right: Go New Paper Logo + Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+              >
+                <Bell className="w-4.5 h-4.5" />
+                <div className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black notif-dot" style={{ minWidth: '18px', height: '18px' }}>3</div>
+              </button>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+              >
+                <Menu className="w-4.5 h-4.5" />
+              </button>
             </div>
           </div>
 
-          {/* Second Row: Bell + Menu */}
-          <div className="flex items-center justify-end gap-2 mb-3">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg transition-all"
-            >
-              <Bell className="w-5 h-5" />
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-black shadow-lg">3</div>
-            </button>
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-lg transition-all"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+          {/* Logo Bar */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className="bg-white text-green-600 px-2 py-0.5 rounded-md font-display text-xs font-black">GO</div>
+              <span className="font-display text-base tracking-tight">NEW PAPER</span>
+            </div>
+            <p className="text-[9px] font-medium text-white/40 tracking-wider font-editorial italic">Everything Local, All In Your Pocket</p>
           </div>
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input
               type="text"
               placeholder="Search events, jobs, housing..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl text-gray-900 font-semibold placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30 shadow-lg"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium search-input-refined text-white focus:text-gray-900 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Tabs */}
-        <nav className="flex overflow-x-auto border-t-2 border-white/20 bg-black/20 hide-scrollbar">
+        <nav className="flex overflow-x-auto border-t border-white/10 bg-black/15 hide-scrollbar tabs-scroll">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap font-black text-xs tracking-wider transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 whitespace-nowrap font-bold text-[11px] tracking-wider transition-all ${
                 activeTab === tab.id
-                  ? `bg-white ${theme.tabActiveText} shadow-lg`
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? `bg-white/95 ${theme.tabActiveText} rounded-t-lg`
+                  : 'text-white/60 hover:text-white/90 hover:bg-white/5'
               }`}
+              style={activeTab === tab.id ? { boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' } : undefined}
             >
-              <tab.icon className="w-5 h-5" />
+              <tab.icon className="w-4 h-4" strokeWidth={activeTab === tab.id ? 2.5 : 1.8} />
               <span>{tab.label}</span>
             </button>
           ))}
@@ -914,10 +922,29 @@ const handleInterestToggle = async (eventId: number) => {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 pb-24">
+      <main className="px-4 pt-4 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className={`animate-spin rounded-full h-12 w-12 border-b-2`} style={{ borderColor: theme.primaryColor }}></div>
+          <div className="space-y-3 animate-fade-in-up">
+            {/* Skeleton digest card */}
+            <div className="skeleton-card">
+              <div className="skeleton h-5 w-48 mb-3"></div>
+              <div className="skeleton h-4 w-full mb-2"></div>
+              <div className="skeleton h-4 w-3/4"></div>
+            </div>
+            {/* Skeleton content cards */}
+            {[1, 2, 3].map(i => (
+              <div key={i} className="skeleton-card">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="skeleton w-10 h-10 rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="skeleton h-5 w-3/4 mb-2"></div>
+                    <div className="skeleton h-3 w-1/2"></div>
+                  </div>
+                </div>
+                <div className="skeleton h-4 w-full mb-2"></div>
+                <div className="skeleton h-10 w-full rounded-lg mt-3"></div>
+              </div>
+            ))}
           </div>
         ) : (
           <>
@@ -940,26 +967,27 @@ const handleInterestToggle = async (eventId: number) => {
               })
 
               return (
-                <div className={`${theme.accentClass} text-white rounded-xl p-5 mb-4 shadow-xl border-2 ${selectedTownId === 2 ? 'border-yellow-500/40' : 'border-white/20'}`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Bell className="w-6 h-6" />
-                    <h3 className="text-lg font-black tracking-tight font-display">{greeting} {selectedTownName.toUpperCase()}!</h3>
+                <div className={`${theme.accentClass} text-white rounded-[16px] p-5 mb-5 digest-card animate-fade-in-up`} style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-bold text-white/50 tracking-[0.2em] uppercase mb-1">Today&apos;s Digest</p>
+                    <h3 className="text-xl font-black tracking-tight font-display mb-3">{greeting}, {selectedTownName}!</h3>
+                    <p className="text-sm font-medium mb-3 text-white/75 leading-relaxed">
+                      {todaysEvents.length > 0
+                        ? `Here's what's happening today:`
+                        : `No events scheduled for today. Check out upcoming events below!`}
+                    </p>
+                    {todaysEvents.length > 0 && (
+                      <ul className="text-sm font-semibold space-y-2 text-white/90">
+                        {todaysEvents.map((event, idx) => (
+                          <li key={idx} className="flex items-center gap-2.5">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></span>
+                            <span>{event.category} {event.title}</span>
+                            <span className="text-white/50 text-xs ml-auto">{event.time || formatEventTime(event.date)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <p className="text-sm font-semibold mb-3 text-white/80">
-                    {todaysEvents.length > 0
-                      ? `Here's what's happening today:`
-                      : `No events scheduled for today. Check out upcoming events below!`}
-                  </p>
-                  {todaysEvents.length > 0 && (
-                    <ul className="text-sm font-bold space-y-2 text-white">
-                      {todaysEvents.map((event, idx) => (
-                        <li key={idx} className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-white rounded-full"></span>
-                          {event.category} {event.title}, {event.time || formatEventTime(event.date)}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
               )
             })()}
@@ -968,56 +996,58 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'events' && (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-black tracking-tight font-display">UPCOMING EVENTS</h2>
-                  <button className={`${theme.accentTextClass} text-sm font-black flex items-center gap-1 tracking-wide`}>
-                    <Plus className="w-4 h-4" />POST
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight font-display">Upcoming Events</h2>
+                    <p className="text-xs text-[#8a8778] font-medium mt-0.5">{displayEvents.length} events in {selectedTownName}</p>
+                  </div>
+                  <button className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+                    <Plus className="w-3.5 h-3.5" />Post
                   </button>
                 </div>
-                {displayEvents.map(event => (
-                  <Card key={event.id}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{event.category}</span>
-                        <div>
-                          <h3 className="text-lg font-black tracking-tight">{event.title}</h3>
-                          <p className="text-xs text-gray-600 font-bold uppercase tracking-wide">{event.source}</p>
-                        </div>
+                {displayEvents.map((event, idx) => (
+                  <Card key={event.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: selectedTownId === 2 ? 'rgba(212,168,67,0.1)' : 'rgba(220,20,60,0.08)' }}>
+                        {event.category}
                       </div>
-                                          </div>
-                    <div className="text-sm text-gray-700 space-y-2 font-semibold">
-                      <div className="flex items-center gap-2">
-                        <Calendar className={`w-4 h-4 ${theme.accentTextClass}`} />
-                        <span className="font-bold">{formatEventDate(event.date)}</span>
-                        <span className="mx-1 text-gray-400">&bull;</span>
-                        <Clock className={`w-4 h-4 ${theme.accentTextClass}`} />
-                        <span className="font-bold">{event.time || formatEventTime(event.date)}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[15px] font-bold tracking-tight leading-snug">{event.title}</h3>
+                        <p className="text-[11px] text-[#8a8778] font-semibold uppercase tracking-wider mt-0.5">{event.source}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className={`w-4 h-4 ${theme.accentTextClass}`} />
-                        <span>{event.location || 'TBD'}</span>
-                        {event.price && (
-                          <>
-                            <span className="mx-1 text-gray-400">&bull;</span>
-                            <span className={`font-black ${theme.accentTextClass}`}>{event.price}</span>
-                          </>
-                        )}
+                      {event.price && (
+                        <span className={`price-tag text-sm ${theme.accentTextClass}`}>{event.price}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-[13px] text-gray-600 font-medium mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className={`w-3.5 h-3.5 ${theme.accentTextClass}`} />
+                        <span className="font-semibold">{formatEventDate(event.date)}</span>
                       </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className={`w-3.5 h-3.5 ${theme.accentTextClass}`} />
+                        <span>{event.time || formatEventTime(event.date)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[13px] text-gray-500 font-medium mb-4">
+                      <MapPin className={`w-3.5 h-3.5 ${theme.accentTextClass}`} />
+                      <span>{event.location || 'TBD'}</span>
                     </div>
                     <button
                       onClick={() => handleInterestToggle(event.id)}
-                      className={`w-full mt-4 py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2 ${
+                      className={`btn-interest w-full py-3 rounded-xl text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-2 ${
                         userInterests.includes(event.id)
-                          ? 'bg-green-600 text-white'
+                          ? 'bg-emerald-500 text-white'
                           : `${theme.accentClass} text-white`
                       }`}
+                      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                     >
                       {userInterests.includes(event.id) ? (
                         <>
-                          <Check className="w-5 h-5" />
-                          INTERESTED!
+                          <Check className="w-4 h-4" />
+                          Interested!
                         </>
                       ) : (
-                        "I'M INTERESTED"
+                        "I'm Interested"
                       )}
                     </button>
                   </Card>
@@ -1028,33 +1058,34 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Jobs Tab */}
             {activeTab === 'jobs' && (
               <>
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">🤖</span>
+                <div className="section-banner bg-emerald-50/80 border-emerald-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2.5 mb-1.5">
+                    <span className="text-lg">🤖</span>
                     <p className="text-sm font-bold text-gray-800">AI Auto-Finding Jobs Within 50 Miles</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
-                    {displayJobs.filter(j => j.auto_scraped).length} jobs auto-discovered from Indeed &bull; {displayJobs.filter(j => !j.auto_scraped).length} posted locally
+                  <p className="text-xs font-medium text-[#8a8778]">
+                    {displayJobs.filter(j => j.auto_scraped).length} auto-discovered &bull; {displayJobs.filter(j => !j.auto_scraped).length} posted locally
                   </p>
                 </div>
-                {displayJobs.map(job => (
-                  <Card key={job.id}>
+                {displayJobs.map((job, idx) => (
+                  <Card key={job.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
                     <div className="flex justify-between items-start mb-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-black tracking-tight">{job.title}</h3>
-                          {job.auto_scraped && <span className="text-xl">🤖</span>}
+                          <h3 className="text-[15px] font-bold tracking-tight">{job.title}</h3>
+                          {job.auto_scraped && <span className="text-base">🤖</span>}
                         </div>
-                        <p className="text-sm text-gray-700 font-bold">{job.company}</p>
+                        <p className="text-[13px] text-gray-500 font-medium">{job.company}</p>
                       </div>
-                      <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-black uppercase tracking-wide">{job.type}</span>
+                      <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">{job.type}</span>
                     </div>
                     <p className={`text-sm font-bold mb-3 ${theme.accentTextClass}`}>{job.pay}</p>
                     <button
                       onClick={() => job.apply_url && window.open(job.apply_url, '_blank')}
-                      className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}
+                      className={`btn-interest w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase`}
+                      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                     >
-                      APPLY NOW
+                      Apply Now
                     </button>
                   </Card>
                 ))}
@@ -1065,61 +1096,64 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'housing' && (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-black tracking-tight font-display">HOUSING</h2>
+                  <h2 className="text-xl font-black tracking-tight font-display">Housing</h2>
                   <a
                     href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${theme.accentTextClass} text-sm font-black flex items-center gap-1 tracking-wide`}
+                    className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`}
+                    style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
                   >
-                    <Plus className="w-4 h-4" />POST
+                    <Plus className="w-3.5 h-3.5" />Post
                   </a>
                 </div>
                 {/* Pricing Info Banner */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mb-4 shadow-md">
-                  <p className="text-sm font-bold text-gray-800 mb-1">Post your rental or property listing!</p>
-                  <div className="space-y-2">
+                <div className="section-banner bg-emerald-50/80 border-emerald-200 mb-4 animate-fade-in-up">
+                  <p className="text-sm font-bold text-gray-800 mb-2">Post your rental or property listing!</p>
+                  <div className="space-y-2.5">
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-gray-600 font-semibold">Single post: <span className="font-black text-green-700">$8</span> (30 days)</p>
+                      <p className="text-xs text-[#8a8778] font-medium">Single post: <span className="price-tag text-emerald-700">$8</span> (30 days)</p>
                       <a
                         href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-black tracking-wide shadow-lg hover:shadow-xl transition-all"
+                        className="btn-cta bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-wide"
+                        style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                       >
-                        POST NOW
+                        Post Now
                       </a>
                     </div>
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-gray-600 font-semibold">5-Pack: <span className="font-black text-green-700">$30</span> (save $10!)</p>
+                      <p className="text-xs text-[#8a8778] font-medium">5-Pack: <span className="price-tag text-emerald-700">$30</span> (save $10!)</p>
                       <a
                         href="https://buy.stripe.com/eVq8wQ3Cm8x38ddgan5ZC08"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-gradient-to-r from-emerald-600 to-green-700 text-white px-4 py-2 rounded-lg text-xs font-black tracking-wide shadow-lg hover:shadow-xl transition-all"
+                        className="btn-cta bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-wide"
+                        style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                       >
-                        5-PACK
+                        5-Pack
                       </a>
                     </div>
                   </div>
                 </div>
-                {displayHousing.map(h => (
-                  <Card key={h.id}>
+                {displayHousing.map((h, idx) => (
+                  <Card key={h.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="text-lg font-black tracking-tight">{h.title}</h3>
-                        <p className="text-sm text-gray-700 font-bold">{h.location}</p>
+                        <h3 className="text-[15px] font-bold tracking-tight">{h.title}</h3>
+                        <p className="text-[13px] text-gray-500 font-medium">{h.location}</p>
                       </div>
-                      <span className={`text-xl font-black ${theme.accentTextClass}`}>{h.price}</span>
+                      <span className={`price-tag text-lg ${theme.accentTextClass}`}>{h.price}</span>
                     </div>
-                    <p className="text-sm text-gray-700 font-semibold mb-3">{h.details}</p>
+                    <p className="text-[13px] text-gray-600 font-medium mb-3">{h.details}</p>
                     {h.expires_at && (
-                      <p className="text-xs text-gray-400 font-semibold mb-2">
+                      <p className="text-xs text-[#8a8778] font-medium mb-2">
                         Expires {new Date(h.expires_at).toLocaleDateString()}
                       </p>
                     )}
-                    <button className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}>
-                      CONTACT
+                    <button className={`btn-interest w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                      Contact
                     </button>
                   </Card>
                 ))}
@@ -1130,34 +1164,35 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'businesses' && (
               <>
                 {/* SPOTLIGHT BUSINESSES SECTION */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-4 rounded-xl mb-4 shadow-md">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">SPOTLIGHT BUSINESSES</span></p>
-                  <p className="text-xs font-semibold text-gray-600 mt-1">Featured local businesses &bull; Support local!</p>
+                <div className="section-banner bg-blue-50/70 border-blue-200 mb-4 animate-fade-in-up">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">Spotlight Businesses</span></p>
+                  <p className="text-xs font-medium text-[#8a8778] mt-1">Featured local businesses &bull; Support local!</p>
                 </div>
 
-                {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map(b => (
-                  <Card key={b.id} className="hover:shadow-xl transition-all cursor-pointer border-blue-200">
+                {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map((b, idx) => (
+                  <Card key={b.id} className={`cursor-pointer animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
                     <div className="flex items-start gap-4">
                       {b.logo_url ? (
-                        <img src={b.logo_url} alt={b.name} className="w-16 h-16 rounded-xl object-cover shadow-md" />
+                        <img src={b.logo_url} alt={b.name} className="w-14 h-14 rounded-xl object-cover" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                       ) : (
-                        <div className="text-5xl">{b.logo_emoji}</div>
+                        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl bg-blue-50">{b.logo_emoji}</div>
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-black tracking-tight">{b.name}</h3>
-                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-black">SPOTLIGHT</span>
+                          <h3 className="text-[15px] font-bold tracking-tight">{b.name}</h3>
+                          <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Spotlight</span>
                         </div>
-                        <p className="text-sm text-gray-600 font-semibold mb-2">{b.tagline}</p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 font-semibold mb-3">
-                          <span className="bg-gray-100 px-2 py-1 rounded">{b.category}</span>
-                          <span>{b.clicks} clicks this month</span>
+                        <p className="text-[13px] text-gray-500 font-medium mb-2 font-editorial italic">{b.tagline}</p>
+                        <div className="flex items-center gap-3 text-[11px] text-[#8a8778] font-medium mb-3">
+                          <span className="bg-gray-50 px-2 py-0.5 rounded border border-[#e8e6e1]">{b.category}</span>
+                          <span>{b.clicks} clicks</span>
                         </div>
                         <button
                           onClick={() => trackBusinessClick(b)}
-                          className={`w-full ${theme.accentClass} text-white py-3 rounded-lg text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase`}
+                          className={`btn-interest btn-cta w-full ${theme.accentClass} text-white py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`}
+                          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
                         >
-                          VISIT WEBSITE &rarr;
+                          Visit Website &rarr;
                         </button>
                       </div>
                     </div>
@@ -1165,36 +1200,38 @@ const handleInterestToggle = async (eventId: number) => {
                 ))}
 
                 {/* DIGITAL BUSINESS CARDS SECTION */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 p-4 rounded-xl mb-4 mt-6 shadow-md">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-purple-600">LOCAL PROFESSIONALS</span></p>
-                  <p className="text-xs font-semibold text-gray-600 mt-1">Financial advisors, agents, services & more</p>
+                <div className="section-divider"></div>
+                <div className="section-banner bg-purple-50/70 border-purple-200 mb-4">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-purple-600">Local Professionals</span></p>
+                  <p className="text-xs font-medium text-[#8a8778] mt-1">Financial advisors, agents, services & more</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {displayBusinesses.filter(b => b.tier === 'card').map(b => (
-                    <div key={b.id} className="bg-white rounded-xl p-4 shadow-md border-2 border-purple-100 hover:shadow-lg hover:border-purple-300 transition-all">
+                  {displayBusinesses.filter(b => b.tier === 'card').map((b, idx) => (
+                    <div key={b.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-purple-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       <div className="flex items-center gap-3 mb-2">
                         {b.logo_url ? (
-                          <img src={b.logo_url} alt={b.name} className="w-12 h-12 rounded-lg object-cover shadow" />
+                          <img src={b.logo_url} alt={b.name} className="w-11 h-11 rounded-lg object-cover" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }} />
                         ) : (
-                          <div className="text-3xl">{b.logo_emoji}</div>
+                          <div className="w-11 h-11 rounded-lg flex items-center justify-center text-2xl bg-purple-50">{b.logo_emoji}</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-black tracking-tight truncate">{b.name}</h3>
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">{b.category}</span>
+                          <h3 className="text-sm font-bold tracking-tight truncate">{b.name}</h3>
+                          <span className="badge bg-purple-50 text-purple-600 border border-purple-200">{b.category}</span>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-600 font-semibold mb-3 italic">&quot;{b.tagline}&quot;</p>
+                      <p className="text-xs text-gray-500 font-medium mb-3 font-editorial italic">&quot;{b.tagline}&quot;</p>
                       <a
                         href={`tel:${b.phone}`}
-                        className="w-full bg-purple-600 text-white py-2 rounded-lg text-xs font-black tracking-wide shadow hover:shadow-lg transition-all uppercase flex items-center justify-center gap-2"
+                        className="btn-interest w-full bg-purple-600 text-white py-2 rounded-lg text-xs font-bold tracking-wide uppercase flex items-center justify-center gap-2"
+                        style={{ boxShadow: '0 2px 6px rgba(147,51,234,0.25)' }}
                       >
                         <span>📞</span> {b.phone}
                       </a>
                       {b.email && (
                         <a
                           href={`mailto:${b.email}`}
-                          className="w-full mt-2 bg-gray-100 text-gray-700 py-2 rounded-lg text-xs font-bold tracking-wide hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          className="w-full mt-2 bg-gray-50 text-gray-600 py-2 rounded-lg text-xs font-semibold tracking-wide hover:bg-gray-100 transition-all flex items-center justify-center gap-2 border border-[#e8e6e1]"
                         >
                           <span>✉️</span> Email
                         </a>
@@ -1204,17 +1241,19 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 {/* PRICING INFO */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-4 rounded-xl mt-6">
-                  <p className="text-sm font-bold text-gray-800 mb-2">📣 Want to be listed here?</p>
-                  <div className="space-y-2 text-xs text-gray-600 font-semibold mb-3">
-                    <p><span className="font-black text-blue-600">Spotlight Business</span> - $30/month - Full card, website link, featured placement</p>
-                    <p><span className="font-black text-purple-600">Digital Business Card</span> - $15/month - Compact card, click-to-call</p>
+                <div className="section-divider"></div>
+                <div className="section-banner bg-emerald-50/80 border-emerald-200">
+                  <p className="text-sm font-bold text-gray-800 mb-2">Want to be listed here?</p>
+                  <div className="space-y-1.5 text-xs text-[#8a8778] font-medium mb-3">
+                    <p><span className="font-bold text-blue-600">Spotlight</span> &mdash; $30/mo &mdash; Full card, website link, featured</p>
+                    <p><span className="font-bold text-purple-600">Digital Card</span> &mdash; $15/mo &mdash; Compact card, click-to-call</p>
                   </div>
                   <a
                     href="mailto:thenewpaperchariton@gmail.com?subject=Business%20Listing%20Inquiry&body=Hi!%20I'm%20interested%20in%20getting%20my%20business%20listed%20on%20Go%20New%20Paper.%0A%0ABusiness%20Name:%0APhone:%0APreferred%20Plan%20(Spotlight%20$30%20or%20Digital%20Card%20$15):"
-                    className="w-full bg-green-600 text-white py-3 rounded-lg text-sm font-black shadow-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                    className="btn-cta w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2"
+                    style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                   >
-                    <span>✉️</span> GET STARTED
+                    <span>✉️</span> Get Started
                   </a>
                 </div>
               </>
@@ -1223,12 +1262,12 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Daily Laughs Tab */}
             {activeTab === 'comics' && (
               <>
-                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Laugh className="w-6 h-6 text-yellow-600" />
-                    <p className="text-lg font-black text-gray-800">DAILY LAUGHS</p>
+                <div className="section-banner bg-amber-50/70 border-amber-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Laugh className="w-5 h-5 text-amber-600" />
+                    <p className="text-sm font-black text-gray-800">Daily Laughs</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
+                  <p className="text-xs font-medium text-[#8a8778]">
                     Your daily dose of humor. A new joke every day to brighten your morning!
                   </p>
                 </div>
@@ -1281,12 +1320,12 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Community Tab */}
             {activeTab === 'community' && (
               <>
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bell className="w-6 h-6 text-green-600" />
-                    <p className="text-lg font-black text-gray-800">COMMUNITY BOARD</p>
+                <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Bell className="w-5 h-5 text-emerald-600" />
+                    <p className="text-sm font-black text-gray-800">Community Board</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
+                  <p className="text-xs font-medium text-[#8a8778]">
                     Lost pets, garage sales, volunteer needs & local announcements from your neighbors.
                   </p>
                 </div>
@@ -1367,12 +1406,12 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Non-Profits Tab */}
             {activeTab === 'nonprofits' && (
               <>
-                <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <HeartHandshake className="w-6 h-6 text-rose-600" />
-                    <p className="text-lg font-black text-gray-800">LOCAL NON-PROFITS</p>
+                <div className="section-banner bg-rose-50/70 border-rose-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <HeartHandshake className="w-5 h-5 text-rose-600" />
+                    <p className="text-sm font-black text-gray-800">Local Non-Profits</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
+                  <p className="text-xs font-medium text-[#8a8778]">
                     Support the organizations that make {selectedTownName} great. Donate directly!
                   </p>
                 </div>
@@ -1447,13 +1486,13 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Clubs/Groups Tab */}
             {activeTab === 'clubs' && (
               <>
-                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border-2 border-cyan-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <UsersRound className="w-6 h-6 text-cyan-600" />
-                    <p className="text-lg font-black text-gray-800">CLUBS & GROUPS</p>
+                <div className="section-banner bg-cyan-50/70 border-cyan-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <UsersRound className="w-5 h-5 text-cyan-600" />
+                    <p className="text-sm font-black text-gray-800">Clubs & Groups</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
-                    Find your people! Local clubs, groups, and organizations in Chariton.
+                  <p className="text-xs font-medium text-[#8a8778]">
+                    Find your people! Local clubs, groups, and organizations in {selectedTownName}.
                   </p>
                 </div>
 
@@ -1539,12 +1578,12 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Celebrations of Life Tab */}
             {activeTab === 'celebrations' && (
               <>
-                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border-2 border-purple-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Flower2 className="w-6 h-6 text-purple-600" />
-                    <p className="text-lg font-black text-gray-800">CELEBRATIONS OF LIFE</p>
+                <div className="section-banner bg-purple-50/70 border-purple-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Flower2 className="w-5 h-5 text-purple-600" />
+                    <p className="text-sm font-black text-gray-800">Celebrations of Life</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
+                  <p className="text-xs font-medium text-[#8a8778]">
                     Honoring those we&apos;ve lost. Remembering the lives that made our community special.
                   </p>
                 </div>
@@ -1632,12 +1671,12 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Affiliates Tab */}
             {activeTab === 'affiliates' && (
               <>
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 p-4 rounded-xl mb-4 shadow-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                    <p className="text-lg font-black text-gray-800">MARKET & PARTNERS</p>
+                <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    <p className="text-sm font-black text-gray-800">Market & Partners</p>
                   </div>
-                  <p className="text-xs font-semibold text-gray-600">
+                  <p className="text-xs font-medium text-[#8a8778]">
                     Stock picks, trading tools & affiliate partnerships that help keep this app free!
                   </p>
                 </div>
@@ -1723,32 +1762,35 @@ const handleInterestToggle = async (eventId: number) => {
           </>
         )}
         {/* Footer Links */}
-        <div className="text-center py-8 pb-24 text-xs text-gray-400 space-x-3">
-          <a href="/privacy" className="underline hover:text-gray-600">Privacy Policy</a>
-          <span>|</span>
-          <a href="/terms" className="underline hover:text-gray-600">Terms of Service</a>
-          <span>|</span>
-          <span>© 2025 Go New Paper</span>
+        <div className="text-center py-8 pb-24 text-xs text-[#8a8778] space-x-3">
+          <a href="/privacy" className="underline hover:text-gray-600 transition-colors">Privacy Policy</a>
+          <span className="text-[#e8e6e1]">|</span>
+          <a href="/terms" className="underline hover:text-gray-600 transition-colors">Terms of Service</a>
+          <span className="text-[#e8e6e1]">|</span>
+          <span>&copy; 2025 Go New Paper</span>
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-red-600 z-40 shadow-2xl safe-bottom">
+      {/* Bottom Navigation — Frosted Glass */}
+      <nav className="fixed bottom-0 left-0 right-0 bottom-nav-glass z-40 safe-bottom">
         <div
-          className="flex p-2 overflow-x-scroll"
-          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex p-1.5 overflow-x-scroll hide-scrollbar"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-1 p-2 transition-all ${
-                activeTab === tab.id ? `${theme.accentTextClass} scale-110` : 'text-gray-500'
+              className={`flex flex-col items-center gap-0.5 py-2 px-1 transition-all rounded-xl ${
+                activeTab === tab.id ? `${theme.accentTextClass}` : 'text-gray-400'
               }`}
-              style={{ minWidth: '72px', flexShrink: 0 }}
+              style={{ minWidth: '68px', flexShrink: 0 }}
             >
-              <tab.icon className="w-6 h-6" strokeWidth={activeTab === tab.id ? 3 : 2} />
-              <span className="text-xs font-black tracking-wider uppercase">{tab.label}</span>
+              <tab.icon className="w-5 h-5" strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
+              <span className={`text-[9px] font-bold tracking-wider uppercase ${activeTab === tab.id ? 'opacity-100' : 'opacity-60'}`}>{tab.label}</span>
+              {activeTab === tab.id && (
+                <div className="nav-active-dot" style={{ backgroundColor: theme.primaryColor }}></div>
+              )}
             </button>
           ))}
         </div>
@@ -1756,10 +1798,10 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Notification Panel */}
       {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end backdrop-blur-sm" onClick={() => setShowNotifications(false)}>
-          <div className="bg-white w-full rounded-t-3xl p-6 max-h-[75vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-overlay z-50 flex items-end" onClick={() => setShowNotifications(false)}>
+          <div className="bg-white w-full rounded-t-[24px] p-6 max-h-[75vh] overflow-y-auto" style={{ boxShadow: '0 -8px 40px rgba(26,26,46,0.15)' }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-black tracking-tight font-display">NOTIFICATIONS</h2>
+              <h2 className="text-xl font-black tracking-tight font-display">Notifications</h2>
               <button onClick={() => setShowNotifications(false)}><X className="w-6 h-6" /></button>
             </div>
             <div className="space-y-3">
@@ -1783,13 +1825,13 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowAuthModal(false)}>
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowAuthModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black tracking-tight font-display">
-                {authMode === 'login' ? 'WELCOME BACK!' : 'JOIN GO NEW PAPER'}
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {authMode === 'login' ? 'Welcome Back!' : 'Join Go New Paper'}
               </h2>
-              <button onClick={() => setShowAuthModal(false)}><X className="w-6 h-6" /></button>
+              <button onClick={() => setShowAuthModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
 
             <form onSubmit={authMode === 'login' ? handleLogin : handleSignup}>
@@ -1876,13 +1918,13 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Listing Submission Modal */}
       {showListingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => { setShowListingModal(false); resetListingForm() }}>
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => { setShowListingModal(false); resetListingForm() }}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black tracking-tight font-display">
-                {listingSuccess ? "YOU'RE LISTED!" : 'GET LISTED FREE'}
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {listingSuccess ? "You're Listed!" : 'Get Listed Free'}
               </h2>
-              <button onClick={() => { setShowListingModal(false); resetListingForm() }}><X className="w-6 h-6" /></button>
+              <button onClick={() => { setShowListingModal(false); resetListingForm() }} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
 
             {listingSuccess ? (
@@ -2012,13 +2054,13 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Community Post Modal */}
       {showCommunityModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}>
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black tracking-tight font-display">
-                {communitySuccess ? 'POSTED!' : 'POST TO COMMUNITY'}
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {communitySuccess ? 'Posted!' : 'Post to Community'}
               </h2>
-              <button onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}><X className="w-6 h-6" /></button>
+              <button onClick={() => { setShowCommunityModal(false); resetCommunityForm() }} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
 
             {communitySuccess ? (
@@ -2372,7 +2414,7 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-24 left-4 right-4 bg-gray-900 text-white p-4 rounded-xl shadow-2xl text-center font-bold z-50 animate-pulse">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white px-6 py-3 rounded-2xl text-center text-sm font-semibold z-50 toast-enter" style={{ boxShadow: '0 8px 30px rgba(26,26,46,0.3)', maxWidth: 'calc(100% - 32px)' }}>
           {toast}
         </div>
       )}

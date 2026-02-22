@@ -2,9 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom font families */
+/* ============================================================
+   GO NEW PAPER — "Community Broadsheet" Design System
+   Editorial newspaper aesthetic with crisp typography,
+   generous white space, and refined town-color accents.
+   ============================================================ */
+
+/* --- CSS Custom Properties --- */
+:root {
+  --gnp-ink: #1a1a2e;
+  --gnp-paper: #fafaf8;
+  --gnp-paper-warm: #f5f4f0;
+  --gnp-border: #e8e6e1;
+  --gnp-border-light: #f0eeea;
+  --gnp-muted: #8a8778;
+  --gnp-shadow-sm: 0 1px 3px rgba(26, 26, 46, 0.06), 0 1px 2px rgba(26, 26, 46, 0.04);
+  --gnp-shadow-md: 0 4px 12px rgba(26, 26, 46, 0.08), 0 2px 4px rgba(26, 26, 46, 0.04);
+  --gnp-shadow-lg: 0 8px 30px rgba(26, 26, 46, 0.10), 0 4px 8px rgba(26, 26, 46, 0.05);
+  --gnp-shadow-xl: 0 16px 50px rgba(26, 26, 46, 0.12), 0 6px 12px rgba(26, 26, 46, 0.06);
+  --gnp-radius: 14px;
+  --gnp-radius-sm: 10px;
+  --gnp-radius-lg: 20px;
+}
+
+/* --- Base Typography --- */
 * {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'DM Sans', 'Barlow', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, .font-display {
@@ -12,13 +37,30 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.5px;
 }
 
-/* Custom gradients */
+/* Editorial serif accent — for taglines, quotes, special moments */
+.font-editorial {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+}
+
+/* --- Smooth Page --- */
+html {
+  scroll-behavior: smooth;
+  background: var(--gnp-paper);
+}
+
+body {
+  background: var(--gnp-paper);
+  color: var(--gnp-ink);
+}
+
+/* --- Town Theme Gradients --- */
 .gnp-gradient {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(160deg, #1a1a2e 0%, #2c3e50 40%, #34495e 100%);
 }
 
 .charger-red {
-  background: linear-gradient(135deg, #DC143C 0%, #A01020 100%);
+  background: linear-gradient(135deg, #DC143C 0%, #B91232 100%);
 }
 
 .charger-red-text {
@@ -37,23 +79,23 @@ h1, h2, h3, .font-display {
   background: linear-gradient(135deg, #D4A843 0%, #B8902F 100%);
 }
 
-/* AI badge animation */
+.panther-btn {
+  background: linear-gradient(135deg, #D4A843 0%, #B8902F 100%);
+  color: #1a1a1a;
+}
+
+/* --- AI Badge --- */
 .ai-badge {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  animation: pulse 2s ease-in-out infinite;
+  animation: pulse-gentle 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes pulse-gentle {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+  50% { opacity: 0.85; }
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Hide scrollbar but keep functionality */
+/* --- Hide Scrollbar --- */
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -62,29 +104,287 @@ html {
   display: none;
 }
 
-/* Card hover effects */
+/* --- Card System --- */
 .card-hover {
-  transition: all 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+  transform: translateY(-3px);
+  box-shadow: var(--gnp-shadow-lg);
+}
+.card-hover:active {
+  transform: translateY(-1px);
+  box-shadow: var(--gnp-shadow-md);
 }
 
-/* Tab active state - default (Chariton) */
+/* --- Tab Active State --- */
 .tab-active {
   background: white;
   color: #DC143C;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: var(--gnp-shadow-md);
 }
 
-/* Knoxville Panthers gold accent for buttons */
-.panther-btn {
-  background: linear-gradient(135deg, #D4A843 0%, #B8902F 100%);
-  color: #1a1a1a;
+/* ============================================================
+   SKELETON LOADING SHIMMER
+   ============================================================ */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
 
-/* PWA safe area padding */
+.skeleton {
+  background: linear-gradient(90deg, #eee8e0 25%, #f5f0ea 37%, #eee8e0 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--gnp-radius-sm);
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: var(--gnp-radius);
+  padding: 20px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--gnp-border-light);
+}
+
+/* ============================================================
+   STAGGERED ENTRANCE ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+/* Stagger delays for cards in a list */
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.12s; }
+.stagger-4 { animation-delay: 0.16s; }
+.stagger-5 { animation-delay: 0.20s; }
+.stagger-6 { animation-delay: 0.24s; }
+.stagger-7 { animation-delay: 0.28s; }
+.stagger-8 { animation-delay: 0.32s; }
+
+/* ============================================================
+   BOTTOM NAVIGATION — FROSTED GLASS
+   ============================================================ */
+.bottom-nav-glass {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1.5px solid var(--gnp-border);
+}
+
+/* Active indicator dot below icon */
+.nav-active-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-top: 2px;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================
+   DIGEST CARD — HERO BANNER
+   ============================================================ */
+.digest-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.digest-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.digest-card::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -15%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+/* ============================================================
+   INTEREST BUTTON — SATISFYING PRESS
+   ============================================================ */
+.btn-interest {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-interest:active {
+  transform: scale(0.97);
+}
+
+.btn-interest::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ============================================================
+   SECTION BANNERS — CLEAN EDITORIAL HEADERS
+   ============================================================ */
+.section-banner {
+  position: relative;
+  border-radius: var(--gnp-radius);
+  padding: 16px 20px;
+  border: 1.5px solid;
+  box-shadow: var(--gnp-shadow-sm);
+}
+
+.section-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--gnp-radius) var(--gnp-radius) 0 0;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* Badge pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+  opacity: 0.8;
+}
+
+.empty-state-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 18px;
+  color: var(--gnp-ink);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  color: var(--gnp-muted);
+  font-weight: 500;
+  max-width: 280px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Price tag */
+.price-tag {
+  font-family: 'Archivo Black', sans-serif;
+  letter-spacing: -0.5px;
+}
+
+/* Thin divider for sections */
+.section-divider {
+  height: 1px;
+  background: var(--gnp-border);
+  margin: 24px 0;
+}
+
+/* Subtle grain texture overlay */
+.grain-overlay {
+  position: relative;
+}
+
+.grain-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Header search input refined */
+.search-input-refined {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.search-input-refined:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
+}
+
+.search-input-refined::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input-refined:focus::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* Toast notification */
+.toast-enter {
+  animation: toastSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+   PWA SAFE AREAS
+   ============================================================ */
 @supports (padding-top: env(safe-area-inset-top)) {
   .safe-top {
     padding-top: env(safe-area-inset-top);
@@ -92,4 +392,54 @@ html {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* ============================================================
+   SCROLLBAR FOR TABS (subtle on hover)
+   ============================================================ */
+.tabs-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  background: rgba(26, 26, 46, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Notification dot pulse */
+@keyframes notif-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.notif-dot {
+  animation: notif-pulse 2s ease-in-out infinite;
+}
+
+/* Shield glow for header */
+.shield-glow {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* CTA button with subtle shine */
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-cta:hover::before {
+  left: 100%;
 }
