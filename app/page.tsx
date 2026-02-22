@@ -1007,9 +1007,7 @@ const handleInterestToggle = async (eventId: number) => {
                 {displayEvents.map((event, idx) => (
                   <Card key={event.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: selectedTownId === 2 ? 'rgba(212,168,67,0.1)' : 'rgba(220,20,60,0.08)' }}>
-                        {event.category}
-                      </div>
+                      <span className="text-2xl flex-shrink-0 mt-0.5">{event.category}</span>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-[15px] font-bold tracking-tight leading-snug">{event.title}</h3>
                         <p className="text-[11px] text-[#8a8778] font-semibold uppercase tracking-wider mt-0.5">{event.source}</p>
