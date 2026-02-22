@@ -1602,7 +1602,7 @@ const handleInterestToggle = async (eventId: number) => {
                       <div key={c.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-purple-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                         <div className="flex items-start gap-4">
                           {c.photo_url ? (
-                            <img src={c.photo_url} alt={c.full_name} className="w-20 h-20 rounded-xl object-cover shadow-md" />
+                            <img src={c.photo_url.startsWith('http') ? c.photo_url : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public${c.photo_url}`} alt={c.full_name} className="w-20 h-20 rounded-xl object-cover shadow-md" />
                           ) : (
                             <div className="w-20 h-20 rounded-xl bg-purple-50 flex items-center justify-center">
                               <span className="text-3xl">🕯️</span>
