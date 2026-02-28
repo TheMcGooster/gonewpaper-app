@@ -816,8 +816,8 @@ const handleInterestToggle = async (eventId: number) => {
     { symbol: 'SPY', price: 478.36, change: 1.22, changePercent: 0.26 }
   ]
 
-  // Use sample data if database is empty
-  const displayEvents = events.length > 0 ? events : sampleEvents
+  // Use sample data if database is empty (events always use real data — empty state shows "no events")
+  const displayEvents = events
   const displayJobs = jobs.length > 0 ? jobs : sampleJobs
   const displayBusinesses = businesses.length > 0 ? businesses : sampleBusinesses
   const displayHousing = housing.length > 0 ? housing : sampleHousing
