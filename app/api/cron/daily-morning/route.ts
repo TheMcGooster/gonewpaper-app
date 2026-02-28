@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { syncCharitonEvents } from '../sync-chariton-events/route'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -28,7 +27,6 @@ export async function GET(request: Request) {
     purgeObituaries?: Record<string, unknown>
     purgeEvents?: Record<string, unknown>
     purgeHousing?: Record<string, unknown>
-    syncCharitonEvents?: Record<string, unknown>
   } = {}
 
   // --- 1. Daily Summary Notification (Per-Town) ---
@@ -275,15 +273,6 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Purge housing error:', error)
     results.purgeHousing = { error: 'Purge housing failed' }
-  }
-
-  // --- 5. Sync Chariton Events from Google Calendar ---
-  try {
-    const syncResult = await syncCharitonEvents(supabase)
-    results.syncCharitonEvents = { success: !syncResult.error, ...syncResult }
-  } catch (error) {
-    console.error('Sync Chariton events error:', error)
-    results.syncCharitonEvents = { error: 'Sync Chariton events failed' }
   }
 
   return NextResponse.json({ success: true, ...results })
