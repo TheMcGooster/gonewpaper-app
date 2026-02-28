@@ -111,7 +111,7 @@ export default function RootLayout({
               OneSignalDeferred.push(async function(OneSignal) {
                 try {
                   await OneSignal.init({
-                    appId: "a7951e0e-737c-42e6-bd9d-fc0931d95766",
+                    appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766'}",
                     allowLocalhostAsSecureOrigin: true,
                   });
                   console.log("OneSignal initialized successfully");

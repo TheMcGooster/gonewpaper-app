@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['hsuqduzndegemopwossk.supabase.co', 'i.imgur.com'],
+    domains: ['auth.gonewpaper.com', 'hsuqduzndegemopwossk.supabase.co', 'i.imgur.com'],
   },
   async headers() {
     return [

@@ -2067,7 +2067,7 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="text-6xl mb-4">🎉</div>
                 <p className="text-lg font-black mb-2">Your post is live!</p>
                 <p className="text-sm text-gray-600 font-semibold mb-6">
-                  Your community post is now visible on the Community tab for all of Chariton to see!
+                  Your community post is now visible on the Community tab for all of {selectedTownName} to see!
                 </p>
                 <button
                   onClick={() => { setShowCommunityModal(false); resetCommunityForm(); setActiveTab('community') }}

@@ -60,9 +60,10 @@ function parseICalEvents(icsText: string): Array<{
       return value.trim()
     }
 
-    const uid = getField('UID') || `knoxville-${Date.now()}-${i}`
     const summary = getField('SUMMARY')
     const dtstart = getField('DTSTART')
+    // Deterministic UID fallback — same event always gets same ID across sync runs
+    const uid = getField('UID') || `knoxville-${(summary || '').toLowerCase().replace(/\W+/g, '-')}-${dtstart || i}`
     const dtend = getField('DTEND')
     const location = getField('LOCATION')
     const description = getField('DESCRIPTION')
