@@ -18,10 +18,8 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get today's date in Central Time
-    const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
-    const centralTime = new Date(centralTimeStr)
-    const todayStr = centralTime.toISOString().split('T')[0]
+    // Get today's date in Central Time (en-CA locale gives YYYY-MM-DD format)
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
 
     // Use a raw SQL query to avoid PostgREST FK constraint issues.
     // This joins user_interests, events, and users directly.

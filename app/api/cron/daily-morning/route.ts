@@ -17,10 +17,8 @@ export async function GET(request: Request) {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-  // Get today's date in Central Time — auto-handles DST
-  const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
-  const centralTime = new Date(centralTimeStr)
-  const todayStr = centralTime.toISOString().split('T')[0]
+  // Get today's date in Central Time — en-CA gives YYYY-MM-DD, auto-handles DST
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
 
   const results: {
     dailySummary?: Record<string, unknown>
@@ -117,58 +115,56 @@ export async function GET(request: Request) {
 
   // --- 2. Purge Old Obituaries ---
   try {
-    const today = todayStr
+    // Calculate cutoff dates
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - 14)
+    const cutoffStr = cutoffDate.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+    const cutoffISO = cutoffDate.toISOString()
 
-    // Calculate the date 14 days ago (in Central Time)
-    const fourteenDaysAgo = new Date(centralTime)
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-    const cutoffDate = fourteenDaysAgo.toISOString().split('T')[0]
-
-    // Rule 1: Find entries where service_date has passed
-    const { data: pastByService, error: serviceError } = await supabase
+    // Rule 1: service_date has passed
+    const { data: pastByService } = await supabase
       .from('celebrations_of_life')
-      .select('id, full_name, service_date, passing_date')
-      .lt('service_date', today)
+      .select('id, full_name')
+      .lt('service_date', todayStr)
 
-    if (serviceError) {
-      console.error('Error fetching past obituaries by service_date:', serviceError)
-      results.purgeObituaries = { error: 'Failed to fetch past obituaries', details: serviceError.message }
+    // Rule 2: passing_date is 14+ days ago (excludes NULLs by design — handled in Rule 3)
+    const { data: pastByPassing } = await supabase
+      .from('celebrations_of_life')
+      .select('id, full_name')
+      .lt('passing_date', cutoffStr)
+
+    // Rule 3: NULL dates — use created_at as fallback (catches scraper entries with broken date parsing)
+    const { data: pastByCreated } = await supabase
+      .from('celebrations_of_life')
+      .select('id, full_name')
+      .is('service_date', null)
+      .is('passing_date', null)
+      .lt('created_at', cutoffISO)
+
+    // Combine all lists, dedup by id
+    const allPast = [...(pastByService || []), ...(pastByPassing || []), ...(pastByCreated || [])]
+    const uniqueIds = Array.from(new Set(allPast.map(o => o.id)))
+    const uniqueNames = Array.from(new Set(allPast.map(o => o.full_name)))
+
+    if (uniqueIds.length === 0) {
+      results.purgeObituaries = { success: true, message: 'No past obituaries to purge', deleted: 0 }
     } else {
-      // Rule 2: Find entries where passing_date is 14+ days ago
-      const { data: pastByPassing, error: passingError } = await supabase
+      const { error: deleteError } = await supabase
         .from('celebrations_of_life')
-        .select('id, full_name, service_date, passing_date')
-        .lt('passing_date', cutoffDate)
+        .delete()
+        .in('id', uniqueIds)
 
-      if (passingError) {
-        console.error('Error fetching past obituaries by passing_date:', passingError)
-        results.purgeObituaries = { error: 'Failed to fetch stale obituaries', details: passingError.message }
+      if (deleteError) {
+        console.error('Error deleting past obituaries:', deleteError)
+        results.purgeObituaries = { error: 'Failed to delete past obituaries', details: deleteError.message }
       } else {
-        // Combine both lists, dedup by id
-        const allPast = [...(pastByService || []), ...(pastByPassing || [])]
-        const uniqueIds = Array.from(new Set(allPast.map(o => o.id)))
-        const uniqueNames = Array.from(new Set(allPast.map(o => o.full_name)))
-
-        if (uniqueIds.length === 0) {
-          results.purgeObituaries = { success: true, message: 'No past obituaries to purge', deleted: 0 }
-        } else {
-          const { error: deleteError } = await supabase
-            .from('celebrations_of_life')
-            .delete()
-            .in('id', uniqueIds)
-
-          if (deleteError) {
-            console.error('Error deleting past obituaries:', deleteError)
-            results.purgeObituaries = { error: 'Failed to delete past obituaries', details: deleteError.message }
-          } else {
-            results.purgeObituaries = {
-              success: true,
-              deleted: uniqueIds.length,
-              purgedByServiceDate: (pastByService || []).length,
-              purgedByPassingDate: (pastByPassing || []).length,
-              names: uniqueNames,
-            }
-          }
+        results.purgeObituaries = {
+          success: true,
+          deleted: uniqueIds.length,
+          purgedByServiceDate: (pastByService || []).length,
+          purgedByPassingDate: (pastByPassing || []).length,
+          purgedByCreatedAt: (pastByCreated || []).length,
+          names: uniqueNames,
         }
       }
     }

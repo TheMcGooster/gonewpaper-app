@@ -77,19 +77,28 @@ function parseICalEvents(icsText: string): Array<{
 
 // Convert iCal date (YYYYMMDD or YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ) to our format
 function parseICalDate(dtStr: string): { date: string; time: string } {
-  // Remove any timezone suffix
-  const clean = dtStr.replace('Z', '').trim()
+  const raw = dtStr.trim()
 
-  if (clean.length === 8) {
-    // Date only: YYYYMMDD
-    const year = clean.substring(0, 4)
-    const month = clean.substring(4, 6)
-    const day = clean.substring(6, 8)
+  // Date-only: YYYYMMDD (no timezone conversion needed)
+  if (raw.length === 8 && !raw.includes('T')) {
+    const year = raw.substring(0, 4)
+    const month = raw.substring(4, 6)
+    const day = raw.substring(6, 8)
     return { date: `${year}-${month}-${day}`, time: '' }
   }
 
-  if (clean.length >= 15 && clean.includes('T')) {
-    // Date + time: YYYYMMDDTHHMMSS
+  if (raw.includes('T')) {
+    // UTC timestamp (ends with Z) — convert to Central Time properly
+    if (raw.endsWith('Z')) {
+      const iso = `${raw.substring(0, 4)}-${raw.substring(4, 6)}-${raw.substring(6, 8)}T${raw.substring(9, 11)}:${raw.substring(11, 13)}:${raw.substring(13, 15)}Z`
+      const dt = new Date(iso)
+      const date = dt.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+      const time = dt.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' })
+      return { date, time }
+    }
+
+    // Local timestamp: YYYYMMDDTHHMMSS — treat as Central Time directly
+    const clean = raw.replace('Z', '')
     const datePart = clean.split('T')[0]
     const timePart = clean.split('T')[1]
     const year = datePart.substring(0, 4)
@@ -99,14 +108,11 @@ function parseICalDate(dtStr: string): { date: string; time: string } {
     const minutes = timePart.substring(2, 4)
     const ampm = hours >= 12 ? 'PM' : 'AM'
     const hour12 = hours % 12 || 12
-    return {
-      date: `${year}-${month}-${day}`,
-      time: `${hour12}:${minutes} ${ampm}`
-    }
+    return { date: `${year}-${month}-${day}`, time: `${hour12}:${minutes} ${ampm}` }
   }
 
-  // Fallback — try to parse as-is
-  return { date: dtStr, time: '' }
+  // Fallback
+  return { date: raw, time: '' }
 }
 
 export async function GET(request: Request) {
@@ -128,10 +134,8 @@ export async function GET(request: Request) {
     totalSkipped: 0,
   }
 
-  // Get today's date for filtering past events
-  const centralTimeStr = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })
-  const centralTime = new Date(centralTimeStr)
-  const todayStr = centralTime.toISOString().split('T')[0]
+  // Get today's date for filtering past events (en-CA = YYYY-MM-DD, auto-handles DST)
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
 
   // --- Sync iCal Feeds from City of Knoxville ---
   for (const feed of ICAL_FEEDS) {

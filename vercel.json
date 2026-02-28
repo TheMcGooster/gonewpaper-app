@@ -18,10 +18,6 @@
     {
       "path": "/api/cron/event-reminders",
       "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron/sync-knoxville-events",
-      "schedule": "0 13 * * *"
     }
   ]
 }

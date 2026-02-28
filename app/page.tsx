@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club, Comic } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
-import OneSignal from 'react-onesignal'
+// OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
 // Format date from YYYY-MM-DD string to readable format (FIXED - no timezone shift)
 const formatEventDate = (dateStr: string) => {
@@ -134,7 +134,7 @@ export default function GoNewPaper() {
 
         // Use OneSignalDeferred to safely access SDK after it's ready
         window.OneSignalDeferred = window.OneSignalDeferred || []
-        window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
+        window.OneSignalDeferred.push(async (OneSignalSDK: any) => {
           // Check OneSignal subscription status (NOT just browser permission!)
           // Browser permission and OneSignal subscription are DIFFERENT things.
           // User must have a OneSignal subscription (player ID) for notifications to actually work.
@@ -616,20 +616,22 @@ const handleInterestToggle = async (eventId: number) => {
 
   if (isInterested) {
     // Remove interest
-    await supabase
+    const { error: delError } = await supabase
       .from('user_interests')
       .delete()
       .eq('user_id', user.id)
       .eq('event_id', eventId)
 
+    if (delError) { showToast('Something went wrong. Please try again.'); return }
     setUserInterests(prev => prev.filter(id => id !== eventId))
     showToast('Removed from your interests')
   } else {
     // Add interest
-    await supabase
+    const { error: insError } = await supabase
       .from('user_interests')
       .insert({ user_id: user.id, event_id: eventId })
 
+    if (insError) { showToast('Something went wrong. Please try again.'); return }
     setUserInterests(prev => [...prev, eventId])
 
     // Also save OneSignal subscription ID (in case it wasn't captured on login)
@@ -664,7 +666,7 @@ const handleInterestToggle = async (eventId: number) => {
           comicsRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
-          supabase.from('events').select('*').eq('town_id', selectedTownId).gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(20),
+          supabase.from('events').select('*').eq('town_id', selectedTownId).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
           supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
@@ -874,7 +876,6 @@ const handleInterestToggle = async (eventId: number) => {
                 className="relative p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
               >
                 <Bell className="w-4.5 h-4.5" />
-                <div className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black notif-dot" style={{ minWidth: '18px', height: '18px' }}>3</div>
               </button>
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -963,8 +964,8 @@ const handleInterestToggle = async (eventId: number) => {
                 greeting = 'GOOD EVENING'
               }
 
-              // Filter to only today's events
-              const today = new Date().toISOString().split('T')[0]
+              // Filter to only today's events (Central Time — avoids UTC date shift before 6 AM)
+              const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
               const todaysEvents = displayEvents.filter(event => {
                 const eventDate = event.date.split('T')[0]
                 return eventDate === today
@@ -1812,20 +1813,10 @@ const handleInterestToggle = async (eventId: number) => {
               <h2 className="text-xl font-black tracking-tight font-display">Notifications</h2>
               <button onClick={() => setShowNotifications(false)}><X className="w-6 h-6" /></button>
             </div>
-            <div className="space-y-3">
-              <Card className="border-green-200 bg-green-50">
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl">🤖</span>
-                  <div className="flex-1">
-                    <p className="font-black text-sm mb-1">AI Correction Applied</p>
-                    <p className="text-xs font-semibold text-gray-700">City Council meeting time updated: 5:00 PM &rarr; 6:00 PM based on city website</p>
-                    <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
-                  </div>
-                </div>
-              </Card>
-              <Card>
-                <p className="text-sm font-bold"><span className="font-black">2 new jobs</span> found within 50 miles 🤖</p>
-              </Card>
+            <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">
+              <Bell className="w-10 h-10 mb-3 opacity-20" />
+              <p className="font-bold text-sm">You&apos;re all caught up!</p>
+              <p className="text-xs mt-1">Push notifications keep you updated on events, jobs, and community news.</p>
             </div>
           </div>
         </div>
