@@ -35,6 +35,9 @@ export type Event = {
   google_event_id?: string
   end_date?: string
   source_url?: string
+  source_type?: string
+  end_time?: string
+  address?: string
 }
 
 export type Job = {

@@ -138,8 +138,8 @@ export async function GET(request: Request) {
   // Get today's date for filtering past events (en-CA = YYYY-MM-DD, auto-handles DST)
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
 
-  // --- Sync iCal Feeds from City of Knoxville ---
-  for (const feed of ICAL_FEEDS) {
+  // --- Sync iCal Feeds from City of Knoxville (parallel) ---
+  const feedResults = await Promise.all(ICAL_FEEDS.map(async (feed) => {
     try {
       const response = await fetch(feed.url, {
         headers: { 'Accept': 'text/calendar' },
@@ -147,8 +147,7 @@ export async function GET(request: Request) {
       })
 
       if (!response.ok) {
-        results.icalFeeds.push({ name: feed.name, eventsFound: 0, inserted: 0, skipped: 0, error: `HTTP ${response.status}` })
-        continue
+        return { name: feed.name, eventsFound: 0, inserted: 0, skipped: 0, error: `HTTP ${response.status}` }
       }
 
       const icsText = await response.text()
@@ -183,6 +182,7 @@ export async function GET(request: Request) {
               town_id: KNOXVILLE_TOWN_ID,
               description: event.description || '',
               google_event_id: event.uid,
+              source_type: 'ical',
             },
             { onConflict: 'google_event_id' }
           )
@@ -215,6 +215,7 @@ export async function GET(request: Request) {
                 town_id: KNOXVILLE_TOWN_ID,
                 description: event.description || '',
                 google_event_id: event.uid,
+                source_type: 'ical',
               })
 
             if (insertError) {
@@ -229,25 +230,27 @@ export async function GET(request: Request) {
         }
       }
 
-      results.icalFeeds.push({
+      return {
         name: feed.name,
         eventsFound: parsedEvents.length,
         inserted,
         skipped,
-      })
-      results.totalInserted += inserted
-      results.totalSkipped += skipped
+      }
     } catch (error) {
       console.error(`Error fetching iCal feed ${feed.name}:`, error)
-      results.icalFeeds.push({
+      return {
         name: feed.name,
         eventsFound: 0,
         inserted: 0,
         skipped: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
-  }
+  }))
+
+  results.icalFeeds = feedResults
+  results.totalInserted = feedResults.reduce((sum, r) => sum + r.inserted, 0)
+  results.totalSkipped = feedResults.reduce((sum, r) => sum + r.skipped, 0)
 
   return NextResponse.json({
     success: true,

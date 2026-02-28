@@ -82,6 +82,7 @@ export async function GET(request: Request) {
           verified: true,
           town_id: CHARITON_TOWN_ID,
           google_event_id: item.id,
+          source_type: 'google_calendar',
         },
         { onConflict: 'google_event_id' }
       )

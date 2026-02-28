@@ -26,6 +26,7 @@ type IngestEvent = {
   town_id?: number      // defaults to 2 (Knoxville) if not provided
   verified?: boolean    // defaults to true
   google_event_id?: string  // unique ID for dedup
+  source_type?: string  // origin: google_calendar | ical | eventbrite | user_submitted | manual
 }
 
 function validateEvent(event: IngestEvent): string | null {
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
         verified: event.verified !== false,
         town_id: townId,
         google_event_id: event.google_event_id || '',
+        source_type: event.source_type || 'manual',
       })
 
     if (insertError) {
