@@ -100,6 +100,15 @@ export default function GoNewPaper() {
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communitySuccess, setCommunitySuccess] = useState(false)
 
+  // Post Event form state
+  const [showPostEventModal, setShowPostEventModal] = useState(false)
+  const [postEventForm, setPostEventForm] = useState({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free' })
+  const [postEventSuccess, setPostEventSuccess] = useState(false)
+  const [postEventLoading, setPostEventLoading] = useState(false)
+
+  // Pending events (admin approval queue)
+  const [pendingEvents, setPendingEvents] = useState<Event[]>([])
+
   // Toast helper function
   const showToast = (message: string) => {
     setToast(message)
@@ -224,7 +233,7 @@ export default function GoNewPaper() {
           }
 
           // Always listen for subscription changes (new subscription, token refresh, etc.)
-          OneSignalSDK.User.PushSubscription.addEventListener('change', async (event) => {
+          OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
             const newPlayerId = event.current.id
             if (newPlayerId && event.current.optedIn) {
               console.log('Subscription changed! Saving ID:', newPlayerId)
@@ -597,6 +606,33 @@ export default function GoNewPaper() {
     if (data) setCommunityPosts(data)
   }
 
+  const handlePostEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setPostEventLoading(true)
+    try {
+      const { error } = await supabase.from('events').insert({
+        title: postEventForm.title.trim(),
+        date: postEventForm.date,
+        time: postEventForm.time || 'TBD',
+        location: postEventForm.location.trim() || selectedTownName,
+        category: postEventForm.category,
+        price: postEventForm.price || 'Free',
+        description: postEventForm.description.trim(),
+        verified: false,
+        source: 'Community Submission',
+        source_type: 'user_submitted',
+        town_id: selectedTownId,
+      })
+      if (error) throw error
+      setPostEventSuccess(true)
+    } catch (err) {
+      showToast('Something went wrong. Please try again.')
+    } finally {
+      setPostEventLoading(false)
+    }
+  }
+
   const handleDeleteCommunityPost = async (id: number, title: string) => {
     if (!confirm(`Remove "${title}" from community posts?`)) return
     const { error } = await supabase.from('community_posts').update({ is_active: false }).eq('id', id)
@@ -666,7 +702,7 @@ const handleInterestToggle = async (eventId: number) => {
           comicsRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
-          supabase.from('events').select('*').eq('town_id', selectedTownId).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
+          supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
           supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
@@ -703,6 +739,22 @@ const handleInterestToggle = async (eventId: number) => {
     fetchData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTownId])
+
+  // Fetch pending (unverified) events for admin approval
+  useEffect(() => {
+    if (!isAdmin) return
+    async function fetchPendingEvents() {
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('town_id', selectedTownId)
+        .eq('verified', false)
+        .order('created_at', { ascending: false })
+      if (data) setPendingEvents(data)
+    }
+    fetchPendingEvents()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, selectedTownId])
 
   // Track business clicks
   const trackBusinessClick = async (business: Business) => {
@@ -1005,7 +1057,16 @@ const handleInterestToggle = async (eventId: number) => {
                     <h2 className="text-xl font-black tracking-tight font-display">Upcoming Events</h2>
                     <p className="text-xs text-[#8a8778] font-medium mt-0.5">{displayEvents.length} events in {selectedTownName}</p>
                   </div>
-                  <button className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+                  <button
+                    className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`}
+                    style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                    onClick={() => {
+                      if (!user) { setShowAuthModal(true); return }
+                      setShowPostEventModal(true)
+                      setPostEventSuccess(false)
+                      setPostEventForm({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free' })
+                    }}
+                  >
                     <Plus className="w-3.5 h-3.5" />Post
                   </button>
                 </div>
@@ -1055,6 +1116,70 @@ const handleInterestToggle = async (eventId: number) => {
                     </button>
                   </Card>
                 ))}
+
+                {/* Admin: Pending Events Approval Panel */}
+                {isAdmin && pendingEvents.length > 0 && (
+                  <div className="mt-6 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">⏳</span>
+                      <h3 className="text-base font-black tracking-tight font-display text-amber-800">Pending Approval ({pendingEvents.length})</h3>
+                    </div>
+                    {pendingEvents.map(event => (
+                      <div key={event.id} className="bg-white rounded-[14px] p-4 mb-3 border-2 border-amber-300" style={{ boxShadow: '0 2px 8px rgba(217,119,6,0.1)' }}>
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-xl flex-shrink-0">{event.category}</span>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-[14px] font-bold tracking-tight leading-snug">{event.title}</h4>
+                            <p className="text-[11px] text-amber-700 font-semibold uppercase tracking-wider mt-0.5">Community Submission</p>
+                          </div>
+                          {event.price && <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">{event.price}</span>}
+                        </div>
+                        <div className="flex items-center gap-3 text-[12px] text-gray-600 font-medium mb-2">
+                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDate(event.date)}</span>
+                          {event.time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{event.time}</span>}
+                        </div>
+                        {event.location && (
+                          <p className="text-[12px] text-gray-500 font-medium mb-2 flex items-center gap-1"><MapPin className="w-3 h-3" />{event.location}</p>
+                        )}
+                        {event.description && (
+                          <p className="text-[12px] text-gray-600 mb-3 leading-relaxed">{event.description}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              const { error } = await supabase.from('events').update({ verified: true }).eq('id', event.id)
+                              if (!error) {
+                                setPendingEvents(prev => prev.filter(e => e.id !== event.id))
+                                setEvents(prev => [...prev, { ...event, verified: true }].sort((a, b) => a.date.localeCompare(b.date)))
+                                showToast('Event approved!')
+                              } else {
+                                showToast('Error approving event')
+                              }
+                            }}
+                            className="flex-1 bg-emerald-500 text-white py-2 rounded-lg text-xs font-black tracking-wide uppercase"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Reject "${event.title}"? This will permanently delete it.`)) return
+                              const { error } = await supabase.from('events').delete().eq('id', event.id)
+                              if (!error) {
+                                setPendingEvents(prev => prev.filter(e => e.id !== event.id))
+                                showToast('Event rejected and deleted.')
+                              } else {
+                                showToast('Error rejecting event')
+                              }
+                            }}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-xs font-black tracking-wide uppercase"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
@@ -2043,6 +2168,96 @@ const handleInterestToggle = async (eventId: number) => {
 
                   <button type="submit" disabled={listingLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
                     {listingLoading ? 'SUBMITTING...' : 'SUBMIT LISTING'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Post Event Modal */}
+      {showPostEventModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowPostEventModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {postEventSuccess ? 'Submitted!' : 'Submit an Event'}
+              </h2>
+              <button onClick={() => setShowPostEventModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {postEventSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">✅</div>
+                <p className="text-lg font-black mb-2">Event Submitted!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  It will appear in the Events tab after review by our team.
+                </p>
+                <button
+                  onClick={() => setShowPostEventModal(false)}
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg`}
+                >
+                  CLOSE
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePostEventSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Event Name *</label>
+                    <input type="text" value={postEventForm.title} onChange={(e) => setPostEventForm(f => ({...f, title: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="e.g. Chariton Farmers Market" required maxLength={100} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Date *</label>
+                      <input type="date" value={postEventForm.date} onChange={(e) => setPostEventForm(f => ({...f, date: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
+                      <input type="time" value={postEventForm.time} onChange={(e) => setPostEventForm(f => ({...f, time: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                    <input type="text" value={postEventForm.location} onChange={(e) => setPostEventForm(f => ({...f, location: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder={`e.g. Town Square, ${selectedTownName} (optional)`} maxLength={100} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                      <select value={postEventForm.category} onChange={(e) => setPostEventForm(f => ({...f, category: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`}>
+                        <option value="📅">📅 General</option>
+                        <option value="🎵">🎵 Music</option>
+                        <option value="🏈">🏈 Sports</option>
+                        <option value="🎨">🎨 Arts</option>
+                        <option value="🏛️">🏛️ Civic</option>
+                        <option value="🎉">🎉 Festival</option>
+                        <option value="🍽️">🍽️ Food</option>
+                        <option value="🤝">🤝 Volunteer</option>
+                        <option value="🎬">🎬 Movie</option>
+                        <option value="🙏">🙏 Faith</option>
+                        <option value="👶">👶 Kids</option>
+                        <option value="📚">📚 Education</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Price</label>
+                      <input type="text" value={postEventForm.price} onChange={(e) => setPostEventForm(f => ({...f, price: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="Free" maxLength={30} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                    <textarea value={postEventForm.description} onChange={(e) => setPostEventForm(f => ({...f, description: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="Tell people more about this event (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <p className="text-xs text-[#8a8778] font-medium text-center">Events are reviewed before appearing publicly. Thank you for contributing to {selectedTownName}!</p>
+
+                  <button type="submit" disabled={postEventLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
+                    {postEventLoading ? 'SUBMITTING...' : 'SUBMIT EVENT'}
                   </button>
                 </div>
               </form>
