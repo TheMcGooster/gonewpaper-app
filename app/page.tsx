@@ -109,6 +109,21 @@ export default function GoNewPaper() {
   // Pending events (admin approval queue)
   const [pendingEvents, setPendingEvents] = useState<Event[]>([])
 
+  // Business submission form
+  const [showBusinessModal, setShowBusinessModal] = useState(false)
+  const [businessForm, setBusinessForm] = useState({
+    name: '', contactName: '', email: '', phone: '', website: '',
+    category: '', tagline: '', description: '', address: '', hours: '',
+    tier: '' as '' | 'card' | 'spotlight', townId: 1
+  })
+  const [businessLoading, setBusinessLoading] = useState(false)
+  const [businessSuccess, setBusinessSuccess] = useState(false)
+  const [businessError, setBusinessError] = useState('')
+  const [submittedTier, setSubmittedTier] = useState<'card' | 'spotlight'>('card')
+
+  // Pending businesses (admin approval queue)
+  const [pendingBusinesses, setPendingBusinesses] = useState<Business[]>([])
+
   // Toast helper function
   const showToast = (message: string) => {
     setToast(message)
@@ -633,6 +648,54 @@ export default function GoNewPaper() {
     }
   }
 
+  const handleBusinessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusinessError('')
+    if (!businessForm.name.trim()) { setBusinessError('Business name is required'); return }
+    if (!businessForm.contactName.trim()) { setBusinessError('Contact name is required'); return }
+    if (!businessForm.email.trim()) { setBusinessError('Email is required'); return }
+    if (!businessForm.phone.trim()) { setBusinessError('Phone number is required'); return }
+    if (!businessForm.category) { setBusinessError('Please select a category'); return }
+    if (!businessForm.tagline.trim()) { setBusinessError('Tagline is required'); return }
+    if (!businessForm.tier) { setBusinessError('Please select a listing plan'); return }
+    setBusinessLoading(true)
+    try {
+      const categoryEmojis: Record<string, string> = {
+        'Restaurant': '🍔', 'Cafe/Coffee Shop': '☕', 'Retail': '🛍️', 'Grocery': '🛒',
+        'Auto Services': '🚗', 'Insurance': '🛡️', 'Financial Advisor': '💼',
+        'Real Estate': '🏠', 'Healthcare': '🏥', 'Salon/Beauty': '💇',
+        'Entertainment': '🎬', 'Event Services': '🎉', 'Professional Services': '📋',
+        'Home Services': '🔧', 'Agriculture': '🌾', 'Other': '🏢'
+      }
+      const { error } = await supabase.from('businesses').insert({
+        name: businessForm.name.trim(),
+        contact_name: businessForm.contactName.trim(),
+        contact_email: businessForm.email.trim(),
+        email: businessForm.email.trim(),
+        phone: businessForm.phone.trim(),
+        website: businessForm.website.trim() || '',
+        category: businessForm.category,
+        tagline: businessForm.tagline.trim(),
+        description: businessForm.description.trim(),
+        address: businessForm.address.trim(),
+        hours: businessForm.hours.trim(),
+        tier: businessForm.tier,
+        logo_emoji: categoryEmojis[businessForm.category] || '🏢',
+        featured: false,
+        clicks: 0,
+        town_id: businessForm.townId,
+        payment_status: 'pending',
+      })
+      if (error) throw error
+      setSubmittedTier(businessForm.tier)
+      setBusinessSuccess(true)
+    } catch (err: any) {
+      setBusinessError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setBusinessLoading(false)
+    }
+  }
+
   const handleDeleteCommunityPost = async (id: number, title: string) => {
     if (!confirm(`Remove "${title}" from community posts?`)) return
     const { error } = await supabase.from('community_posts').update({ is_active: false }).eq('id', id)
@@ -714,7 +777,7 @@ const handleInterestToggle = async (eventId: number) => {
           // Town-specific content (filtered by selectedTownId)
           supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
           supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
-          supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).order('featured', { ascending: false }).limit(20),
+          supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).eq('payment_status', 'active').order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
           supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20),
           supabase.from('celebrations_of_life').select('*').eq('town_id', selectedTownId).eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
@@ -769,6 +832,21 @@ const handleInterestToggle = async (eventId: number) => {
     fetchPendingEvents()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, selectedTownId])
+
+  // Fetch pending businesses for admin approval
+  useEffect(() => {
+    if (!isAdmin) return
+    async function fetchPendingBusinesses() {
+      const { data } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('payment_status', 'pending')
+        .order('created_at', { ascending: false })
+      if (data) setPendingBusinesses(data)
+    }
+    fetchPendingBusinesses()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
 
   // Track business clicks
   const trackBusinessClick = async (business: Business) => {
@@ -1383,14 +1461,64 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                     <p><span className="font-bold text-blue-600">Spotlight</span> &mdash; $30/mo &mdash; Full card, website link, featured</p>
                     <p><span className="font-bold text-purple-600">Digital Card</span> &mdash; $15/mo &mdash; Compact card, click-to-call</p>
                   </div>
-                  <a
-                    href="mailto:thenewpaperchariton@gmail.com?subject=Business%20Listing%20Inquiry&body=Hi!%20I'm%20interested%20in%20getting%20my%20business%20listed%20on%20Go%20New%20Paper.%0A%0ABusiness%20Name:%0APhone:%0APreferred%20Plan%20(Spotlight%20$30%20or%20Digital%20Card%20$15):"
+                  <button
+                    onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setShowBusinessModal(true) }}
                     className="btn-cta w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2"
                     style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                   >
-                    <span>✉️</span> Get Started
-                  </a>
+                    <span>🏪</span> List My Business
+                  </button>
                 </div>
+
+                {/* ADMIN: Pending Business Submissions */}
+                {isAdmin && pendingBusinesses.length > 0 && (
+                  <div className="mt-6 border-2 border-emerald-300 rounded-2xl p-4 bg-emerald-50/50 animate-fade-in-up">
+                    <h3 className="text-base font-black tracking-tight font-display text-emerald-800 mb-3">⏳ Pending Listings ({pendingBusinesses.length})</h3>
+                    <div className="space-y-4">
+                      {pendingBusinesses.map(biz => (
+                        <div key={biz.id} className="bg-white rounded-xl p-4 border border-emerald-200 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-sm text-gray-900">{biz.name}</p>
+                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Spotlight $30/mo' : 'Digital Card $15/mo'}</span></p>
+                            </div>
+                            <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px] whitespace-nowrap">Pending</span>
+                          </div>
+                          <p className="text-xs text-gray-500 italic">&quot;{biz.tagline}&quot;</p>
+                          <div className="text-xs text-gray-500 space-y-0.5">
+                            <p>📞 {biz.phone}</p>
+                            {biz.contact_email && <p>✉️ {biz.contact_email}</p>}
+                            {biz.contact_name && <p>👤 {biz.contact_name}</p>}
+                            {biz.website && <p>🌐 {biz.website}</p>}
+                            {biz.hours && <p>🕐 {biz.hours}</p>}
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={async () => {
+                                const { error } = await supabase.from('businesses').update({ payment_status: 'active', featured: biz.tier === 'spotlight' }).eq('id', biz.id)
+                                if (error) { showToast('Error: ' + error.message); return }
+                                setPendingBusinesses(prev => prev.filter(b => b.id !== biz.id))
+                                setBusinesses(prev => [...prev, { ...biz, payment_status: 'active', featured: biz.tier === 'spotlight' }])
+                                showToast(`✅ "${biz.name}" is now live!`)
+                              }}
+                              className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-xs font-bold"
+                            >✅ Activate</button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Reject and delete "${biz.name}"?`)) return
+                                const { error } = await supabase.from('businesses').delete().eq('id', biz.id)
+                                if (error) { showToast('Error: ' + error.message); return }
+                                setPendingBusinesses(prev => prev.filter(b => b.id !== biz.id))
+                                showToast(`"${biz.name}" rejected and removed.`)
+                              }}
+                              className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg text-xs font-bold"
+                            >❌ Reject</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -2250,6 +2378,148 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
                   <button type="submit" disabled={postEventLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
                     {postEventLoading ? 'SUBMITTING...' : 'SUBMIT EVENT'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* List My Business Modal */}
+      {showBusinessModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowBusinessModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {businessSuccess ? 'You\'re In! 🎉' : 'List My Business'}
+              </h2>
+              <button onClick={() => setShowBusinessModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {businessSuccess ? (
+              <div className="text-center py-4">
+                <div className="text-5xl mb-4">🏪</div>
+                <p className="text-lg font-black mb-2">Application Received!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-2">
+                  Your listing is saved. Complete payment below to go live in the app!
+                </p>
+                <p className="text-xs text-gray-400 mb-6">Once payment is confirmed, your listing appears within 24 hours.</p>
+                <a
+                  href={submittedTier === 'spotlight'
+                    ? (process.env.NEXT_PUBLIC_STRIPE_SPOTLIGHT_LINK || 'https://buy.stripe.com/spotlight')
+                    : (process.env.NEXT_PUBLIC_STRIPE_CARD_LINK || 'https://buy.stripe.com/card')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-black tracking-wide shadow-lg mb-3"
+                  style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.35)' }}
+                >
+                  Complete Payment — {submittedTier === 'spotlight' ? '$30/mo Spotlight' : '$15/mo Digital Card'} →
+                </a>
+                <button onClick={() => setShowBusinessModal(false)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl text-sm font-bold">
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleBusinessSubmit}>
+                <div className="space-y-4">
+                  {/* Plan Selection */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Choose Your Plan *</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button"
+                        onClick={() => setBusinessForm(f => ({ ...f, tier: 'card' }))}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'card' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}
+                      >
+                        <p className="text-xs font-black text-purple-600">DIGITAL CARD</p>
+                        <p className="text-lg font-black text-gray-900">$15<span className="text-xs font-semibold text-gray-500">/mo</span></p>
+                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Compact card, click-to-call, email link</p>
+                      </button>
+                      <button type="button"
+                        onClick={() => setBusinessForm(f => ({ ...f, tier: 'spotlight' }))}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'spotlight' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                      >
+                        <p className="text-xs font-black text-blue-600">SPOTLIGHT</p>
+                        <p className="text-lg font-black text-gray-900">$30<span className="text-xs font-semibold text-gray-500">/mo</span></p>
+                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, featured placement</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Business Info</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Business Name *</label>
+                        <input type="text" value={businessForm.name} onChange={e => setBusinessForm(f => ({ ...f, name: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="e.g. Chariton Hardware" required maxLength={100} />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Category *</label>
+                        <select value={businessForm.category} onChange={e => setBusinessForm(f => ({ ...f, category: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" required>
+                          <option value="">Select a category…</option>
+                          {['Restaurant','Cafe/Coffee Shop','Retail','Grocery','Auto Services','Insurance','Financial Advisor','Real Estate','Healthcare','Salon/Beauty','Entertainment','Event Services','Professional Services','Home Services','Agriculture','Other'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Tagline / Slogan * <span className="font-normal text-gray-400">(max 60 chars)</span></label>
+                        <input type="text" value={businessForm.tagline} onChange={e => setBusinessForm(f => ({ ...f, tagline: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder={"Your hometown grocer since 1952"} required maxLength={60} />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Description <span className="font-normal text-gray-400">(optional)</span></label>
+                        <textarea value={businessForm.description} onChange={e => setBusinessForm(f => ({ ...f, description: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="Tell the community about your business…" rows={2} maxLength={500} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Contact Info</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Your Name *</label>
+                        <input type="text" value={businessForm.contactName} onChange={e => setBusinessForm(f => ({ ...f, contactName: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="Jane Smith" required maxLength={80} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Phone *</label>
+                          <input type="tel" value={businessForm.phone} onChange={e => setBusinessForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="(641) 555-1234" required maxLength={20} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Email *</label>
+                          <input type="email" value={businessForm.email} onChange={e => setBusinessForm(f => ({ ...f, email: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="you@business.com" required maxLength={100} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Website <span className="font-normal text-gray-400">(optional)</span></label>
+                        <input type="url" value={businessForm.website} onChange={e => setBusinessForm(f => ({ ...f, website: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="https://yourbusiness.com" maxLength={200} />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Address <span className="font-normal text-gray-400">(optional)</span></label>
+                        <input type="text" value={businessForm.address} onChange={e => setBusinessForm(f => ({ ...f, address: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="123 Main St, Chariton IA" maxLength={150} />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Hours <span className="font-normal text-gray-400">(optional)</span></label>
+                        <input type="text" value={businessForm.hours} onChange={e => setBusinessForm(f => ({ ...f, hours: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="Mon–Fri 9am–5pm, Sat 10am–2pm" maxLength={150} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {businessError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 font-semibold">{businessError}</div>
+                  )}
+
+                  <p className="text-xs text-[#8a8778] font-medium text-center">After submitting you&apos;ll be directed to complete your monthly payment. Your listing goes live within 24 hours of payment.</p>
+
+                  <button type="submit" disabled={businessLoading} className="w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50" style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}>
+                    {businessLoading ? 'SUBMITTING…' : 'SUBMIT & COMPLETE PAYMENT →'}
                   </button>
                 </div>
               </form>

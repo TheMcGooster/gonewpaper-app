@@ -74,6 +74,10 @@ export type Business = {
   email?: string
   hours?: string
   additional_town_ids?: number[]
+  payment_status?: 'pending' | 'active' | 'cancelled'
+  contact_name?: string
+  contact_email?: string
+  stripe_customer_id?: string
 }
 
 export type Housing = {
