@@ -3,7 +3,7 @@
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone } from 'lucide-react'
-import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club, Comic } from '@/lib/supabase'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
@@ -127,7 +127,7 @@ export default function GoNewPaper() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
-  const [comics, setComics] = useState<Comic[]>([])
+  const [dailyJokes, setDailyJokes] = useState<{ id: number; day_of_year: number; question: string; punchline: string; category: string }[]>([])
 
   // Track OneSignal notification status (SDK is initialized in layout.tsx)
   useEffect(() => {
@@ -687,6 +687,16 @@ const handleInterestToggle = async (eventId: number) => {
     async function fetchData() {
       setLoading(true)
       try {
+        // Calculate day-of-year for today + last 6 days in Central Time
+        const getDOY = (str: string): number => {
+          const [y, m, d] = str.split('-').map(Number)
+          return Math.round((new Date(y, m - 1, d).getTime() - new Date(y, 0, 1).getTime()) / 86400000) + 1
+        }
+        const recentDoys = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - i)
+          return getDOY(d.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }))
+        })
+
         const [
           eventsRes,
           jobsRes,
@@ -699,7 +709,7 @@ const handleInterestToggle = async (eventId: number) => {
           affiliatesRes,
           nonprofitsRes,
           clubsRes,
-          comicsRes
+          jokesRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
           supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
@@ -715,8 +725,8 @@ const handleInterestToggle = async (eventId: number) => {
           // Town-specific organizations
           supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
           supabase.from('clubs').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
-          // Comics are global
-          supabase.from('comics').select('*').order('publish_date', { ascending: false }).limit(10)
+          // Daily jokes: pre-approved, keyed by day-of-year (safe, no AI generation risk)
+          supabase.from('daily_jokes').select('id,day_of_year,question,punchline,category').in('day_of_year', recentDoys).eq('is_approved', true)
         ])
 
         if (eventsRes.data) setEvents(eventsRes.data)
@@ -730,7 +740,11 @@ const handleInterestToggle = async (eventId: number) => {
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
-        if (comicsRes.data) setComics(comicsRes.data)
+        if (jokesRes.data) {
+          // Sort so today's joke is first, then yesterday, etc.
+          const doyOrder = new Map(recentDoys.map((doy, i) => [doy, i]))
+          setDailyJokes(jokesRes.data.sort((a: any, b: any) => (doyOrder.get(a.day_of_year) ?? 99) - (doyOrder.get(b.day_of_year) ?? 99)))
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
       }
@@ -857,13 +871,7 @@ const handleInterestToggle = async (eventId: number) => {
     { id: 1, name: 'Chariton Rock Climbers', category: 'Sports & Recreation', logo_emoji: '🧗', logo_url: '/Chariton_Rock_Climbers_LOGO.png', tagline: 'Climb higher together!', email: 'jarrettcmcgee@gmail.com', town_id: 1, is_active: true, display_order: 1, created_at: '' },
   ]
 
-  const sampleComics: Comic[] = [
-    { id: 1, title: 'Why did the scarecrow win an award?', alt_text: 'Because he was outstanding in his field! 🌾', source: 'Daily Laughs', publish_date: new Date().toISOString().split('T')[0], town_id: 1, created_at: '' },
-    { id: 2, title: 'What do you call a fake noodle?', alt_text: 'An impasta! 🍝', source: 'Daily Laughs', publish_date: new Date(Date.now() - 86400000).toISOString().split('T')[0], town_id: 1, created_at: '' },
-    { id: 3, title: 'Why don\'t scientists trust atoms?', alt_text: 'Because they make up everything! ⚛️', source: 'Daily Laughs', publish_date: new Date(Date.now() - 172800000).toISOString().split('T')[0], town_id: 1, created_at: '' },
-  ]
-
-  const sampleStocks = [
+const sampleStocks = [
     { symbol: 'AAPL', price: 178.52, change: 2.34, changePercent: 1.33 },
     { symbol: 'TSLA', price: 242.18, change: -5.67, changePercent: -2.29 },
     { symbol: 'NVDA', price: 495.22, change: 8.91, changePercent: 1.83 },
@@ -879,8 +887,7 @@ const handleInterestToggle = async (eventId: number) => {
   const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
   const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
   const displayClubs = clubs.length > 0 ? clubs : sampleClubs
-  const displayComics = comics.length > 0 ? comics : sampleComics
-  const displayStocks = marketRecap?.hot_stocks || sampleStocks
+const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
@@ -1396,50 +1403,35 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Daily Laughs</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Your daily dose of humor. A new joke every day to brighten your morning!
+                    A new joke every day — hand-picked and family-friendly for the whole community!
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                  {displayComics.map((comic, index) => (
-                    <div key={comic.id} className={`bg-white rounded-[14px] overflow-hidden card-hover animate-fade-in-up stagger-${Math.min(index + 1, 8)} ${index === 0 ? 'border-[1.5px] border-amber-300' : 'border-[1.5px] border-[#e8e6e1]'}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
-                      {comic.image_url && comic.image_url.trim() !== '' && comic.image_url.trim().startsWith('http') ? (
-                        <img src={comic.image_url} alt={comic.alt_text || comic.title} className="w-full max-h-80 object-contain bg-[#f5f4f0]" />
-                      ) : (
-                        <div className="bg-gradient-to-br from-amber-50/80 to-white p-6">
-                          <p className="text-lg font-bold text-gray-800 text-center">{comic.title}</p>
-                          {comic.alt_text && (
-                            <p className="text-base font-medium text-amber-700 text-center mt-3 font-editorial italic">{comic.alt_text}</p>
-                          )}
+                  {dailyJokes.map((joke, index) => {
+                    const label = index === 0 ? 'Today' : index === 1 ? 'Yesterday' : `${index} days ago`
+                    return (
+                      <div key={joke.id} className={`bg-white rounded-[14px] overflow-hidden card-hover animate-fade-in-up stagger-${Math.min(index + 1, 8)} ${index === 0 ? 'border-[1.5px] border-amber-300' : 'border-[1.5px] border-[#e8e6e1]'}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+                        <div className={`p-6 ${index === 0 ? 'bg-gradient-to-br from-amber-50/80 to-white' : 'bg-gradient-to-br from-gray-50/60 to-white'}`}>
+                          <p className="text-lg font-bold text-gray-800 text-center">{joke.question}</p>
+                          <p className="text-base font-medium text-amber-700 text-center mt-3 font-editorial italic">{joke.punchline}</p>
                         </div>
-                      )}
-                      <div className="px-4 py-3 border-t border-[#e8e6e1]">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {index === 0 && <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Today</span>}
-                            <span className="text-xs text-[#8a8778] font-medium">{comic.publish_date}</span>
+                        <div className="px-4 py-3 border-t border-[#e8e6e1]">
+                          <div className="flex items-center justify-between">
+                            <span className={`badge ${index === 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-50 text-gray-500 border border-gray-200'}`}>{label}</span>
+                            <span className="text-xs text-[#8a8778] font-medium">Daily Laughs</span>
                           </div>
-                          {comic.source && <span className="text-xs text-[#8a8778] font-medium">{comic.source}</span>}
                         </div>
-                        {comic.artist_name && (
-                          <div className="mt-1">
-                            <span className="text-xs text-[#8a8778] font-medium">
-                              By {comic.artist_url ? (
-                                <a href={comic.artist_url} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-800 underline">{comic.artist_name}</a>
-                              ) : comic.artist_name}
-                            </span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
-                {displayComics.length === 0 && (
+                {dailyJokes.length === 0 && (
                   <div className="empty-state animate-fade-in-up">
                     <span className="empty-state-icon">😄</span>
-                    <p className="empty-state-title">No jokes yet!</p>
-                    <p className="empty-state-text">Check back tomorrow for your daily laugh.</p>
+                    <p className="empty-state-title">Jokes loading!</p>
+                    <p className="empty-state-text">Check back in a moment for your daily laugh.</p>
                   </div>
                 )}
               </>
