@@ -982,6 +982,23 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   return (
     <div className="min-h-screen" style={{ background: '#fafaf8' }}>
+
+      {/* Splash Screen — shown while data loads */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4" style={{ background: '#2c3e50' }}>
+          <img src="/icon-512.png" alt="Go New Paper" className="w-36 h-36 object-contain" style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }} />
+          <div className="text-center mt-2">
+            <p className="font-display font-black text-white text-xl tracking-widest">GO NEW PAPER</p>
+            <p className="text-white/40 text-[10px] tracking-[0.25em] uppercase mt-1">Everything Local</p>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="gnp-gradient text-white sticky top-0 z-40 safe-top" style={{ boxShadow: '0 4px 20px rgba(26,26,46,0.25)' }}>
         <div className="px-4 pt-4 pb-3">
