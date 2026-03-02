@@ -977,7 +977,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
     { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' },
     { id: 'comics', icon: Laugh, label: 'DAILY LAUGHS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
-    { id: 'affiliates', icon: TrendingUp, label: 'AFFILIATES' }
+    { id: 'affiliates', icon: TrendingUp, label: 'DISCOUNTS/DEALS' }
   ]
 
   return (
