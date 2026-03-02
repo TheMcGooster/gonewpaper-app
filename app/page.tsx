@@ -1032,6 +1032,59 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
             <p className="text-[9px] font-medium text-white/40 tracking-wider font-editorial italic">Everything Local, All In Your Pocket</p>
           </div>
 
+          {/* Notification + Install CTA — hidden once both are done */}
+          {(!notificationsEnabled || !isAppInstalled) && (
+            <div className="flex gap-2 mb-3">
+              {!notificationsEnabled && (
+                <button
+                  onClick={() => {
+                    try {
+                      window.OneSignalDeferred = window.OneSignalDeferred || []
+                      window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
+                        OneSignalSDK.Notifications.requestPermission().then(() => {
+                          const permission = OneSignalSDK.Notifications.permission
+                          if (permission) {
+                            setNotificationsEnabled(true)
+                            showToast('Notifications enabled!')
+                            if (user) saveOneSignalPlayerId(user.id)
+                          } else {
+                            showToast('Notifications blocked. Check browser settings.')
+                          }
+                        }).catch(() => showToast('Could not enable notifications'))
+                      })
+                    } catch { showToast('Could not request notification permission') }
+                  }}
+                  className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  Enable Notifications
+                </button>
+              )}
+              {!isAppInstalled && (
+                <button
+                  onClick={() => {
+                    if (deferredPrompt) {
+                      deferredPrompt.prompt()
+                      deferredPrompt.userChoice.then((result: any) => {
+                        if (result.outcome === 'accepted') {
+                          setIsAppInstalled(true)
+                          showToast('App installed! Check your home screen.')
+                        }
+                        setDeferredPrompt(null)
+                      })
+                    } else {
+                      setShowInstallHelp(true)
+                    }
+                  }}
+                  className="flex-1 bg-white/20 hover:bg-white/30 text-white py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  Add to Phone
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -2638,50 +2691,10 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                   LOG OUT
                 </button>
                 {/* Notification Status */}
-                {notificationsEnabled ? (
-                  <div className="w-full mt-2 bg-green-500/30 py-2 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
-                    <Bell className="w-4 h-4" />
-                    Notifications enabled
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      try {
-                        // Use OneSignal SDK to request permission AND create push subscription
-                        // This is the correct approach - Notification.requestPermission() alone
-                        // only grants browser permission but does NOT create a OneSignal subscription
-                        window.OneSignalDeferred = window.OneSignalDeferred || []
-                        window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
-                          OneSignalSDK.Notifications.requestPermission().then(() => {
-                            const playerId = OneSignalSDK.User.PushSubscription.id
-                            const permission = OneSignalSDK.Notifications.permission
-                            console.log('OneSignal permission after request:', permission, 'Player ID:', playerId)
-                            if (permission) {
-                              setNotificationsEnabled(true)
-                              showToast('Notifications enabled!')
-                              // Save player ID to Supabase
-                              if (user) {
-                                saveOneSignalPlayerId(user.id)
-                              }
-                            } else {
-                              showToast('Notifications blocked. Check browser settings.')
-                            }
-                          }).catch((err: any) => {
-                            console.log('OneSignal permission request error:', err)
-                            showToast('Could not enable notifications')
-                          })
-                        })
-                      } catch (err) {
-                        console.log('Permission request error:', err)
-                        showToast('Could not request notification permission')
-                      }
-                    }}
-                    className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all text-black active:scale-95"
-                  >
-                    <Bell className="w-4 h-4" />
-                    Enable Notifications
-                  </button>
-                )}
+                <div className={`w-full mt-2 py-2 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 ${notificationsEnabled ? 'bg-green-500/30' : 'bg-white/10'}`}>
+                  <Bell className="w-4 h-4" />
+                  {notificationsEnabled ? 'Notifications enabled ✓' : 'Enable notifications in the header above'}
+                </div>
                 {/* Add to Phone Apps Button */}
                 {!isAppInstalled && (
                   <>
