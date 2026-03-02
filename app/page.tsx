@@ -2902,6 +2902,58 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
         </div>
       )}
 
+      {/* Install Instructions Bottom Sheet */}
+      {showInstallHelp && (
+        <div className="fixed inset-0 modal-overlay z-50" onClick={() => setShowInstallHelp(false)}>
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 pb-10" style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
+                <Smartphone className="w-6 h-6 text-gray-700" />
+              </div>
+              <div>
+                <h3 className="font-black text-lg tracking-tight">Add to Your Phone</h3>
+                <p className="text-sm text-gray-500 font-medium">Install Go New Paper for quick access</p>
+              </div>
+            </div>
+            {typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
+                  <span className="text-2xl">1️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap the <strong>Share</strong> button <span className="text-base">⬆️</span> at the bottom of your Safari browser</p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
+                  <span className="text-2xl">2️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
+                  <span className="text-2xl">3️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add"</strong> in the top right — done!</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
+                  <span className="text-2xl">1️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap the <strong>⋮ menu</strong> (3 dots) in the top right of your browser</p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
+                  <span className="text-2xl">2️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong></p>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
+                  <span className="text-2xl">3️⃣</span>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add"</strong> to confirm — the app will appear on your home screen!</p>
+                </div>
+              </div>
+            )}
+            <button onClick={() => setShowInstallHelp(false)} className="w-full mt-5 bg-gray-900 text-white py-3.5 rounded-2xl font-black text-sm tracking-wide">
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white px-6 py-3 rounded-2xl text-center text-sm font-semibold z-50 toast-enter" style={{ boxShadow: '0 8px 30px rgba(26,26,46,0.3)', maxWidth: 'calc(100% - 32px)' }}>
