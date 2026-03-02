@@ -2939,11 +2939,11 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
                   <span className="text-2xl">2️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong></p>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Look for the <strong>download icon ⬇</strong> in the top icon row — tap it. If you don't see it, scroll the list and tap <strong>"Add to Home Screen"</strong></p>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
                   <span className="text-2xl">3️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add"</strong> to confirm — the app will appear on your home screen!</p>
+                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Install"</strong> or <strong>"Add"</strong> to confirm — the app icon will appear on your home screen!</p>
                 </div>
               </div>
             )}
