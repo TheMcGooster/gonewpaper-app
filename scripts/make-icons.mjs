@@ -59,20 +59,10 @@ async function buildIcon(size, outputPath) {
     if (y < height - 1) queue.push(idx(x, y + 1))
   }
 
-  // Step 3: composite transparent logo onto #2c3e50 background
-  const logoBuffer = await sharp(Buffer.from(pixels), {
+  // Step 3: save with transparent background
+  await sharp(Buffer.from(pixels), {
     raw: { width, height, channels }
-  }).png().toBuffer()
-
-  await sharp({
-    create: {
-      width,
-      height,
-      channels: 3,
-      background: SPLASH_BG
-    }
   })
-    .composite([{ input: logoBuffer, blend: 'over' }])
     .png()
     .toFile(outputPath)
 
