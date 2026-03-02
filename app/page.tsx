@@ -1033,9 +1033,9 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
           </div>
 
           {/* Notification + Install CTA — hidden once both are done */}
-          {(!notificationsEnabled || !isAppInstalled) && (
+          {(user && !notificationsEnabled || !isAppInstalled) && (
             <div className="flex gap-2 mb-3">
-              {!notificationsEnabled && (
+              {user && !notificationsEnabled && (
                 <button
                   onClick={() => {
                     try {
