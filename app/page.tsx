@@ -349,6 +349,18 @@ export default function GoNewPaper() {
     // Load town from localStorage first (works for logged-out users too)
     loadUserTown()
 
+    // Check if user already has notifications enabled (persisted in DB)
+    const checkUserNotificationStatus = async (userId: string) => {
+      const { data } = await supabase
+        .from('users')
+        .select('onesignal_player_id')
+        .eq('id', userId)
+        .single()
+      if (data?.onesignal_player_id) {
+        setNotificationsEnabled(true)
+      }
+    }
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -356,6 +368,7 @@ export default function GoNewPaper() {
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
+        checkUserNotificationStatus(session.user.id)
       }
     })
 
@@ -366,8 +379,10 @@ export default function GoNewPaper() {
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
+        checkUserNotificationStatus(session.user.id)
       } else {
         setUserInterests([])
+        setNotificationsEnabled(false)
       }
     })
 
