@@ -1928,34 +1928,11 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
                   <div className="flex items-center gap-2 mb-1.5">
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <p className="text-sm font-black text-gray-800">Market & Partners</p>
+                    <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Stock picks, trading tools & affiliate partnerships that help keep this app free!
+                    Local discounts, partner deals & affiliate offers that help keep this app free!
                   </p>
-                </div>
-
-                {/* Market Snapshot */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>📈</span> Market Snapshot
-                  </h3>
-                  <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white">
-                    <div className="space-y-2">
-                      {displayStocks.map((stock: any) => (
-                        <div key={stock.symbol} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-                          <span className="font-black text-lg">{stock.symbol}</span>
-                          <span className="font-bold text-gray-700">${stock.price}</span>
-                          <span className={`font-black px-3 py-1 rounded-full text-sm ${stock.change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {stock.change >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent)}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3 text-center font-semibold">
-                      Data for educational purposes only • Not financial advice
-                    </p>
-                  </Card>
                 </div>
 
                 {/* Trading Partners */}
