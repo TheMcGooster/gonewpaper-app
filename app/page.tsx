@@ -120,6 +120,8 @@ export default function GoNewPaper() {
   const [businessSuccess, setBusinessSuccess] = useState(false)
   const [businessError, setBusinessError] = useState('')
   const [submittedTier, setSubmittedTier] = useState<'card' | 'spotlight'>('card')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('annual')
+  const [submittedBilling, setSubmittedBilling] = useState<'monthly' | 'annual'>('annual')
 
   // Pending businesses (admin approval queue)
   const [pendingBusinesses, setPendingBusinesses] = useState<Business[]>([])
@@ -703,6 +705,7 @@ export default function GoNewPaper() {
       })
       if (error) throw error
       setSubmittedTier(businessForm.tier)
+      setSubmittedBilling(billingPeriod)
       setBusinessSuccess(true)
     } catch (err: any) {
       setBusinessError(err.message || 'Something went wrong. Please try again.')
@@ -1543,8 +1546,8 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="section-banner bg-emerald-50/80 border-emerald-200">
                   <p className="text-sm font-bold text-gray-800 mb-2">Want to be listed here?</p>
                   <div className="space-y-1.5 text-xs text-[#8a8778] font-medium mb-3">
-                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="line-through text-gray-400">$30/mo</span> <span className="font-bold text-emerald-700">$200/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
-                    <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="line-through text-gray-400">$15/mo</span> <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
+                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="font-bold text-emerald-700">$30/mo</span> or <span className="font-bold text-emerald-700">$200/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
+                    <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="font-bold text-emerald-700">$15/mo</span> or <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
                   </div>
                   <button
                     onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setShowBusinessModal(true) }}
@@ -2464,19 +2467,25 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="text-5xl mb-4">🏪</div>
                 <p className="text-lg font-black mb-2">Application Received!</p>
                 <p className="text-sm text-gray-600 font-semibold mb-2">
-                  Your listing is saved. Complete your annual payment below to go live in the app!
+                  Your listing is saved. Complete your {submittedBilling === 'monthly' ? 'monthly' : 'annual'} payment below to go live in the app!
                 </p>
                 <p className="text-xs text-gray-400 mb-6">Once payment is confirmed, your listing appears within 24 hours.</p>
                 <a
                   href={submittedTier === 'spotlight'
-                    ? (process.env.NEXT_PUBLIC_STRIPE_SPOTLIGHT_LINK || 'https://buy.stripe.com/spotlight')
-                    : (process.env.NEXT_PUBLIC_STRIPE_CARD_LINK || 'https://buy.stripe.com/card')}
+                    ? (submittedBilling === 'monthly'
+                        ? (process.env.NEXT_PUBLIC_STRIPE_SPOTLIGHT_MONTHLY_LINK || 'https://buy.stripe.com/spotlight-monthly')
+                        : (process.env.NEXT_PUBLIC_STRIPE_SPOTLIGHT_LINK || 'https://buy.stripe.com/spotlight'))
+                    : (submittedBilling === 'monthly'
+                        ? (process.env.NEXT_PUBLIC_STRIPE_CARD_MONTHLY_LINK || 'https://buy.stripe.com/card-monthly')
+                        : (process.env.NEXT_PUBLIC_STRIPE_CARD_LINK || 'https://buy.stripe.com/card'))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-black tracking-wide shadow-lg mb-3"
                   style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.35)' }}
                 >
-                  Complete Payment — {submittedTier === 'spotlight' ? '$200/yr Community Sponsor' : '$100/yr Community Professional'} →
+                  Complete Payment — {submittedTier === 'spotlight'
+                    ? (submittedBilling === 'monthly' ? '$30/mo Community Sponsor' : '$200/yr Community Sponsor')
+                    : (submittedBilling === 'monthly' ? '$15/mo Community Professional' : '$100/yr Community Professional')} →
                 </a>
                 <button onClick={() => setShowBusinessModal(false)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl text-sm font-bold">
                   Close
@@ -2488,14 +2497,30 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                   {/* Plan Selection */}
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Choose Your Plan *</label>
+                    {/* Billing Period Toggle */}
+                    <div className="flex items-center justify-center bg-gray-100 rounded-xl p-1 mb-3">
+                      <button type="button"
+                        onClick={() => setBillingPeriod('monthly')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${billingPeriod === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+                      >Monthly</button>
+                      <button type="button"
+                        onClick={() => setBillingPeriod('annual')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${billingPeriod === 'annual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+                      >
+                        Annual <span className="text-emerald-600">Save 44%</span>
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <button type="button"
                         onClick={() => setBusinessForm(f => ({ ...f, tier: 'card' }))}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'card' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
                         <p className="text-xs font-black text-purple-600">COMMUNITY PROFESSIONAL</p>
-                        <p className="text-[11px] text-gray-400 line-through">$15/mo</p>
-                        <p className="text-lg font-black text-gray-900">$100<span className="text-xs font-semibold text-gray-500">/yr</span></p>
+                        <p className="text-lg font-black text-gray-900">
+                          {billingPeriod === 'monthly' ? '$15' : '$100'}
+                          <span className="text-xs font-semibold text-gray-500">{billingPeriod === 'monthly' ? '/mo' : '/yr'}</span>
+                        </p>
+                        {billingPeriod === 'annual' && <p className="text-[10px] text-emerald-600 font-bold">vs $180/yr monthly</p>}
                         <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Compact card, click-to-call, email link</p>
                       </button>
                       <button type="button"
@@ -2503,8 +2528,11 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'spotlight' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
                         <p className="text-xs font-black text-blue-600">COMMUNITY SPONSOR</p>
-                        <p className="text-[11px] text-gray-400 line-through">$30/mo</p>
-                        <p className="text-lg font-black text-gray-900">$200<span className="text-xs font-semibold text-gray-500">/yr</span></p>
+                        <p className="text-lg font-black text-gray-900">
+                          {billingPeriod === 'monthly' ? '$30' : '$200'}
+                          <span className="text-xs font-semibold text-gray-500">{billingPeriod === 'monthly' ? '/mo' : '/yr'}</span>
+                        </p>
+                        {billingPeriod === 'annual' && <p className="text-[10px] text-emerald-600 font-bold">vs $360/yr monthly</p>}
                         <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, priority placement, sponsor badge</p>
                       </button>
                     </div>
