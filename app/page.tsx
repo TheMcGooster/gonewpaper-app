@@ -924,13 +924,13 @@ const handleInterestToggle = async (eventId: number) => {
   ]
 
   const sampleBusinesses: Business[] = [
-    // Spotlight Businesses (full cards)
+    // Community Sponsors (full cards)
     { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', website: 'https://www.gonewpaper.com', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
     { id: 2, name: "Piper's Old Fashion Grocery", category: 'Grocery', logo_emoji: '🛒', website: 'https://pipersgrocery.com', clicks: 234, featured: true, tagline: 'Your hometown grocer since 1952', tier: 'spotlight', phone: '(641) 774-5411', created_at: '', town_id: 1 },
     { id: 3, name: 'Vision II Theatre', category: 'Entertainment', logo_emoji: '🎬', website: 'https://visioniitheatre.com', clicks: 456, featured: true, tagline: 'Latest movies, small-town prices', tier: 'spotlight', phone: '(641) 774-4444', created_at: '', town_id: 1 },
     { id: 4, name: 'Route 34 Grill', category: 'Restaurant', logo_emoji: '🍔', website: 'https://route34grill.com', clicks: 189, featured: true, tagline: 'Best burgers in Lucas County', tier: 'spotlight', phone: '(641) 774-2233', created_at: '', town_id: 1 },
     { id: 5, name: 'Main Street Coffee', category: 'Cafe', logo_emoji: '☕', website: 'https://mainstreetcoffee.com', clicks: 312, featured: true, tagline: 'Community hub & fresh brews', tier: 'spotlight', phone: '(641) 774-1122', created_at: '', town_id: 1 },
-    // Digital Business Cards ($15/mo tier)
+    // Digital Business Cards ($100/yr tier)
     { id: 6, name: 'The Fluff Factory', category: 'Event Services', logo_emoji: '🍭', website: '', clicks: 78, featured: false, tagline: 'Mobile cotton candy for parties & events!', tier: 'card', phone: '(641) 203-0045', created_at: '', town_id: 1 },
     { id: 7, name: 'Sarah Mitchell - State Farm', category: 'Insurance', logo_emoji: '🛡️', website: '', clicks: 45, featured: false, tagline: 'Your local insurance agent', tier: 'card', phone: '(641) 774-5678', created_at: '', town_id: 1, email: 'sarah.mitchell@statefarm.com' },
     { id: 8, name: "Mike's Mobile Detailing", category: 'Auto Services', logo_emoji: '🚗', website: '', clicks: 23, featured: false, tagline: 'We come to you!', tier: 'card', phone: '(641) 203-4567', created_at: '', town_id: 1 },
@@ -1405,8 +1405,28 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                     <Plus className="w-3.5 h-3.5" />Post
                   </a>
                 </div>
+                {displayHousing.map((h, idx) => (
+                  <Card key={h.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-[15px] font-bold tracking-tight">{h.title}</h3>
+                        <p className="text-[13px] text-gray-500 font-medium">{h.location}</p>
+                      </div>
+                      <span className={`price-tag text-lg ${theme.accentTextClass}`}>{h.price}</span>
+                    </div>
+                    <p className="text-[13px] text-gray-600 font-medium mb-3">{h.details}</p>
+                    {h.expires_at && (
+                      <p className="text-xs text-[#8a8778] font-medium mb-2">
+                        Expires {new Date(h.expires_at).toLocaleDateString()}
+                      </p>
+                    )}
+                    <button className={`btn-interest w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                      Contact
+                    </button>
+                  </Card>
+                ))}
                 {/* Pricing Info Banner */}
-                <div className="section-banner bg-emerald-50/80 border-emerald-200 mb-4 animate-fade-in-up">
+                <div className="section-banner bg-emerald-50/80 border-emerald-200 mt-4 animate-fade-in-up">
                   <p className="text-sm font-bold text-gray-800 mb-2">Post your rental or property listing!</p>
                   <div className="space-y-2.5">
                     <div className="flex justify-between items-center">
@@ -1435,36 +1455,16 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                     </div>
                   </div>
                 </div>
-                {displayHousing.map((h, idx) => (
-                  <Card key={h.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="text-[15px] font-bold tracking-tight">{h.title}</h3>
-                        <p className="text-[13px] text-gray-500 font-medium">{h.location}</p>
-                      </div>
-                      <span className={`price-tag text-lg ${theme.accentTextClass}`}>{h.price}</span>
-                    </div>
-                    <p className="text-[13px] text-gray-600 font-medium mb-3">{h.details}</p>
-                    {h.expires_at && (
-                      <p className="text-xs text-[#8a8778] font-medium mb-2">
-                        Expires {new Date(h.expires_at).toLocaleDateString()}
-                      </p>
-                    )}
-                    <button className={`btn-interest w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                      Contact
-                    </button>
-                  </Card>
-                ))}
               </>
             )}
 
             {/* Businesses Tab */}
             {activeTab === 'businesses' && (
               <>
-                {/* SPOTLIGHT BUSINESSES SECTION */}
+                {/* COMMUNITY SPONSORS SECTION */}
                 <div className="section-banner bg-blue-50/70 border-blue-200 mb-4 animate-fade-in-up">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">Spotlight Businesses</span></p>
-                  <p className="text-xs font-medium text-[#8a8778] mt-1">Featured local businesses &bull; Support local!</p>
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">Community Sponsors</span></p>
+                  <p className="text-xs font-medium text-[#8a8778] mt-1">Proud sponsors of your community hub &bull; Support local!</p>
                 </div>
 
                 {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map((b, idx) => (
@@ -1478,7 +1478,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-[15px] font-bold tracking-tight">{b.name}</h3>
-                          <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Spotlight</span>
+                          <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Community Sponsor</span>
                         </div>
                         <p className="text-[13px] text-gray-500 font-medium mb-2 font-editorial italic">{b.tagline}</p>
                         <div className="flex items-center gap-3 text-[11px] text-[#8a8778] font-medium mb-3">
@@ -1543,8 +1543,8 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="section-banner bg-emerald-50/80 border-emerald-200">
                   <p className="text-sm font-bold text-gray-800 mb-2">Want to be listed here?</p>
                   <div className="space-y-1.5 text-xs text-[#8a8778] font-medium mb-3">
-                    <p><span className="font-bold text-blue-600">Spotlight</span> &mdash; $30/mo &mdash; Full card, website link, featured</p>
-                    <p><span className="font-bold text-purple-600">Digital Card</span> &mdash; $15/mo &mdash; Compact card, click-to-call</p>
+                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="line-through text-gray-400">$30/mo</span> <span className="font-bold text-emerald-700">$200/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
+                    <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="line-through text-gray-400">$15/mo</span> <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
                   </div>
                   <button
                     onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setShowBusinessModal(true) }}
@@ -1565,7 +1565,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-bold text-sm text-gray-900">{biz.name}</p>
-                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Spotlight $30/mo' : 'Digital Card $15/mo'}</span></p>
+                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Community Sponsor $200/yr' : 'Community Professional $100/yr'}</span></p>
                             </div>
                             <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px] whitespace-nowrap">Pending</span>
                           </div>
@@ -2464,7 +2464,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="text-5xl mb-4">🏪</div>
                 <p className="text-lg font-black mb-2">Application Received!</p>
                 <p className="text-sm text-gray-600 font-semibold mb-2">
-                  Your listing is saved. Complete payment below to go live in the app!
+                  Your listing is saved. Complete your annual payment below to go live in the app!
                 </p>
                 <p className="text-xs text-gray-400 mb-6">Once payment is confirmed, your listing appears within 24 hours.</p>
                 <a
@@ -2476,7 +2476,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                   className="block w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-black tracking-wide shadow-lg mb-3"
                   style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.35)' }}
                 >
-                  Complete Payment — {submittedTier === 'spotlight' ? '$30/mo Spotlight' : '$15/mo Digital Card'} →
+                  Complete Payment — {submittedTier === 'spotlight' ? '$200/yr Community Sponsor' : '$100/yr Community Professional'} →
                 </a>
                 <button onClick={() => setShowBusinessModal(false)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl text-sm font-bold">
                   Close
@@ -2493,17 +2493,19 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                         onClick={() => setBusinessForm(f => ({ ...f, tier: 'card' }))}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'card' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <p className="text-xs font-black text-purple-600">DIGITAL CARD</p>
-                        <p className="text-lg font-black text-gray-900">$15<span className="text-xs font-semibold text-gray-500">/mo</span></p>
+                        <p className="text-xs font-black text-purple-600">COMMUNITY PROFESSIONAL</p>
+                        <p className="text-[11px] text-gray-400 line-through">$15/mo</p>
+                        <p className="text-lg font-black text-gray-900">$100<span className="text-xs font-semibold text-gray-500">/yr</span></p>
                         <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Compact card, click-to-call, email link</p>
                       </button>
                       <button type="button"
                         onClick={() => setBusinessForm(f => ({ ...f, tier: 'spotlight' }))}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'spotlight' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <p className="text-xs font-black text-blue-600">SPOTLIGHT</p>
-                        <p className="text-lg font-black text-gray-900">$30<span className="text-xs font-semibold text-gray-500">/mo</span></p>
-                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, featured placement</p>
+                        <p className="text-xs font-black text-blue-600">COMMUNITY SPONSOR</p>
+                        <p className="text-[11px] text-gray-400 line-through">$30/mo</p>
+                        <p className="text-lg font-black text-gray-900">$200<span className="text-xs font-semibold text-gray-500">/yr</span></p>
+                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, priority placement, sponsor badge</p>
                       </button>
                     </div>
                   </div>
@@ -2578,7 +2580,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                     <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 font-semibold">{businessError}</div>
                   )}
 
-                  <p className="text-xs text-[#8a8778] font-medium text-center">After submitting you&apos;ll be directed to complete your monthly payment. Your listing goes live within 24 hours of payment.</p>
+                  <p className="text-xs text-[#8a8778] font-medium text-center">After submitting you&apos;ll be directed to complete your annual payment. Your listing goes live within 24 hours of payment.</p>
 
                   <button type="submit" disabled={businessLoading} className="w-full bg-emerald-600 text-white py-3.5 rounded-xl text-sm font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50" style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}>
                     {businessLoading ? 'SUBMITTING…' : 'SUBMIT & COMPLETE PAYMENT →'}
