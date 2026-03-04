@@ -119,6 +119,8 @@ export default function GoNewPaper() {
   const [businessLoading, setBusinessLoading] = useState(false)
   const [businessSuccess, setBusinessSuccess] = useState(false)
   const [businessError, setBusinessError] = useState('')
+  const [businessLogo, setBusinessLogo] = useState<File | null>(null)
+  const [businessLogoPreview, setBusinessLogoPreview] = useState<string | null>(null)
   const [submittedTier, setSubmittedTier] = useState<'card' | 'spotlight'>('card')
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('annual')
   const [submittedBilling, setSubmittedBilling] = useState<'monthly' | 'annual'>('annual')
@@ -517,6 +519,20 @@ export default function GoNewPaper() {
     }
   }
 
+  const handleBusinessLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setBusinessError('Logo must be under 2MB')
+        return
+      }
+      setBusinessLogo(file)
+      const reader = new FileReader()
+      reader.onloadend = () => setBusinessLogoPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleListingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setListingLoading(true)
@@ -683,6 +699,20 @@ export default function GoNewPaper() {
         'Entertainment': '🎬', 'Event Services': '🎉', 'Professional Services': '📋',
         'Home Services': '🔧', 'Agriculture': '🌾', 'Other': '🏢'
       }
+      // Upload logo if provided
+      let logoUrl: string | null = null
+      if (businessLogo) {
+        const fileExt = businessLogo.name.split('.').pop()
+        const fileName = `biz-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, businessLogo)
+        if (uploadError) {
+          setBusinessError('Logo upload failed: ' + uploadError.message)
+          setBusinessLoading(false)
+          return
+        }
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(fileName)
+        logoUrl = urlData.publicUrl
+      }
       const { error } = await supabase.from('businesses').insert({
         name: businessForm.name.trim(),
         contact_name: businessForm.contactName.trim(),
@@ -697,6 +727,7 @@ export default function GoNewPaper() {
         hours: businessForm.hours.trim(),
         tier: businessForm.tier,
         logo_emoji: categoryEmojis[businessForm.category] || '🏢',
+        logo_url: logoUrl,
         featured: false,
         clicks: 0,
         town_id: businessForm.townId,
@@ -706,6 +737,8 @@ export default function GoNewPaper() {
       setSubmittedTier(businessForm.tier)
       setSubmittedBilling(billingPeriod)
       setBusinessSuccess(true)
+      setBusinessLogo(null)
+      setBusinessLogoPreview(null)
     } catch (err: any) {
       setBusinessError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -914,7 +947,7 @@ const handleInterestToggle = async (eventId: number) => {
 
   const sampleBusinesses: Business[] = [
     // Community Sponsor example
-    { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', website: 'https://www.gonewpaper.com', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
+    { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', logo_url: '/GoNewPaper_LOGO.png', website: 'https://www.gonewpaper.com', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
   ]
 
   const sampleHousing: Housing[] = [
@@ -1513,7 +1546,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="font-bold text-emerald-700">$15/mo</span> or <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
                   </div>
                   <button
-                    onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setShowBusinessModal(true) }}
+                    onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setBusinessLogo(null); setBusinessLogoPreview(null); setShowBusinessModal(true) }}
                     className="btn-cta w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold tracking-wide flex items-center justify-center gap-2"
                     style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                   >
@@ -2528,6 +2561,27 @@ const handleInterestToggle = async (eventId: number) => {
                         <label className="block text-sm font-bold text-gray-700 mb-1">Description <span className="font-normal text-gray-400">(optional)</span></label>
                         <textarea value={businessForm.description} onChange={e => setBusinessForm(f => ({ ...f, description: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="Tell the community about your business…" rows={2} maxLength={500} />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Business Logo</p>
+                    <div>
+                      {businessLogoPreview ? (
+                        <div className="relative inline-block mb-2">
+                          <img src={businessLogoPreview} alt="Logo preview" className="w-24 h-24 rounded-xl object-cover shadow-md border-2 border-gray-200" />
+                          <button type="button" onClick={() => { setBusinessLogo(null); setBusinessLogoPreview(null) }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-black shadow">X</button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <input type="file" accept="image/*" onChange={handleBusinessLogoChange} className="hidden" id="business-logo-upload" />
+                          <label htmlFor="business-logo-upload" className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-emerald-400 focus:border-emerald-500 cursor-pointer flex items-center justify-center gap-2 text-gray-500 font-semibold text-sm transition-all hover:bg-gray-50">
+                            <Plus className="w-4 h-4" />
+                            Upload Logo (optional, max 2MB)
+                          </label>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">If no logo is uploaded, a category emoji will be used</p>
                     </div>
                   </div>
 
