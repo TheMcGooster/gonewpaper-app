@@ -892,38 +892,25 @@ const handleInterestToggle = async (eventId: number) => {
   }, [isAdmin])
 
   // Track business clicks
-  const trackBusinessClick = async (business: Business) => {
-    // Update click count in database
-    await supabase
-      .from('businesses')
-      .update({ clicks: business.clicks + 1 })
-      .eq('id', business.id)
-
-    // Log analytics
-    await supabase.from('analytics').insert({
-      event_type: 'business_click',
-      business_id: business.id,
-      source_page: 'business_tab'
-    })
-
-    // Open website
-    window.open(business.website, '_blank')
+  const trackBusinessClick = (business: Business) => {
+    // Open website FIRST (must be synchronous for iOS Safari popup blocker)
+    if (business.website) {
+      window.open(business.website, '_blank', 'noopener,noreferrer')
+    }
+    // Track click count + analytics in background (fire-and-forget)
+    supabase.from('businesses').update({ clicks: business.clicks + 1 }).eq('id', business.id).then(() => {})
+    supabase.from('analytics').insert({ event_type: 'business_click', business_id: business.id, source_page: 'business_tab' }).then(() => {})
   }
 
   // Track affiliate clicks
-  const trackAffiliateClick = async (affiliate: Affiliate) => {
-    await supabase
-      .from('affiliates')
-      .update({ clicks: affiliate.clicks + 1 })
-      .eq('id', affiliate.id)
-
-    await supabase.from('analytics').insert({
-      event_type: 'affiliate_click',
-      affiliate_name: affiliate.name,
-      source_page: 'menu'
-    })
-
-    window.open(affiliate.url, '_blank')
+  const trackAffiliateClick = (affiliate: Affiliate) => {
+    // Open link FIRST (must be synchronous for iOS Safari popup blocker)
+    if (affiliate.url) {
+      window.open(affiliate.url, '_blank', 'noopener,noreferrer')
+    }
+    // Track in background (fire-and-forget)
+    supabase.from('affiliates').update({ clicks: affiliate.clicks + 1 }).eq('id', affiliate.id).then(() => {})
+    supabase.from('analytics').insert({ event_type: 'affiliate_click', affiliate_name: affiliate.name, source_page: 'menu' }).then(() => {})
   }
 
   const Card = ({ children, className = '', onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
@@ -2089,20 +2076,26 @@ const handleInterestToggle = async (eventId: number) => {
       {/* Bottom Navigation — Frosted Glass */}
       <nav className="fixed bottom-0 left-0 right-0 bottom-nav-glass z-40 safe-bottom">
         <div
-          className="flex p-1.5 overflow-x-scroll hide-scrollbar"
+          className="flex p-1.5 overflow-x-auto hide-scrollbar"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id)
+                // Auto-scroll the clicked tab into view on mobile
+                const el = document.getElementById(`nav-${tab.id}`)
+                el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+              }}
+              id={`nav-${tab.id}`}
               className={`flex flex-col items-center gap-0.5 py-2 px-1 transition-all rounded-xl ${
                 activeTab === tab.id ? `${theme.accentTextClass}` : 'text-gray-400'
               }`}
-              style={{ minWidth: '68px', flexShrink: 0 }}
+              style={{ minWidth: '62px', flex: '1 0 auto' }}
             >
               <tab.icon className="w-5 h-5" strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
-              <span className={`text-[9px] font-bold tracking-wider uppercase ${activeTab === tab.id ? 'opacity-100' : 'opacity-60'}`}>{tab.label}</span>
+              <span className={`text-[8px] font-bold tracking-wider uppercase ${activeTab === tab.id ? 'opacity-100' : 'opacity-60'}`}>{tab.label}</span>
               {activeTab === tab.id && (
                 <div className="nav-active-dot" style={{ backgroundColor: theme.primaryColor }}></div>
               )}
