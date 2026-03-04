@@ -1546,7 +1546,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                 <div className="section-banner bg-emerald-50/80 border-emerald-200">
                   <p className="text-sm font-bold text-gray-800 mb-2">Want to be listed here?</p>
                   <div className="space-y-1.5 text-xs text-[#8a8778] font-medium mb-3">
-                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="font-bold text-emerald-700">$30/mo</span> or <span className="font-bold text-emerald-700">$200/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
+                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="font-bold text-emerald-700">$30/mo</span> or <span className="font-bold text-emerald-700">$250/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
                     <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="font-bold text-emerald-700">$15/mo</span> or <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
                   </div>
                   <button
@@ -1568,7 +1568,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-bold text-sm text-gray-900">{biz.name}</p>
-                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Community Sponsor $200/yr' : 'Community Professional $100/yr'}</span></p>
+                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Community Sponsor $250/yr' : 'Community Professional $100/yr'}</span></p>
                             </div>
                             <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px] whitespace-nowrap">Pending</span>
                           </div>
@@ -2484,7 +2484,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                   style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.35)' }}
                 >
                   Complete Payment — {submittedTier === 'spotlight'
-                    ? (submittedBilling === 'monthly' ? '$30/mo Community Sponsor' : '$200/yr Community Sponsor')
+                    ? (submittedBilling === 'monthly' ? '$30/mo Community Sponsor' : '$250/yr Community Sponsor')
                     : (submittedBilling === 'monthly' ? '$15/mo Community Professional' : '$100/yr Community Professional')} →
                 </a>
                 <button onClick={() => setShowBusinessModal(false)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl text-sm font-bold">
@@ -2529,7 +2529,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                       >
                         <p className="text-xs font-black text-blue-600">COMMUNITY SPONSOR</p>
                         <p className="text-lg font-black text-gray-900">
-                          {billingPeriod === 'monthly' ? '$30' : '$200'}
+                          {billingPeriod === 'monthly' ? '$30' : '$250'}
                           <span className="text-xs font-semibold text-gray-500">{billingPeriod === 'monthly' ? '/mo' : '/yr'}</span>
                         </p>
                         {billingPeriod === 'annual' && <p className="text-[10px] text-emerald-600 font-bold">vs $360/yr monthly</p>}
