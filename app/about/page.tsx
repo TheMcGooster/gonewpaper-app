@@ -35,7 +35,7 @@ export default function AboutPage() {
   const faqs = [
     {
       q: 'How much does it cost for our town to use Go New Paper?',
-      a: 'Go New Paper is free for community members. Revenue comes from optional business listing tiers — Community Professional ($100/yr) and Community Sponsor ($250/yr). There are no setup fees, no monthly subscriptions for the town, and no hidden costs.'
+      a: 'Community Hero partnership pricing is based on population — starting at $2,477/yr for towns under 10,000. Additional revenue comes from self-service business listing tiers — Community Professional ($100/yr) and Community Sponsor ($250/yr). The app is always free for residents.'
     },
     {
       q: 'How do events get into the app?',
@@ -65,7 +65,7 @@ export default function AboutPage() {
       }}>
         <div className="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="w-9 h-9 rounded-lg" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
+            <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="h-9 rounded-lg object-contain" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.3)', width: 'auto' }} />
             <span className="font-display text-white text-sm tracking-tight">GO NEW PAPER</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -405,7 +405,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Community Partner — Population-Based Tiers */}
+          {/* Community Hero — Population-Based Tiers */}
           <div className="max-w-3xl mx-auto mb-8">
             <div className="relative rounded-2xl overflow-hidden" style={{
               background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 40%, #34495e 100%)',
@@ -427,7 +427,7 @@ export default function AboutPage() {
                   </div>
                 </div>
 
-                <h3 className="font-display text-xl md:text-2xl text-white tracking-tight mb-2">Community Partner</h3>
+                <h3 className="font-display text-xl md:text-2xl text-white tracking-tight mb-2">Community Hero</h3>
                 <p className="text-white/45 text-sm font-medium mb-6">For Chambers of Commerce, Cities & Economic Development Organizations</p>
 
                 {/* Population-based pricing tiers */}
@@ -493,7 +493,7 @@ export default function AboutPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <a
-                    href="mailto:thenewpaperchariton@gmail.com?subject=Community Partner Inquiry"
+                    href="mailto:thenewpaperchariton@gmail.com?subject=Community Hero Inquiry"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white btn-cta"
                     style={{ background: 'linear-gradient(135deg, #DC143C 0%, #B91232 100%)', boxShadow: '0 4px 15px rgba(220,20,60,0.4)' }}
                   >
@@ -652,7 +652,7 @@ export default function AboutPage() {
         <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
 
         <div className="max-w-2xl mx-auto px-5 text-center relative">
-          <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="w-16 h-16 rounded-2xl mx-auto mb-6" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }} />
+          <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="h-16 rounded-2xl mx-auto mb-6 object-contain" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)', width: 'auto' }} />
 
           <h2 className="font-display text-3xl md:text-4xl text-white tracking-tight mb-4">
             Bring Go New Paper<br />

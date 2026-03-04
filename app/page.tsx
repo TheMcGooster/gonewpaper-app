@@ -1470,7 +1470,7 @@ const handleInterestToggle = async (eventId: number) => {
                   <Card key={b.id} className={`cursor-pointer animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
                     <div className="flex items-start gap-4">
                       {b.logo_url ? (
-                        <img src={b.logo_url} alt={b.name} className="w-14 h-14 rounded-xl object-cover" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                        <img src={b.logo_url} alt={b.name} className="w-14 h-14 rounded-xl object-contain bg-white p-1" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
                       ) : (
                         <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl bg-blue-50">{b.logo_emoji}</div>
                       )}
@@ -1508,7 +1508,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <div key={b.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-purple-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       <div className="flex items-center gap-3 mb-2">
                         {b.logo_url ? (
-                          <img src={b.logo_url} alt={b.name} className="w-11 h-11 rounded-lg object-cover" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }} />
+                          <img src={b.logo_url} alt={b.name} className="w-11 h-11 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }} />
                         ) : (
                           <div className="w-11 h-11 rounded-lg flex items-center justify-center text-2xl bg-purple-50">{b.logo_emoji}</div>
                         )}
