@@ -987,15 +987,15 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
-    { id: 'jobs', icon: Briefcase, label: 'JOBS' },
-    { id: 'housing', icon: Home, label: 'HOUSING' },
+    { id: 'affiliates', icon: TrendingUp, label: 'DISCOUNTS/DEALS' },
     { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
-    { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
+    { id: 'housing', icon: Home, label: 'HOUSING' },
+    { id: 'jobs', icon: Briefcase, label: 'JOBS' },
     { id: 'clubs', icon: UsersRound, label: 'CLUBS' },
-    { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' },
-    { id: 'comics', icon: Laugh, label: 'DAILY LAUGHS' },
+    { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
-    { id: 'affiliates', icon: TrendingUp, label: 'DISCOUNTS/DEALS' }
+    { id: 'comics', icon: Laugh, label: 'DAILY LAUGHS' },
+    { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' }
   ]
 
   return (
