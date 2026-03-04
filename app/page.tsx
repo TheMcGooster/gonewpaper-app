@@ -3,7 +3,7 @@
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone } from 'lucide-react'
-import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, MarketRecap, TopStory, Affiliate, NonProfit, Club } from '@/lib/supabase'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
@@ -139,8 +139,7 @@ export default function GoNewPaper() {
   const [housing, setHousing] = useState<Housing[]>([])
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([])
   const [celebrations, setCelebrations] = useState<CelebrationOfLife[]>([])
-  const [marketRecap, setMarketRecap] = useState<MarketRecap | null>(null)
-  const [topStories, setTopStories] = useState<TopStory[]>([])
+
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
@@ -785,8 +784,6 @@ const handleInterestToggle = async (eventId: number) => {
           housingRes,
           communityRes,
           celebrationsRes,
-          marketRes,
-          storiesRes,
           affiliatesRes,
           nonprofitsRes,
           clubsRes,
@@ -799,9 +796,6 @@ const handleInterestToggle = async (eventId: number) => {
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
           supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20),
           supabase.from('celebrations_of_life').select('*').eq('town_id', selectedTownId).eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
-          // Global content (same for all towns — no town_id filter)
-          supabase.from('market_recap').select('*').order('recap_date', { ascending: false }).limit(1),
-          supabase.from('top_stories').select('*').order('priority', { ascending: true }).limit(5),
           supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true }),
           // Town-specific organizations
           supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
@@ -816,8 +810,6 @@ const handleInterestToggle = async (eventId: number) => {
         if (housingRes.data) setHousing(housingRes.data)
         if (communityRes.data) setCommunityPosts(communityRes.data)
         if (celebrationsRes.data) setCelebrations(celebrationsRes.data)
-        if (marketRes.data && marketRes.data[0]) setMarketRecap(marketRes.data[0])
-        if (storiesRes.data) setTopStories(storiesRes.data)
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
@@ -945,9 +937,6 @@ const handleInterestToggle = async (eventId: number) => {
     { id: 1, name: 'Chariton Rock Climbers', category: 'Sports & Recreation', logo_emoji: '🧗', logo_url: '/Chariton_Rock_Climbers_LOGO.png', tagline: 'Climb higher together!', email: 'jarrettcmcgee@gmail.com', town_id: 1, is_active: true, display_order: 1, created_at: '' },
   ]
 
-const sampleStocks = [
-    { symbol: 'SPY', price: 478.36, change: 1.22, changePercent: 0.26 }
-  ]
 
   // Use sample data if database is empty (events always use real data — empty state shows "no events")
   const displayEvents = events
@@ -958,7 +947,6 @@ const sampleStocks = [
   const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
   const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
   const displayClubs = clubs.length > 0 ? clubs : sampleClubs
-const displayStocks = marketRecap?.hot_stocks || sampleStocks
 
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
