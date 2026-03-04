@@ -272,7 +272,7 @@ export default function AboutPage() {
                   <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-5">Why cities choose us</div>
                   <div className="space-y-5">
                     {[
-                      { num: '$0', label: 'Cost to the city', sub: 'No budget approval needed' },
+                      { num: '$207', label: 'Per month', sub: 'Less than a part-time intern' },
                       { num: '0', label: 'Staff hours required', sub: 'Everything auto-syncs' },
                       { num: '1', label: 'App for everything', sub: 'Replaces fragmented tools' },
                     ].map((s, i) => (
@@ -398,10 +398,90 @@ export default function AboutPage() {
         <div className="max-w-5xl mx-auto px-5">
           <div className="text-center mb-10">
             <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-3" style={{ color: 'var(--gnp-ink)' }}>
-              Business Listing Tiers
+              Simple, Transparent Pricing
             </h2>
-            <p className="text-gray-500 font-medium max-w-md mx-auto">
-              Local businesses support the platform through affordable annual listing plans.
+            <p className="text-gray-500 font-medium max-w-lg mx-auto">
+              One partnership tier for organizations. Two self-service tiers for local businesses.
+            </p>
+          </div>
+
+          {/* Community Partner — Hero Tier */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="relative rounded-2xl overflow-hidden" style={{
+              background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 40%, #34495e 100%)',
+              boxShadow: '0 12px 40px rgba(26,26,46,0.35)',
+            }}>
+              <div className="absolute top-[-20%] right-[-10%] w-[350px] h-[350px] rounded-full opacity-[0.05]" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+              <div className="absolute bottom-[-15%] left-[-8%] w-[250px] h-[250px] rounded-full opacity-[0.03]" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+
+              <div className="relative p-8 md:p-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(220,20,60,0.15)', border: '1px solid rgba(220,20,60,0.25)' }}>
+                    <Landmark className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-xs font-bold text-red-300 tracking-wide">FOR ORGANIZATIONS</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  </div>
+                </div>
+
+                <h3 className="font-display text-xl md:text-2xl text-white tracking-tight mb-2">Community Partner</h3>
+                <p className="text-white/45 text-sm font-medium mb-6">For Chambers of Commerce, Cities & Economic Development Organizations</p>
+
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="font-display text-5xl md:text-6xl text-white tracking-tight">$2,477</span>
+                  <span className="text-lg text-white/35 font-bold">/year</span>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3 mb-8">
+                  {[
+                    'Dedicated town hub on the platform',
+                    'Automatic calendar event syncing',
+                    'Custom town branding & colors',
+                    'Push notifications to all residents',
+                    'Business directory management',
+                    'Housing & job board for your town',
+                    'Community posts & announcements',
+                    'Analytics dashboard & engagement data',
+                    'Priority support & onboarding',
+                    'Revenue share on business listings',
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-white/70 font-medium">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="mailto:thenewpaperchariton@gmail.com?subject=Community Partner Inquiry"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white btn-cta"
+                    style={{ background: 'linear-gradient(135deg, #DC143C 0%, #B91232 100%)', boxShadow: '0 4px 15px rgba(220,20,60,0.4)' }}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Schedule a Conversation
+                  </a>
+                  <div className="flex items-center justify-center gap-2 text-white/30 text-xs font-medium">
+                    <Shield className="w-3.5 h-3.5" />
+                    Less than $207/month for your entire community
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px" style={{ background: 'var(--gnp-border)' }} />
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Business Listing Tiers</span>
+              <div className="flex-1 h-px" style={{ background: 'var(--gnp-border)' }} />
+            </div>
+            <p className="text-center text-xs text-gray-400 font-medium mt-2">
+              Self-service tiers for local businesses — this is how the platform sustains itself.
             </p>
           </div>
 
@@ -427,35 +507,28 @@ export default function AboutPage() {
             </div>
 
             {/* Community Sponsor */}
-            <div className="rounded-2xl p-6 relative overflow-hidden" style={{
-              background: 'linear-gradient(160deg, #1a1a2e, #2c3e50)',
-              boxShadow: '0 8px 30px rgba(26,26,46,0.3)',
-            }}>
+            <div className="bg-white rounded-2xl p-6 relative" style={{ border: '1.5px solid var(--gnp-border)', boxShadow: 'var(--gnp-shadow-md)' }}>
               <div className="absolute top-3 right-3">
-                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               </div>
-              <div className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>
+              <div className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(251,191,36,0.08)', color: '#d97706' }}>
                 Community Sponsor
               </div>
               <div className="flex items-baseline gap-1 mb-1">
-                <span className="font-display text-3xl tracking-tight text-white">$250</span>
-                <span className="text-sm text-white/40 font-bold">/year</span>
+                <span className="font-display text-3xl tracking-tight" style={{ color: 'var(--gnp-ink)' }}>$250</span>
+                <span className="text-sm text-gray-400 font-bold">/year</span>
               </div>
-              <p className="text-xs text-white/40 font-medium mb-5">Full featured for established businesses</p>
+              <p className="text-xs text-gray-400 font-medium mb-5">Full featured for established businesses</p>
               <ul className="space-y-2.5">
                 {['Full business card with logo', 'Website link & click tracking', 'Priority placement', 'Sponsor badge', 'Description & hours display'].map((item, i) => (
                   <li key={i} className="flex items-center gap-2.5">
-                    <Check className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <span className="text-sm text-white/75 font-medium">{item}</span>
+                    <Check className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-600 font-medium">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-
-          <p className="text-center text-xs text-gray-400 font-medium mt-6 max-w-md mx-auto">
-            These tiers are how Go New Paper sustains itself — no cost to the town, no cost to residents. Businesses invest in visibility and community support.
-          </p>
         </div>
       </section>
 
@@ -483,7 +556,7 @@ export default function AboutPage() {
 
               {/* Rows */}
               {[
-                ['Cost to city', 'Free', '$5K-50K/yr'],
+                ['Cost to city', '$2,477/yr', '$5K-50K/yr'],
                 ['Setup time', 'Days', 'Months'],
                 ['Staff needed', 'None', '1-2 people'],
                 ['Event sync', 'Automatic', 'Manual entry'],
