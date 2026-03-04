@@ -405,8 +405,8 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Community Partner — Hero Tier */}
-          <div className="max-w-2xl mx-auto mb-8">
+          {/* Community Partner — Population-Based Tiers */}
+          <div className="max-w-3xl mx-auto mb-8">
             <div className="relative rounded-2xl overflow-hidden" style={{
               background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 40%, #34495e 100%)',
               boxShadow: '0 12px 40px rgba(26,26,46,0.35)',
@@ -430,32 +430,68 @@ export default function AboutPage() {
                 <h3 className="font-display text-xl md:text-2xl text-white tracking-tight mb-2">Community Partner</h3>
                 <p className="text-white/45 text-sm font-medium mb-6">For Chambers of Commerce, Cities & Economic Development Organizations</p>
 
-                <div className="flex items-baseline gap-2 mb-6">
-                  <span className="font-display text-5xl md:text-6xl text-white tracking-tight">$2,477</span>
-                  <span className="text-lg text-white/35 font-bold">/year</span>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-3 mb-8">
-                  {[
-                    'Dedicated town hub on the platform',
-                    'Automatic calendar event syncing',
-                    'Custom town branding & colors',
-                    'Push notifications to all residents',
-                    'Business directory management',
-                    'Housing & job board for your town',
-                    'Community posts & announcements',
-                    'Analytics dashboard & engagement data',
-                    'Priority support & onboarding',
-                    'Revenue share on business listings',
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-white/70 font-medium">{item}</span>
+                {/* Population-based pricing tiers */}
+                <div className="grid sm:grid-cols-3 gap-3 mb-8">
+                  {/* Small Town */}
+                  <div className="rounded-xl p-5 text-center relative" style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide" style={{ background: 'rgba(220,20,60,0.9)', color: 'white' }}>MOST POPULAR</div>
+                    <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 mt-1">Small Town</div>
+                    <div className="font-display text-3xl md:text-4xl text-white tracking-tight mb-1">$2,477</div>
+                    <div className="text-xs text-white/35 font-bold mb-3">/year</div>
+                    <div className="text-xs text-white/50 font-medium leading-relaxed" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                      Under <span className="text-white/70 font-bold">10,000</span> population
                     </div>
-                  ))}
+                    <div className="text-[10px] text-white/30 font-medium mt-1">~$207/month</div>
+                  </div>
+
+                  {/* Mid-Size */}
+                  <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)' }}>
+                    <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">Mid-Size</div>
+                    <div className="font-display text-3xl md:text-4xl text-white tracking-tight mb-1">$4,977</div>
+                    <div className="text-xs text-white/35 font-bold mb-3">/year</div>
+                    <div className="text-xs text-white/50 font-medium leading-relaxed" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                      <span className="text-white/70 font-bold">10K &ndash; 50K</span> population
+                    </div>
+                    <div className="text-[10px] text-white/30 font-medium mt-1">~$415/month</div>
+                  </div>
+
+                  {/* City */}
+                  <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)' }}>
+                    <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">City</div>
+                    <div className="font-display text-3xl md:text-4xl text-white tracking-tight mb-1">$9,977</div>
+                    <div className="text-xs text-white/35 font-bold mb-3">/year</div>
+                    <div className="text-xs text-white/50 font-medium leading-relaxed" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                      <span className="text-white/70 font-bold">50K+</span> population
+                    </div>
+                    <div className="text-[10px] text-white/30 font-medium mt-1">~$832/month</div>
+                  </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                {/* Features included in all tiers */}
+                <div className="mb-6">
+                  <div className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4">All tiers include</div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {[
+                      'Dedicated town hub on the platform',
+                      'Automatic calendar event syncing',
+                      'Custom town branding & colors',
+                      'Push notifications to all residents',
+                      'Business directory management',
+                      'Housing & job board for your town',
+                      'Community posts & announcements',
+                      'Analytics dashboard & engagement data',
+                      'Priority support & onboarding',
+                      'Revenue share on business listings',
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-white/70 font-medium">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <a
                     href="mailto:thenewpaperchariton@gmail.com?subject=Community Partner Inquiry"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white btn-cta"
@@ -466,7 +502,7 @@ export default function AboutPage() {
                   </a>
                   <div className="flex items-center justify-center gap-2 text-white/30 text-xs font-medium">
                     <Shield className="w-3.5 h-3.5" />
-                    Less than $207/month for your entire community
+                    Still a fraction of what typical city apps charge
                   </div>
                 </div>
               </div>
@@ -556,7 +592,7 @@ export default function AboutPage() {
 
               {/* Rows */}
               {[
-                ['Cost to city', '$2,477/yr', '$5K-50K/yr'],
+                ['Cost to city', '$2.5K-10K/yr', '$5K-50K/yr'],
                 ['Setup time', 'Days', 'Months'],
                 ['Staff needed', 'None', '1-2 people'],
                 ['Event sync', 'Automatic', 'Manual entry'],
