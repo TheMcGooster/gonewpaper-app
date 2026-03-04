@@ -2507,7 +2507,7 @@ const displayStocks = marketRecap?.hot_stocks || sampleStocks
                         onClick={() => setBillingPeriod('annual')}
                         className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${billingPeriod === 'annual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
                       >
-                        Annual <span className="text-emerald-600">Save 44%</span>
+                        Annual <span className="text-emerald-600">Save up to 44%</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
