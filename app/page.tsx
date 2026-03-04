@@ -913,50 +913,28 @@ const handleInterestToggle = async (eventId: number) => {
 
   // Sample data for when database is empty
   const sampleEvents: Event[] = [
-    { id: 1, title: 'David - Movie', category: '🎵', date: 'Jan 10', time: '7:00 PM', location: 'Vision II Theatre', price: '$6', source: 'Vision II', verified: true, town_id: 1 },
-    { id: 2, title: 'Avatar: Fire & Ash', category: '🎵', date: 'Jan 10', time: '6:30 PM', location: 'Vision II Theatre', price: '$6', source: 'Vision II', verified: true, town_id: 1 },
-    { id: 3, title: 'City Council Meeting', category: '🏛️', date: 'Jan 12', time: '6:00 PM', location: 'City Hall', price: 'Free', source: 'City of Chariton', verified: true, town_id: 1 },
-    { id: 4, title: 'HS Basketball vs Albia', category: '🏈', date: 'Jan 15', time: '7:00 PM', location: 'Chariton HS', price: '$5', source: 'Chariton Schools', verified: true, town_id: 1 }
+    { id: 1, title: 'City Council Meeting', category: '🏛️', date: 'Jan 12', time: '6:00 PM', location: 'City Hall', price: 'Free', source: 'City of Chariton', verified: true, town_id: 1 }
   ]
 
   const sampleJobs: Job[] = [
-    { id: 1, title: 'Restaurant Server', company: 'Route 34 Grill', type: 'Part-time', pay: '$12-15/hr + tips', auto_scraped: false, created_at: '', town_id: 1 },
-    { id: 2, title: 'Retail Associate', company: 'Hardware Store', type: 'Full-time', pay: '$15/hr', auto_scraped: false, created_at: '', town_id: 1 },
-    { id: 3, title: 'RN - Lucas County Hospital', company: 'Lucas County Health', type: 'Full-time', pay: '$32/hr', auto_scraped: true, created_at: '', town_id: 1 },
-    { id: 4, title: 'CDL Driver', company: 'Midwest Transport', type: 'Full-time', pay: '$55k/yr', auto_scraped: true, created_at: '', town_id: 1 }
+    { id: 1, title: 'Restaurant Server', company: 'Route 34 Grill', type: 'Part-time', pay: '$12-15/hr + tips', auto_scraped: false, created_at: '', town_id: 1 }
   ]
 
   const sampleBusinesses: Business[] = [
-    // Community Sponsors (full cards)
+    // Community Sponsor example
     { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', website: 'https://www.gonewpaper.com', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
-    { id: 2, name: "Piper's Old Fashion Grocery", category: 'Grocery', logo_emoji: '🛒', website: 'https://pipersgrocery.com', clicks: 234, featured: true, tagline: 'Your hometown grocer since 1952', tier: 'spotlight', phone: '(641) 774-5411', created_at: '', town_id: 1 },
-    { id: 3, name: 'Vision II Theatre', category: 'Entertainment', logo_emoji: '🎬', website: 'https://visioniitheatre.com', clicks: 456, featured: true, tagline: 'Latest movies, small-town prices', tier: 'spotlight', phone: '(641) 774-4444', created_at: '', town_id: 1 },
-    { id: 4, name: 'Route 34 Grill', category: 'Restaurant', logo_emoji: '🍔', website: 'https://route34grill.com', clicks: 189, featured: true, tagline: 'Best burgers in Lucas County', tier: 'spotlight', phone: '(641) 774-2233', created_at: '', town_id: 1 },
-    { id: 5, name: 'Main Street Coffee', category: 'Cafe', logo_emoji: '☕', website: 'https://mainstreetcoffee.com', clicks: 312, featured: true, tagline: 'Community hub & fresh brews', tier: 'spotlight', phone: '(641) 774-1122', created_at: '', town_id: 1 },
-    // Digital Business Cards ($100/yr tier)
-    { id: 6, name: 'The Fluff Factory', category: 'Event Services', logo_emoji: '🍭', website: '', clicks: 78, featured: false, tagline: 'Mobile cotton candy for parties & events!', tier: 'card', phone: '(641) 203-0045', created_at: '', town_id: 1 },
-    { id: 7, name: 'Sarah Mitchell - State Farm', category: 'Insurance', logo_emoji: '🛡️', website: '', clicks: 45, featured: false, tagline: 'Your local insurance agent', tier: 'card', phone: '(641) 774-5678', created_at: '', town_id: 1, email: 'sarah.mitchell@statefarm.com' },
-    { id: 8, name: "Mike's Mobile Detailing", category: 'Auto Services', logo_emoji: '🚗', website: '', clicks: 23, featured: false, tagline: 'We come to you!', tier: 'card', phone: '(641) 203-4567', created_at: '', town_id: 1 },
-    { id: 9, name: 'Johnson Financial Group', category: 'Financial Advisor', logo_emoji: '💼', website: '', clicks: 67, featured: false, tagline: 'Retirement & investment planning', tier: 'card', phone: '(641) 774-9012', created_at: '', town_id: 1, email: 'info@johnsonfinancial.com' },
-    { id: 10, name: 'Lucas County Realty - Tom Baker', category: 'Real Estate', logo_emoji: '🏠', website: '', clicks: 89, featured: false, tagline: 'Helping families find home', tier: 'card', phone: '(641) 774-3456', created_at: '', town_id: 1 }
   ]
 
   const sampleHousing: Housing[] = [
     { id: 1, title: '2BR Apartment', price: '$550/mo', location: 'Downtown', details: 'Updated kitchen, parking', listing_type: 'rent', pets_allowed: false, town_id: 1, is_active: true },
-    { id: 2, title: '3BR House', price: '$750/mo', location: 'Near schools', details: 'Large yard, garage, pets OK', listing_type: 'rent', pets_allowed: true, town_id: 1, is_active: true },
-    { id: 3, title: 'Room for Rent', price: '$300/mo', location: 'North Chariton', details: 'Utilities included', listing_type: 'room', pets_allowed: false, town_id: 1, is_active: true }
   ]
 
   const sampleCommunity: CommunityPost[] = [
     { id: 1, title: 'LOST: Black Lab Mix', post_type: 'lost_pet', description: 'Last seen near Yocom Park', emoji: '🔍', town_id: 1, is_active: true },
-    { id: 2, title: 'FOOD PANTRY VOLUNTEERS', post_type: 'volunteer', description: 'Help needed Tuesdays 2-5pm', emoji: '🤝', town_id: 1, is_active: true },
-    { id: 3, title: 'Multi-Family Garage Sale', post_type: 'garage_sale', description: 'Sat, Jan 11, 8am-2pm', location: '215 Oak St', emoji: '🏷️', town_id: 1, is_active: true }
   ]
 
   const sampleAffiliates: Affiliate[] = [
     { id: 1, name: 'Everyday Dose', category: 'Health', logo_emoji: '☕', url: 'https://affiliate.link/everydaydose', commission: '20%', is_active: true, display_order: 1, clicks: 0 },
-    { id: 2, name: 'Take Profit Trader', category: 'Trading', logo_emoji: '📈', url: 'https://affiliate.link/takeprofit', commission: '15%', is_active: true, display_order: 2, clicks: 0 },
-    { id: 3, name: 'TD Ameritrade', category: 'Broker', logo_emoji: '💹', url: 'https://affiliate.link/tdameritrade', commission: '$50/signup', is_active: true, display_order: 3, clicks: 0 }
   ]
 
   const sampleNonprofits: NonProfit[] = [
@@ -968,9 +946,6 @@ const handleInterestToggle = async (eventId: number) => {
   ]
 
 const sampleStocks = [
-    { symbol: 'AAPL', price: 178.52, change: 2.34, changePercent: 1.33 },
-    { symbol: 'TSLA', price: 242.18, change: -5.67, changePercent: -2.29 },
-    { symbol: 'NVDA', price: 495.22, change: 8.91, changePercent: 1.83 },
     { symbol: 'SPY', price: 478.36, change: 1.22, changePercent: 0.26 }
   ]
 
