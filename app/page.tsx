@@ -947,7 +947,7 @@ const handleInterestToggle = async (eventId: number) => {
 
   const sampleBusinesses: Business[] = [
     // Community Sponsor example
-    { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', logo_url: '/GoNewPaper_LOGO.png', website: 'https://www.gonewpaper.com', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
+    { id: 1, name: 'Go New Paper', category: 'Local News & Media', logo_emoji: '📰', logo_url: '/GoNewPaper_LOGO.png', website: 'https://www.gonewpaper.com/about', clicks: 512, featured: true, tagline: 'Everything Local, All In Your Pocket', tier: 'spotlight', phone: '', created_at: '', town_id: 1, email: 'thenewpaperchariton@gmail.com' },
   ]
 
   const sampleHousing: Housing[] = [
