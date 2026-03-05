@@ -63,6 +63,7 @@ export default function GoNewPaper() {
   const [authLoading, setAuthLoading] = useState(false)
   const [userInterests, setUserInterests] = useState<number[]>([])
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [wantNotifications, setWantNotifications] = useState(true)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [showInstallHelp, setShowInstallHelp] = useState(false)
@@ -267,6 +268,34 @@ export default function GoNewPaper() {
     }
   }
 
+  // Auto-request notification permission (called after signup/login)
+  // Works on Android Chrome, Desktop Chrome, Safari 16.4+ (PWA only on iOS)
+  const requestNotificationPermission = (userId?: string) => {
+    try {
+      // Don't request if already granted
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') return
+      // Don't request if previously denied (browser remembers — user must manually unblock)
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return
+
+      window.OneSignalDeferred = window.OneSignalDeferred || []
+      window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
+        if (OneSignalSDK.Notifications.permission) return // already granted
+
+        await OneSignalSDK.Notifications.requestPermission()
+
+        if (OneSignalSDK.Notifications.permission) {
+          setNotificationsEnabled(true)
+          showToast('🔔 Notifications enabled!')
+          // Save player ID immediately if we have a user
+          const uid = userId || user?.id
+          if (uid) saveOneSignalPlayerId(uid)
+        }
+      })
+    } catch (err) {
+      console.log('Could not request notification permission:', err)
+    }
+  }
+
   // Handle town selection: save to DB, set OneSignal tag, refetch data
   const handleTownChange = async (townId: number, townName: string) => {
     setSelectedTownId(townId)
@@ -383,6 +412,9 @@ export default function GoNewPaper() {
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
         checkUserNotificationStatus(session.user.id)
+        // Auto-request notification permission for Google OAuth redirects and email confirmations
+        // Works on Android/Desktop Chrome without user gesture; iOS requires PWA + gesture
+        requestNotificationPermission(session.user.id)
       } else {
         setUserInterests([])
         setNotificationsEnabled(false)
@@ -421,6 +453,8 @@ export default function GoNewPaper() {
       setShowAuthModal(false)
       setAuthEmail('')
       setAuthPassword('')
+      // Auto-request notification permission on login (user gesture = click)
+      requestNotificationPermission()
     }
     setAuthLoading(false)
   }
@@ -441,6 +475,11 @@ export default function GoNewPaper() {
     } else {
       setAuthError('')
       setAuthMode('login')
+      // Auto-request notification permission while still in click handler (user gesture)
+      // Permission gets granted now; player ID linked later when they confirm email & log in
+      if (wantNotifications) {
+        requestNotificationPermission()
+      }
       alert('Check your email for a confirmation link!')
     }
     setAuthLoading(false)
@@ -899,7 +938,7 @@ const handleInterestToggle = async (eventId: number) => {
     }
     // Track click count + analytics in background (fire-and-forget)
     supabase.rpc('increment_business_clicks', { b_id: business.id }).then(() => {})
-    supabase.from('analytics').insert({ event_type: 'business_click', business_id: business.id, source_page: 'business_tab' }).then(() => {})
+    supabase.from('analytics').insert({ event_type: 'business_click', business_id: business.id, source_page: 'business_tab', user_id: user?.id || null, town_id: selectedTownId }).then(() => {})
   }
 
   // Track affiliate clicks
@@ -910,7 +949,7 @@ const handleInterestToggle = async (eventId: number) => {
     }
     // Track in background (fire-and-forget)
     supabase.rpc('increment_affiliate_clicks', { a_id: affiliate.id }).then(() => {})
-    supabase.from('analytics').insert({ event_type: 'affiliate_click', affiliate_name: affiliate.name, source_page: 'menu' }).then(() => {})
+    supabase.from('analytics').insert({ event_type: 'affiliate_click', affiliate_name: affiliate.name, source_page: 'menu', user_id: user?.id || null, town_id: selectedTownId }).then(() => {})
   }
 
   const Card = ({ children, className = '', onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
@@ -2157,6 +2196,20 @@ const handleInterestToggle = async (eventId: number) => {
                     minLength={6}
                   />
                 </div>
+
+                {authMode === 'signup' && (
+                  <label className="flex items-start gap-2.5 cursor-pointer bg-amber-50 border border-amber-200 rounded-lg p-3 -mt-1">
+                    <input
+                      type="checkbox"
+                      checked={wantNotifications}
+                      onChange={(e) => setWantNotifications(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-red-500 flex-shrink-0"
+                    />
+                    <span className="text-xs text-gray-700 leading-relaxed">
+                      <span className="font-bold text-gray-900">🔔 Send me push notifications</span> about local events, jobs, and community updates
+                    </span>
+                  </label>
+                )}
 
                 {authError && (
                   <p className="text-red-600 text-sm font-bold">{authError}</p>

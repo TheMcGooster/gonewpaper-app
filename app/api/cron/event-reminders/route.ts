@@ -197,9 +197,13 @@ export async function GET(request: Request) {
     // Log to notifications_log
     try {
       await supabase.from('notifications_log').insert({
-        type: 'event_reminder',
+        notification_type: 'event_reminder',
+        title: 'Daily Event Reminders',
         sent_at: new Date().toISOString(),
-        details: {
+        sent_via: 'onesignal',
+        town_id: 1,
+        recipients_count: sentCount,
+        metadata: {
           date: todayStr,
           sent: sentCount,
           totalUsers: Object.keys(userEvents).length,
