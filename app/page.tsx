@@ -898,7 +898,7 @@ const handleInterestToggle = async (eventId: number) => {
       window.open(business.website, '_blank', 'noopener,noreferrer')
     }
     // Track click count + analytics in background (fire-and-forget)
-    supabase.from('businesses').update({ clicks: business.clicks + 1 }).eq('id', business.id).then(() => {})
+    supabase.rpc('increment_business_clicks', { b_id: business.id }).then(() => {})
     supabase.from('analytics').insert({ event_type: 'business_click', business_id: business.id, source_page: 'business_tab' }).then(() => {})
   }
 
@@ -909,7 +909,7 @@ const handleInterestToggle = async (eventId: number) => {
       window.open(affiliate.url, '_blank', 'noopener,noreferrer')
     }
     // Track in background (fire-and-forget)
-    supabase.from('affiliates').update({ clicks: affiliate.clicks + 1 }).eq('id', affiliate.id).then(() => {})
+    supabase.rpc('increment_affiliate_clicks', { a_id: affiliate.id }).then(() => {})
     supabase.from('analytics').insert({ event_type: 'affiliate_click', affiliate_name: affiliate.name, source_page: 'menu' }).then(() => {})
   }
 
