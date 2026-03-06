@@ -3080,8 +3080,9 @@ const handleInterestToggle = async (eventId: number) => {
             <div className="section-divider"></div>
             <div>
               <h3 className="text-[10px] font-bold text-[#8a8778] tracking-[0.15em] mb-3 uppercase">Quick Links</h3>
-              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🎓 School District</a>
-              <a href="https://www.visioniitheatre.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎬 Vision II Theatre</a>
+              <a href="https://www.chariton.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🏛️ City of Chariton</a>
+              <a href="https://www.charitonareachambermainstreet.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🤝 Chamber / Main Street</a>
+              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎓 School District</a>
             </div>
           </div>
         </div>
