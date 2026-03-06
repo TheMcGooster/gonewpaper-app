@@ -3027,29 +3027,7 @@ const handleInterestToggle = async (eventId: number) => {
               </div>
             </div>
 
-            {/* Affiliates Quick Link */}
-            <div className="section-divider"></div>
-            <div className="mb-4">
-              <button
-                onClick={() => {
-                  setActiveTab('affiliates')
-                  setShowMenu(false)
-                }}
-                className="btn-cta w-full bg-emerald-600 text-white p-3 rounded-[12px] flex items-center justify-between transition-all"
-                style={{ boxShadow: '0 2px 10px rgba(16,185,129,0.25)' }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <TrendingUp className="w-4 h-4" />
-                  <div className="text-left">
-                    <p className="text-sm font-bold">Market & Partners</p>
-                    <p className="text-[11px] font-medium text-emerald-100">Stocks, Trading & Deals</p>
-                  </div>
-                </div>
-                <span className="text-lg opacity-60">&rarr;</span>
-              </button>
-            </div>
-
-            {/* Engagement Reports — visible only to admin / chamber / city contacts */}
+            {/* Engagement Reports — replaces Market & Partners for authorized users */}
             {canViewReports && (
               <>
                 <div className="section-divider"></div>
@@ -3076,13 +3054,24 @@ const handleInterestToggle = async (eventId: number) => {
               </>
             )}
 
-            {/* Quick Links */}
+            {/* Quick Links — town-specific */}
             <div className="section-divider"></div>
             <div>
               <h3 className="text-[10px] font-bold text-[#8a8778] tracking-[0.15em] mb-3 uppercase">Quick Links</h3>
-              <a href="https://www.chariton.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🏛️ City of Chariton</a>
-              <a href="https://www.charitonareachambermainstreet.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🤝 Chamber / Main Street</a>
-              <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎓 School District</a>
+              {selectedTownId === 1 && (
+                <>
+                  <a href="https://www.chariton.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🏛️ City of Chariton</a>
+                  <a href="https://www.charitonareachambermainstreet.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🤝 Chamber / Main Street</a>
+                  <a href="https://www.charitonschools.org/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎓 Chariton Schools</a>
+                </>
+              )}
+              {selectedTownId === 2 && (
+                <>
+                  <a href="https://www.knoxvilleia.gov/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🏛️ City of Knoxville</a>
+                  <a href="https://www.knoxvilleiachamber.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all mb-1">🤝 Knoxville Chamber</a>
+                  <a href="https://www.knoxville.k12.ia.us/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎓 Knoxville Schools</a>
+                </>
+              )}
             </div>
           </div>
         </div>
