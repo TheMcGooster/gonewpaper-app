@@ -2,7 +2,7 @@
 // Go New Paper v2.0.0 - 10 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates
 // Last deploy: Feb 8 2025
 import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
@@ -70,6 +70,14 @@ export default function GoNewPaper() {
   const [toast, setToast] = useState<string | null>(null)
   const [selectedTownId, setSelectedTownId] = useState(1) // Default to Chariton
   const [selectedTownName, setSelectedTownName] = useState('Chariton')
+
+  // Reports dashboard state
+  const [showReportsModal, setShowReportsModal] = useState(false)
+  const [reportData, setReportData] = useState<any>(null)
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1)
+  const [reportYear, setReportYear] = useState(new Date().getFullYear())
+  const [reportAccessTownIds, setReportAccessTownIds] = useState<number[]>([])
 
   // Town theme configuration — colors, branding, etc.
   const townThemes: Record<number, { name: string; mascot: string; letter: string; primaryColor: string; darkColor: string; accentClass: string; accentTextClass: string; accentBg: string; tabActiveText: string; shieldFill: string; selectorBg: string; selectorBorder: string; selectorEmoji: string; colorLabel: string }> = {
@@ -508,6 +516,48 @@ export default function GoNewPaper() {
 
   // Admin check
   const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com' || user?.email === 'thenewpaperchariton@gmail.com'
+
+  // Check if user has access to reports (admin or chamber/city contact)
+  const canViewReports = isAdmin || reportAccessTownIds.length > 0
+
+  useEffect(() => {
+    if (!user?.email) { setReportAccessTownIds([]); return }
+    if (isAdmin) { setReportAccessTownIds([1, 2]); return } // Admin sees all towns
+    // Check if user's email matches any town's report_email
+    const checkAccess = async () => {
+      const { data } = await supabase.from('towns').select('id').eq('report_email', user.email!)
+      if (data && data.length > 0) setReportAccessTownIds(data.map((t: any) => t.id))
+      else setReportAccessTownIds([])
+    }
+    checkAccess()
+  }, [user?.email, isAdmin])
+
+  // Fetch monthly engagement report
+  const fetchReport = async (townId: number, year: number, month: number) => {
+    setReportLoading(true)
+    setReportData(null)
+    try {
+      const { data, error } = await supabase.rpc('generate_monthly_report', {
+        p_town_id: townId, p_year: year, p_month: month
+      })
+      if (error) throw error
+      setReportData(data)
+    } catch (err: any) {
+      showToast('Error loading report: ' + err.message)
+    }
+    setReportLoading(false)
+  }
+
+  // Navigate report months
+  const changeReportMonth = (direction: number) => {
+    let newMonth = reportMonth + direction
+    let newYear = reportYear
+    if (newMonth > 12) { newMonth = 1; newYear++ }
+    if (newMonth < 1) { newMonth = 12; newYear-- }
+    setReportMonth(newMonth)
+    setReportYear(newYear)
+    fetchReport(selectedTownId, newYear, newMonth)
+  }
 
   const handleDeleteListing = async (table: 'nonprofits' | 'clubs', id: number, name: string) => {
     if (!confirm(`Remove "${name}" from the site?`)) return
@@ -2999,6 +3049,33 @@ const handleInterestToggle = async (eventId: number) => {
               </button>
             </div>
 
+            {/* Engagement Reports — visible only to admin / chamber / city contacts */}
+            {canViewReports && (
+              <>
+                <div className="section-divider"></div>
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false)
+                      setShowReportsModal(true)
+                      fetchReport(selectedTownId, reportYear, reportMonth)
+                    }}
+                    className="btn-cta w-full bg-indigo-600 text-white p-3 rounded-[12px] flex items-center justify-between transition-all"
+                    style={{ boxShadow: '0 2px 10px rgba(99,102,241,0.3)' }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <BarChart3 className="w-4 h-4" />
+                      <div className="text-left">
+                        <p className="text-sm font-bold">Engagement Reports</p>
+                        <p className="text-[11px] font-medium text-indigo-200">Monthly analytics for your town</p>
+                      </div>
+                    </div>
+                    <span className="text-lg opacity-60">&rarr;</span>
+                  </button>
+                </div>
+              </>
+            )}
+
             {/* Quick Links */}
             <div className="section-divider"></div>
             <div>
@@ -3058,6 +3135,140 @@ const handleInterestToggle = async (eventId: number) => {
             <button onClick={() => setShowInstallHelp(false)} className="w-full mt-5 bg-gray-900 text-white py-3.5 rounded-2xl font-black text-sm tracking-wide">
               Got it!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Engagement Reports Modal */}
+      {showReportsModal && (
+        <div className="fixed inset-0 modal-overlay z-50" onClick={() => setShowReportsModal(false)}>
+          <div className="bg-[#fafaf8] w-full max-w-lg h-full ml-auto overflow-y-auto" style={{ boxShadow: '-8px 0 40px rgba(26,26,46,0.15)' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-5 z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <BarChart3 className="w-5 h-5" />
+                  <h2 className="text-lg font-black tracking-tight">Engagement Reports</h2>
+                </div>
+                <button onClick={() => setShowReportsModal(false)} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <p className="text-indigo-200 text-xs font-semibold mb-3">{selectedTownName} Edition &bull; Monthly Analytics</p>
+              {/* Month Navigator */}
+              <div className="flex items-center justify-between bg-white/10 rounded-xl p-2">
+                <button onClick={() => changeReportMonth(-1)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                <p className="font-black text-sm tracking-wide">
+                  {new Date(reportYear, reportMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
+                <button
+                  onClick={() => changeReportMonth(1)}
+                  disabled={reportYear === new Date().getFullYear() && reportMonth === new Date().getMonth() + 1}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30"
+                ><ChevronRight className="w-4 h-4" /></button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : reportData ? (
+                <>
+                  {/* Stat Cards */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Business Clicks', value: reportData.business_clicks?.total ?? 0, change: reportData.business_clicks?.change_pct, prev: reportData.business_clicks?.previous_month ?? 0, icon: '🏪', color: 'bg-blue-50 border-blue-200' },
+                      { label: 'Event Interest', value: reportData.event_interests?.total ?? 0, change: reportData.event_interests?.change_pct, prev: reportData.event_interests?.previous_month ?? 0, icon: '📅', color: 'bg-amber-50 border-amber-200' },
+                      { label: 'Notifications Sent', value: reportData.notifications?.total ?? 0, change: reportData.notifications?.change_pct, prev: reportData.notifications?.previous_month ?? 0, icon: '🔔', color: 'bg-green-50 border-green-200' },
+                      { label: 'New Signups', value: reportData.new_signups?.total ?? 0, change: reportData.new_signups?.change_pct, prev: reportData.new_signups?.previous_month ?? 0, icon: '👥', color: 'bg-purple-50 border-purple-200' },
+                    ].map((stat, i) => (
+                      <div key={i} className={`${stat.color} border rounded-xl p-3.5`}>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-sm">{stat.icon}</span>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+                        </div>
+                        <p className="text-2xl font-black text-gray-900">{stat.value.toLocaleString()}</p>
+                        {stat.change !== null && stat.change !== undefined ? (
+                          <p className={`text-xs font-bold mt-1 ${stat.change > 0 ? 'text-green-600' : stat.change < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                            {stat.change > 0 ? '↑' : stat.change < 0 ? '↓' : '→'} {Math.abs(stat.change).toFixed(0)}% vs last month
+                          </p>
+                        ) : (
+                          <p className="text-xs font-medium text-gray-400 mt-1">prev: {stat.prev}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Top Businesses */}
+                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                      <h3 className="text-xs font-black text-gray-600 uppercase tracking-wider">🏆 Top Businesses by Clicks</h3>
+                    </div>
+                    {reportData.top_businesses && reportData.top_businesses.length > 0 ? (
+                      <div className="divide-y divide-gray-100">
+                        {reportData.top_businesses.map((biz: any, i: number) => (
+                          <div key={biz.id} className="flex items-center justify-between px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-100 text-gray-600' : 'bg-orange-50 text-orange-600'}`}>{i + 1}</span>
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">{biz.name}</p>
+                                <p className="text-[11px] text-gray-400 font-medium">{biz.category}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-black text-indigo-600">{biz.click_count}</p>
+                              <p className="text-[10px] text-gray-400">clicks</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="px-4 py-6 text-sm text-gray-400 text-center font-medium">No business clicks this month</p>
+                    )}
+                  </div>
+
+                  {/* Top Events */}
+                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                      <h3 className="text-xs font-black text-gray-600 uppercase tracking-wider">🎯 Top Events by Interest</h3>
+                    </div>
+                    {reportData.top_events && reportData.top_events.length > 0 ? (
+                      <div className="divide-y divide-gray-100">
+                        {reportData.top_events.map((evt: any, i: number) => (
+                          <div key={evt.id} className="flex items-center justify-between px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-100 text-gray-600' : 'bg-orange-50 text-orange-600'}`}>{i + 1}</span>
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">{evt.title}</p>
+                                <p className="text-[11px] text-gray-400 font-medium">{evt.date ? formatEventDate(evt.date) : ''}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-black text-indigo-600">{evt.interest_count}</p>
+                              <p className="text-[10px] text-gray-400">interested</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="px-4 py-6 text-sm text-gray-400 text-center font-medium">No event interest clicks this month</p>
+                    )}
+                  </div>
+
+                  {/* Footer Note */}
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center">
+                    <p className="text-xs font-semibold text-indigo-600">📊 Data refreshed in real-time from Go New Paper</p>
+                    <p className="text-[11px] text-indigo-400 mt-1">Generated {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-gray-400 font-semibold">No report data available</p>
+                  <p className="text-xs text-gray-300 mt-1">Try selecting a different month</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
