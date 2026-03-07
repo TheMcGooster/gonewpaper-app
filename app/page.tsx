@@ -115,6 +115,13 @@ export default function GoNewPaper() {
   const [postEventSuccess, setPostEventSuccess] = useState(false)
   const [postEventLoading, setPostEventLoading] = useState(false)
 
+  // Post Job form state
+  const [showPostJobModal, setShowPostJobModal] = useState(false)
+  const [postJobForm, setPostJobForm] = useState({ title: '', company: '', type: 'Full-Time', pay: '', description: '', apply_url: '', location: '' })
+  const [postJobSuccess, setPostJobSuccess] = useState(false)
+  const [postJobLoading, setPostJobLoading] = useState(false)
+  const [postJobError, setPostJobError] = useState('')
+
   // Pending events (admin approval queue)
   const [pendingEvents, setPendingEvents] = useState<Event[]>([])
 
@@ -766,6 +773,37 @@ export default function GoNewPaper() {
       showToast('Something went wrong. Please try again.')
     } finally {
       setPostEventLoading(false)
+    }
+  }
+
+  const handlePostJobSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setPostJobError('')
+    if (!postJobForm.title.trim()) { setPostJobError('Job title is required'); return }
+    if (!postJobForm.company.trim()) { setPostJobError('Company name is required'); return }
+    setPostJobLoading(true)
+    try {
+      const { error } = await supabase.from('jobs').insert({
+        title: postJobForm.title.trim(),
+        company: postJobForm.company.trim(),
+        type: postJobForm.type,
+        pay: postJobForm.pay.trim() || 'Contact for pay',
+        description: postJobForm.description.trim() || null,
+        apply_url: postJobForm.apply_url.trim() || null,
+        location: postJobForm.location.trim() || selectedTownName,
+        auto_scraped: false,
+        town_id: selectedTownId,
+      })
+      if (error) throw error
+      setPostJobSuccess(true)
+      // Re-fetch jobs
+      const { data } = await supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(50)
+      if (data) setJobs(data)
+    } catch (err) {
+      setPostJobError('Something went wrong. Please try again.')
+    } finally {
+      setPostJobLoading(false)
     }
   }
 
@@ -1431,6 +1469,25 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Jobs Tab */}
             {activeTab === 'jobs' && (
               <>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight font-display">Jobs</h2>
+                    <p className="text-xs text-[#8a8778] font-medium mt-0.5">{displayJobs.length} jobs near {selectedTownName}</p>
+                  </div>
+                  <button
+                    className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`}
+                    style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                    onClick={() => {
+                      if (!user) { setShowAuthModal(true); return }
+                      setShowPostJobModal(true)
+                      setPostJobSuccess(false)
+                      setPostJobError('')
+                      setPostJobForm({ title: '', company: '', type: 'Full-Time', pay: '', description: '', apply_url: '', location: '' })
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />Post
+                  </button>
+                </div>
                 <div className="section-banner bg-emerald-50/80 border-emerald-200 mb-4 animate-fade-in-up">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <span className="text-lg">🤖</span>
@@ -2535,6 +2592,92 @@ const handleInterestToggle = async (eventId: number) => {
 
                   <button type="submit" disabled={postEventLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
                     {postEventLoading ? 'SUBMITTING...' : 'SUBMIT EVENT'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Post Job Modal */}
+      {showPostJobModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowPostJobModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {postJobSuccess ? 'Posted!' : 'Post a Job'}
+              </h2>
+              <button onClick={() => setShowPostJobModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {postJobSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">✅</div>
+                <p className="text-lg font-black mb-2">Job Posted!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  Your job listing is now live in the Jobs tab. Good luck finding the right candidate!
+                </p>
+                <button
+                  onClick={() => setShowPostJobModal(false)}
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg`}
+                >
+                  CLOSE
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePostJobSubmit}>
+                <div className="space-y-4">
+                  {postJobError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 font-semibold">{postJobError}</div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Job Title *</label>
+                    <input type="text" value={postJobForm.title} onChange={(e) => setPostJobForm(f => ({...f, title: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="e.g. Line Cook, Office Manager" required maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Company Name *</label>
+                    <input type="text" value={postJobForm.company} onChange={(e) => setPostJobForm(f => ({...f, company: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="e.g. Hy-Vee, City of Chariton" required maxLength={100} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Job Type</label>
+                      <select value={postJobForm.type} onChange={(e) => setPostJobForm(f => ({...f, type: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`}>
+                        <option value="Full-Time">Full-Time</option>
+                        <option value="Part-Time">Part-Time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Seasonal">Seasonal</option>
+                        <option value="Internship">Internship</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Pay/Salary</label>
+                      <input type="text" value={postJobForm.pay} onChange={(e) => setPostJobForm(f => ({...f, pay: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="e.g. $15/hr, $40k/yr" maxLength={30} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                    <input type="text" value={postJobForm.location} onChange={(e) => setPostJobForm(f => ({...f, location: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder={`${selectedTownName} (optional)`} maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Apply URL</label>
+                    <input type="url" value={postJobForm.apply_url} onChange={(e) => setPostJobForm(f => ({...f, apply_url: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="https://... (optional link to apply)" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                    <textarea value={postJobForm.description} onChange={(e) => setPostJobForm(f => ({...f, description: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="Tell applicants more about this position (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <p className="text-xs text-[#8a8778] font-medium text-center">Your job listing will appear immediately in the Jobs tab. Thank you for posting to {selectedTownName}!</p>
+
+                  <button type="submit" disabled={postJobLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
+                    {postJobLoading ? 'POSTING...' : 'POST JOB'}
                   </button>
                 </div>
               </form>
