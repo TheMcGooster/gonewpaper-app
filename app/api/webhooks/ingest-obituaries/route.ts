@@ -30,8 +30,23 @@ type IngestObituary = {
   submitted_by?: string | null   // uuid
 }
 
+// Reject obituaries with passing_date older than this many days
+const MAX_OBITUARY_AGE_DAYS = 21
+
 function validateObituary(obit: IngestObituary): string | null {
   if (!obit.full_name || typeof obit.full_name !== 'string') return 'Missing or invalid full_name'
+
+  // Reject obituaries with a passing_date older than 21 days
+  // This prevents scrapers from re-inserting very old obituaries
+  if (obit.passing_date) {
+    const passingDate = new Date(obit.passing_date)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - MAX_OBITUARY_AGE_DAYS)
+    if (passingDate < cutoff) {
+      return `passing_date ${obit.passing_date} is older than ${MAX_OBITUARY_AGE_DAYS} days`
+    }
+  }
+
   return null
 }
 

@@ -113,30 +113,37 @@ export async function GET(request: Request) {
     results.dailySummary = { error: 'Daily summary failed' }
   }
 
-  // --- 2. Purge Old Obituaries ---
+  // --- 2. Soft-Delete Old Obituaries ---
+  // Uses soft-delete (is_approved = false) instead of hard-delete so that
+  // the dedup check in ingest-obituaries still finds the name and skips re-insertion.
+  // This prevents the cycle: purge deletes → scraper re-inserts → purge deletes again.
   try {
-    // Calculate cutoff dates
+    // Calculate cutoff dates — 21 days covers even delayed memorial services
     const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - 14)
+    cutoffDate.setDate(cutoffDate.getDate() - 21)
     const cutoffStr = cutoffDate.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
     const cutoffISO = cutoffDate.toISOString()
 
+    // Only soft-delete entries that are currently visible (is_approved = true)
     // Rule 1: service_date has passed
     const { data: pastByService } = await supabase
       .from('celebrations_of_life')
       .select('id, full_name')
+      .eq('is_approved', true)
       .lt('service_date', todayStr)
 
-    // Rule 2: passing_date is 14+ days ago (excludes NULLs by design — handled in Rule 3)
+    // Rule 2: passing_date is 21+ days ago (excludes NULLs by design — handled in Rule 3)
     const { data: pastByPassing } = await supabase
       .from('celebrations_of_life')
       .select('id, full_name')
+      .eq('is_approved', true)
       .lt('passing_date', cutoffStr)
 
     // Rule 3: NULL dates — use created_at as fallback (catches scraper entries with broken date parsing)
     const { data: pastByCreated } = await supabase
       .from('celebrations_of_life')
       .select('id, full_name')
+      .eq('is_approved', true)
       .is('service_date', null)
       .is('passing_date', null)
       .lt('created_at', cutoffISO)
@@ -147,23 +154,24 @@ export async function GET(request: Request) {
     const uniqueNames = Array.from(new Set(allPast.map(o => o.full_name)))
 
     if (uniqueIds.length === 0) {
-      results.purgeObituaries = { success: true, message: 'No past obituaries to purge', deleted: 0 }
+      results.purgeObituaries = { success: true, message: 'No past obituaries to soft-delete', hidden: 0 }
     } else {
-      const { error: deleteError } = await supabase
+      // Soft-delete: set is_approved = false (keeps record for dedup, hides from frontend)
+      const { error: updateError } = await supabase
         .from('celebrations_of_life')
-        .delete()
+        .update({ is_approved: false })
         .in('id', uniqueIds)
 
-      if (deleteError) {
-        console.error('Error deleting past obituaries:', deleteError)
-        results.purgeObituaries = { error: 'Failed to delete past obituaries', details: deleteError.message }
+      if (updateError) {
+        console.error('Error soft-deleting past obituaries:', updateError)
+        results.purgeObituaries = { error: 'Failed to soft-delete past obituaries', details: updateError.message }
       } else {
         results.purgeObituaries = {
           success: true,
-          deleted: uniqueIds.length,
-          purgedByServiceDate: (pastByService || []).length,
-          purgedByPassingDate: (pastByPassing || []).length,
-          purgedByCreatedAt: (pastByCreated || []).length,
+          hidden: uniqueIds.length,
+          hiddenByServiceDate: (pastByService || []).length,
+          hiddenByPassingDate: (pastByPassing || []).length,
+          hiddenByCreatedAt: (pastByCreated || []).length,
           names: uniqueNames,
         }
       }
