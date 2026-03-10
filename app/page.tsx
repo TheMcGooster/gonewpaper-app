@@ -413,13 +413,25 @@ export default function GoNewPaper() {
     // Load town from localStorage first (works for logged-out users too)
     loadUserTown()
 
-    // Check if user already has notifications enabled (persisted in DB)
-    const checkUserNotificationStatus = async (userId: string) => {
+    // Ensure public.users row exists (fallback if trigger missed it)
+    const ensureUserRow = async (authUser: SupabaseUser) => {
       const { data } = await supabase
         .from('users')
-        .select('onesignal_player_id')
-        .eq('id', userId)
+        .select('id, onesignal_player_id')
+        .eq('id', authUser.id)
         .single()
+      if (!data) {
+        // Row is missing — create it from auth metadata
+        console.log('Public user row missing, creating...')
+        await supabase.from('users').insert({
+          id: authUser.id,
+          email: authUser.email || 'unknown@unknown.com',
+          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || null,
+          user_type: 'resident',
+          town_id: Number(localStorage.getItem('selectedTownId')) || 1,
+          notification_preferences: { jobs: true, events: true, community: true, daily_digest: true },
+        })
+      }
       if (data?.onesignal_player_id) {
         setNotificationsEnabled(true)
       }
@@ -429,10 +441,10 @@ export default function GoNewPaper() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        ensureUserRow(session.user)
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
-        checkUserNotificationStatus(session.user.id)
       }
     })
 
@@ -440,12 +452,11 @@ export default function GoNewPaper() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        ensureUserRow(session.user)
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
-        checkUserNotificationStatus(session.user.id)
         // Auto-request notification permission for Google OAuth redirects and email confirmations
-        // Works on Android/Desktop Chrome without user gesture; iOS requires PWA + gesture
         requestNotificationPermission(session.user.id)
       } else {
         setUserInterests([])
