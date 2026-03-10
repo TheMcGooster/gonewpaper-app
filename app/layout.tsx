@@ -113,6 +113,8 @@ export default function RootLayout({
                   await OneSignal.init({
                     appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766'}",
                     allowLocalhostAsSecureOrigin: true,
+                    autoResubscribe: true,
+                    serviceWorkerParam: { scope: '/' },
                   });
                   console.log("OneSignal initialized successfully");
                 } catch (err) {

@@ -163,71 +163,73 @@ export default function GoNewPaper() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [dailyJokes, setDailyJokes] = useState<{ id: number; day_of_year: number; question: string; punchline: string; category: string }[]>([])
 
+  // iOS detection — web push only works in installed PWA on iOS (Safari 16.4+)
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isStandaloneMode = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  )
+  const isIOSNonPWA = isIOS && !isStandaloneMode
+  // Check if browser supports push notifications at all
+  const canSupportPush = typeof Notification !== 'undefined'
+
   // Track OneSignal notification status (SDK is initialized in layout.tsx)
   useEffect(() => {
     const checkNotificationStatus = () => {
       try {
         // FAST CHECK: If browser already granted permission, show green immediately
-        // while we wait for OneSignal SDK to fully load and confirm subscription.
-        // This prevents the button from flashing yellow on every page load for users
-        // who have already enabled notifications.
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        if (canSupportPush && Notification.permission === 'granted') {
           setNotificationsEnabled(true)
         }
 
         // Use OneSignalDeferred to safely access SDK after it's ready
         window.OneSignalDeferred = window.OneSignalDeferred || []
         window.OneSignalDeferred.push(async (OneSignalSDK: any) => {
-          // Check OneSignal subscription status (NOT just browser permission!)
-          // Browser permission and OneSignal subscription are DIFFERENT things.
-          // User must have a OneSignal subscription (player ID) for notifications to actually work.
           const oneSignalPermission = OneSignalSDK.Notifications.permission
           const hasSubscription = !!OneSignalSDK.User.PushSubscription.id
           console.log('OneSignal permission:', oneSignalPermission, 'Has subscription:', hasSubscription, 'Player ID:', OneSignalSDK.User.PushSubscription.id)
-          setNotificationsEnabled(oneSignalPermission && hasSubscription)
+          // If permission granted, show as enabled even if subscription is pending
+          // (autoResubscribe will create the subscription shortly)
+          setNotificationsEnabled(oneSignalPermission)
 
           // Listen for permission changes
           OneSignalSDK.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
             console.log('Notification permission changed:', newPermission)
-            const subId = OneSignalSDK.User.PushSubscription.id
-            setNotificationsEnabled(newPermission && !!subId)
-            if (newPermission && subId) {
-              showToast('Notifications enabled!')
+            setNotificationsEnabled(newPermission)
+            if (newPermission) {
+              showToast('🔔 Notifications enabled!')
             }
           })
 
-          // Listen for subscription changes (player ID created/changed)
-          // Also save the player ID to the database when it first becomes available
+          // Listen for subscription changes — save player ID + set town tag
           OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
             console.log('Subscription changed:', event.current.id, 'optedIn:', event.current.optedIn)
             if (event.current.id && event.current.optedIn) {
               setNotificationsEnabled(true)
-              // Save player ID to DB - get current user session
+              // Save player ID to DB
               const { data: { session } } = await supabase.auth.getSession()
               if (session?.user) {
-                const { error } = await supabase
+                await supabase
                   .from('users')
                   .update({ onesignal_player_id: event.current.id })
                   .eq('id', session.user.id)
-                if (!error) {
-                  console.log('Player ID saved from status listener:', event.current.id)
-                }
+                console.log('Player ID saved from status listener:', event.current.id)
               }
+              // Set town tag on new subscriptions so daily digest reaches them
+              const savedTownId = localStorage.getItem('selectedTownId') || '1'
+              OneSignalSDK.User.addTag('town_id', savedTownId)
+              console.log('Town tag set on new subscription:', savedTownId)
             }
           })
         })
       } catch (error) {
         console.error('OneSignal status check error:', error)
-        // Don't set notifications as enabled based on browser permission alone
-        // OneSignal subscription is required for actual notification delivery
       }
     }
     checkNotificationStatus()
   }, [])
 
-  // Save OneSignal subscription ID to Supabase
-  // Uses OneSignalDeferred to safely wait for SDK to be ready (loaded async in layout.tsx)
-  // Handles: immediate capture, delayed capture via polling, and subscription change events
+  // Save OneSignal subscription ID to Supabase + ensure town tag is set
   const saveOneSignalPlayerId = (userId: string) => {
     try {
       window.OneSignalDeferred = window.OneSignalDeferred || []
@@ -242,6 +244,9 @@ export default function GoNewPaper() {
               console.error('Supabase update error:', error)
             } else {
               console.log('OneSignal subscription ID saved:', playerId)
+              // Always ensure town tag is set when saving player ID
+              const savedTownId = localStorage.getItem('selectedTownId') || '1'
+              OneSignalSDK.User.addTag('town_id', savedTownId)
             }
           }
 
@@ -251,7 +256,6 @@ export default function GoNewPaper() {
             await saveId(playerId)
           } else {
             console.log('No subscription ID yet - will poll and listen for changes')
-            // Poll a few times in case SDK is still initializing the subscription
             let attempts = 0
             const pollInterval = setInterval(async () => {
               attempts++
@@ -259,14 +263,14 @@ export default function GoNewPaper() {
               if (id) {
                 clearInterval(pollInterval)
                 await saveId(id)
-              } else if (attempts >= 10) {
+              } else if (attempts >= 15) {
                 clearInterval(pollInterval)
-                console.log('OneSignal: no subscription ID after polling - user may not have granted permission yet')
+                console.log('OneSignal: no subscription ID after polling')
               }
             }, 2000)
           }
 
-          // Always listen for subscription changes (new subscription, token refresh, etc.)
+          // Listen for subscription changes
           OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
             const newPlayerId = event.current.id
             if (newPlayerId && event.current.optedIn) {
@@ -284,24 +288,37 @@ export default function GoNewPaper() {
   }
 
   // Auto-request notification permission (called after signup/login)
-  // Works on Android Chrome, Desktop Chrome, Safari 16.4+ (PWA only on iOS)
+  // On iOS, web push ONLY works in installed PWA (Add to Home Screen)
   const requestNotificationPermission = (userId?: string) => {
     try {
-      // Don't request if already granted
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') return
-      // Don't request if previously denied (browser remembers — user must manually unblock)
-      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return
+      // iOS non-PWA: web push is impossible — skip silently
+      if (isIOSNonPWA) return
+
+      // If already granted, just make sure player ID is saved (don't bail early!)
+      if (canSupportPush && Notification.permission === 'granted') {
+        setNotificationsEnabled(true)
+        const uid = userId || user?.id
+        if (uid) saveOneSignalPlayerId(uid)
+        return
+      }
+      // Don't request if previously denied (user must manually unblock in settings)
+      if (canSupportPush && Notification.permission === 'denied') return
 
       window.OneSignalDeferred = window.OneSignalDeferred || []
       window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
-        if (OneSignalSDK.Notifications.permission) return // already granted
+        if (OneSignalSDK.Notifications.permission) {
+          // Already granted in OneSignal — ensure player ID is saved
+          setNotificationsEnabled(true)
+          const uid = userId || user?.id
+          if (uid) saveOneSignalPlayerId(uid)
+          return
+        }
 
         await OneSignalSDK.Notifications.requestPermission()
 
         if (OneSignalSDK.Notifications.permission) {
           setNotificationsEnabled(true)
           showToast('🔔 Notifications enabled!')
-          // Save player ID immediately if we have a user
           const uid = userId || user?.id
           if (uid) saveOneSignalPlayerId(uid)
         }
@@ -910,15 +927,18 @@ const handleInterestToggle = async (eventId: number) => {
     if (insError) { showToast('Something went wrong. Please try again.'); return }
     setUserInterests(prev => [...prev, eventId])
 
-    // Also save OneSignal subscription ID (in case it wasn't captured on login)
+    // Save OneSignal subscription ID (in case it wasn't captured on login)
     saveOneSignalPlayerId(user.id)
 
-      // Show appropriate toast based on notification status
-      if (notificationsEnabled) {
-        showToast("You'll be reminded about this event!")
-      } else {
-        showToast('Interested! Enable notifications to get reminders')
-      }
+    // Auto-prompt for notifications if not enabled (this is a user gesture = click)
+    if (!notificationsEnabled && !isIOSNonPWA) {
+      requestNotificationPermission(user.id)
+      showToast("Marked as interested! Allow notifications to get reminders.")
+    } else if (notificationsEnabled) {
+      showToast("You'll be reminded about this event!")
+    } else {
+      showToast('Interested! Add to Phone first to get reminders.')
+    }
     }
   }
 
@@ -1181,29 +1201,44 @@ const handleInterestToggle = async (eventId: number) => {
           {(user && !notificationsEnabled || !isAppInstalled) && (
             <div className="flex gap-2 mb-3">
               {user && !notificationsEnabled && (
-                <button
-                  onClick={() => {
-                    try {
-                      window.OneSignalDeferred = window.OneSignalDeferred || []
-                      window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
-                        OneSignalSDK.Notifications.requestPermission().then(() => {
-                          const permission = OneSignalSDK.Notifications.permission
-                          if (permission) {
-                            setNotificationsEnabled(true)
-                            showToast('Notifications enabled!')
-                            if (user) saveOneSignalPlayerId(user.id)
-                          } else {
-                            showToast('Notifications blocked. Check browser settings.')
+                isIOSNonPWA ? (
+                  // iOS Safari: web push requires PWA — show install-first message
+                  <button
+                    onClick={() => setShowInstallHelp(true)}
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    Add to Phone for Notifications
+                  </button>
+                ) : (
+                  // Android / Desktop / iOS PWA: can request push permission
+                  <button
+                    onClick={() => {
+                      try {
+                        window.OneSignalDeferred = window.OneSignalDeferred || []
+                        window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
+                          try {
+                            await OneSignalSDK.Notifications.requestPermission()
+                            const permission = OneSignalSDK.Notifications.permission
+                            if (permission) {
+                              setNotificationsEnabled(true)
+                              showToast('🔔 Notifications enabled!')
+                              if (user) saveOneSignalPlayerId(user.id)
+                            } else {
+                              showToast('Notifications blocked. Check browser settings.')
+                            }
+                          } catch {
+                            showToast('Could not enable notifications. Try refreshing.')
                           }
-                        }).catch(() => showToast('Could not enable notifications'))
-                      })
-                    } catch { showToast('Could not request notification permission') }
-                  }}
-                  className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                  Enable Notifications
-                </button>
+                        })
+                      } catch { showToast('Could not request notification permission') }
+                    }}
+                    className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    Enable Notifications
+                  </button>
+                )
               )}
               {!isAppInstalled && (
                 <button
@@ -3011,7 +3046,7 @@ const handleInterestToggle = async (eventId: number) => {
                 {/* Notification Status */}
                 <div className={`w-full mt-2 py-2 px-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 ${notificationsEnabled ? 'bg-green-500/30' : 'bg-white/10'}`}>
                   <Bell className="w-4 h-4" />
-                  {notificationsEnabled ? 'Notifications enabled ✓' : 'Enable notifications in the header above'}
+                  {notificationsEnabled ? 'Notifications enabled ✓' : isIOSNonPWA ? 'Add to Phone Apps below for notifications' : 'Enable notifications in the header above'}
                 </div>
                 {/* Add to Phone Apps Button */}
                 {!isAppInstalled && (
