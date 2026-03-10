@@ -2215,7 +2215,7 @@ const handleInterestToggle = async (eventId: number) => {
           <span className="text-[#e8e6e1]">|</span>
           <a href="/terms" className="underline hover:text-gray-600 transition-colors">Terms of Service</a>
           <span className="text-[#e8e6e1]">|</span>
-          <span>&copy; 2026 Go New Paper</span>
+          <a href="/about" className="underline hover:text-gray-600 transition-colors">&copy; 2026 Go New Paper</a>
         </div>
       </main>
 

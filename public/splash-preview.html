@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go New Paper — Splash Screen Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark: #0e0e14;
+    --navy: #1a1a2e;
+    --red: #c0392b;
+    --green: #27ae60;
+    --cream: #f5ede0;
+    --gold: #f0a500;
+    --white: #ffffff;
+  }
+
+  body {
+    background: var(--dark);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 60px 20px 40px;
+    position: relative;
+  }
+
+  .header-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 64px);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: var(--white);
+  }
+
+  .header h1 span {
+    color: var(--red);
+  }
+
+  .header p {
+    margin-top: 12px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 500;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  /* Divider */
+  .divider {
+    width: 48px;
+    height: 2px;
+    background: var(--red);
+    margin: 20px auto 0;
+  }
+
+  /* Options grid */
+  .options {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px 40px 80px;
+    flex-wrap: wrap;
+  }
+
+  .option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    max-width: 220px;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: rise 0.6s ease forwards;
+  }
+
+  .option:nth-child(1) { animation-delay: 0.1s; }
+  .option:nth-child(2) { animation-delay: 0.25s; }
+  .option:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .option-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .badge-current { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+  .badge-option { background: rgba(192,57,43,0.25); color: #e87b6f; border: 1px solid rgba(192,57,43,0.4); }
+  .badge-recommended { background: rgba(39,174,96,0.2); color: #5cdb8f; border: 1px solid rgba(39,174,96,0.4); }
+
+  .option-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 15px;
+    color: var(--white);
+    text-align: center;
+    line-height: 1.3;
+    margin-top: 4px;
+  }
+
+  .option-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+
+  /* Phone shell */
+  .phone {
+    width: 180px;
+    height: 360px;
+    border-radius: 32px;
+    border: 6px solid rgba(255,255,255,0.12);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05),
+      0 30px 60px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .option:hover .phone {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 40px 80px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  /* Notch */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 8px;
+    background: rgba(0,0,0,0.8);
+    border-radius: 4px;
+    z-index: 10;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── OPTION 1: Current (beige box) ── */
+  .screen-current {
+    background: #2c3e50;
+  }
+
+  .logo-box-current {
+    width: 110px;
+    height: 110px;
+    background: #f5ede0;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  /* ── OPTION 2: Dark blended ── */
+  .screen-dark {
+    background: linear-gradient(160deg, #1a1a2e 0%, #0e1628 100%);
+  }
+
+  .logo-box-dark {
+    width: 110px;
+    height: 110px;
+    background: linear-gradient(160deg, #1e2a3a 0%, #141e2d 100%);
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  /* ── OPTION 3: No box, logo floats ── */
+  .screen-float {
+    background: radial-gradient(ellipse at 50% 45%, #1f2d40 0%, #0e0e14 70%);
+  }
+
+  /* ── SVG Logo (shared across all three) ── */
+  .gnp-logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .gnp-logo-float {
+    width: 100px;
+    height: 100px;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+  }
+
+  /* App name under logo on float option */
+  .app-name-float {
+    margin-top: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .app-tagline-float {
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* Loading dot */
+  .loading-dots {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+
+  .dot-red { background: rgba(192,57,43,0.6); }
+  .dot-gold { background: rgba(240,165,0,0.5); }
+
+  /* Separator */
+  .vs {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: rgba(255,255,255,0.1);
+    align-self: center;
+    margin-top: -40px;
+  }
+
+  /* Note section */
+  .note {
+    max-width: 700px;
+    margin: 0 auto 60px;
+    padding: 0 40px;
+    text-align: center;
+  }
+
+  .note-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.7;
+  }
+
+  .note-text strong {
+    color: rgba(255,255,255,0.6);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Go New Paper — Design Preview</div>
+  <h1>Splash Screen <span>Options</span></h1>
+  <p>Three approaches to fix the beige box. Hover each phone to compare.</p>
+  <div class="divider"></div>
+</div>
+
+<div class="options">
+
+  <!-- OPTION 1: Current -->
+  <div class="option">
+    <div>
+      <div class="badge badge-current">Current</div>
+      <div class="option-title">Beige Box</div>
+      <div class="option-desc">Icon has cream background that clashes with dark splash</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-screen screen-current">
+        <div class="logo-box-current">
+          <!-- GNP Logo SVG (cream bg version) -->
+          <svg class="gnp-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- papers background -->
+            <rect x="18" y="10" width="64" height="55" rx="3" fill="#e8d5b7" stroke="#cbb99a" stroke-width="1"/>
+            <line x1="24" y1="22" x2="76" y2="22" stroke="#b89d7a" stroke-width="1.5"/>
+            <line x1="24" y1="30" x2="76" y2="30" stroke="#b89d7a" stroke-width="1.5"/>
+            <line x1="24" y1="38" x2="60" y2="38" stroke="#b89d7a" stroke-width="1.5"/>
+            <!-- pocket -->
+            <path d="M10 58 Q10 92 50 96 Q90 92 90 58 Z" fill="#2c2c2c"/>
+            <path d="M10 58 Q10 92 50 96 Q90 92 90 58" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <!-- GO text -->
+            <text x="50" y="48" font-family="Arial Black" font-size="22" font-weight="900" fill="#27ae60" text-anchor="middle">GO</text>
+            <!-- NEW PAPER text in pocket -->
+            <text x="50" y="74" font-family="Arial Black" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">NEW</text>
+            <text x="50" y="88" font-family="Arial Black" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">PAPER</text>
+          </svg>
+        </div>
+        <div class="loading-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option-desc" style="font-size:11px;">❌ Boxy, clashes with dark bg</div>
+  </div>
+
+  <div class="vs">vs</div>
+
+  <!-- OPTION 2: Dark blended -->
+  <div class="option">
+    <div>
+      <div class="badge badge-option">Option A</div>
+      <div class="option-title">Dark Blend</div>
+      <div class="option-desc">Icon background matches the dark navy splash — seamless</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-screen screen-dark">
+        <div class="logo-box-dark">
+          <svg class="gnp-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- papers -->
+            <rect x="18" y="10" width="64" height="55" rx="3" fill="#253349" stroke="#2d4060" stroke-width="1"/>
+            <line x1="24" y1="22" x2="76" y2="22" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+            <line x1="24" y1="30" x2="76" y2="30" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+            <line x1="24" y1="38" x2="60" y2="38" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+            <!-- pocket dark -->
+            <path d="M10 58 Q10 92 50 96 Q90 92 90 58 Z" fill="#111827"/>
+            <path d="M10 58 Q10 92 50 96 Q90 92 90 58" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <!-- GO text -->
+            <text x="50" y="48" font-family="Arial Black" font-size="22" font-weight="900" fill="#27ae60" text-anchor="middle">GO</text>
+            <!-- NEW PAPER in pocket -->
+            <text x="50" y="74" font-family="Arial Black" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">NEW</text>
+            <text x="50" y="88" font-family="Arial Black" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">PAPER</text>
+          </svg>
+        </div>
+        <div class="loading-dots">
+          <div class="dot"></div>
+          <div class="dot dot-red"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option-desc" style="font-size:11px;">✓ Clean, cohesive, still has shape</div>
+  </div>
+
+  <div class="vs">vs</div>
+
+  <!-- OPTION 3: Floating logo -->
+  <div class="option">
+    <div>
+      <div class="badge badge-recommended">⭐ Option B</div>
+      <div class="option-title">Logo Floats Free</div>
+      <div class="option-desc">No box at all — logo artwork with drop shadow on dark bg</div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-screen screen-float">
+        <!-- Real logo with white bg stripped via canvas -->
+        <canvas id="logoCanvas" width="120" height="120" style="filter:drop-shadow(0 6px 20px rgba(0,0,0,0.6));"></canvas>
+        <div class="app-name-float">GO NEW PAPER</div>
+        <div class="app-tagline-float">Everything Local</div>
+        <div class="loading-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-gold"></div>
+          <div class="dot dot-red"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option-desc" style="font-size:11px;">✓ Modern, premium, eye-catching</div>
+  </div>
+
+</div>
+
+<div class="note">
+  <div class="note-text">
+    <strong>How it works:</strong> Option A requires re-exporting the icon PNG with a dark background matching <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:11px;">#1a1a2e</code>.
+    Option B requires a transparent-background PNG so the logo artwork floats freely.
+    Both need updated <strong>icon-192.png</strong> and <strong>icon-512.png</strong> files.
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('logoCanvas')
+  const ctx = canvas.getContext('2d')
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = '/icon-512.png'
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, 120, 120)
+    const imageData = ctx.getImageData(0, 0, 120, 120)
+    const d = imageData.data
+    for (let i = 0; i < d.length; i += 4) {
+      // Make near-white pixels transparent
+      if (d[i] > 230 && d[i+1] > 230 && d[i+2] > 230) {
+        d[i+3] = 0
+      }
+    }
+    ctx.putImageData(imageData, 0, 0)
+  }
+</script>
+</body>
+</html>
