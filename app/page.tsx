@@ -67,6 +67,7 @@ export default function GoNewPaper() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [showInstallHelp, setShowInstallHelp] = useState(false)
+  const [showTownPickerModal, setShowTownPickerModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [selectedTownId, setSelectedTownId] = useState(1) // Default to Chariton
   const [selectedTownName, setSelectedTownName] = useState('Chariton')
@@ -413,15 +414,15 @@ export default function GoNewPaper() {
     // Load town from localStorage first (works for logged-out users too)
     loadUserTown()
 
-    // Ensure public.users row exists (fallback if trigger missed it)
+    // Ensure public.users row exists + detect first login → show town picker
     const ensureUserRow = async (authUser: SupabaseUser) => {
       const { data } = await supabase
         .from('users')
-        .select('id, onesignal_player_id')
+        .select('id, onesignal_player_id, last_login')
         .eq('id', authUser.id)
         .single()
       if (!data) {
-        // Row is missing — create it from auth metadata
+        // Row is missing — create it from auth metadata (brand new user)
         console.log('Public user row missing, creating...')
         await supabase.from('users').insert({
           id: authUser.id,
@@ -431,10 +432,20 @@ export default function GoNewPaper() {
           town_id: Number(localStorage.getItem('selectedTownId')) || 1,
           notification_preferences: { jobs: true, events: true, community: true, daily_digest: true },
         })
+        // First-ever login — show town picker
+        setShowTownPickerModal(true)
+      } else if (!data.last_login) {
+        // Existing user but never had last_login set — first tracked login
+        setShowTownPickerModal(true)
       }
       if (data?.onesignal_player_id) {
         setNotificationsEnabled(true)
       }
+      // Update last_login timestamp
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', authUser.id)
     }
 
     // Get current session
@@ -3314,6 +3325,53 @@ const handleInterestToggle = async (eventId: number) => {
             <button onClick={() => setShowInstallHelp(false)} className="w-full mt-5 bg-gray-900 text-white py-3.5 rounded-2xl font-black text-sm tracking-wide">
               Got it!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* First-Login Town Picker Modal */}
+      {showTownPickerModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-[20px] overflow-hidden" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.25)' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-br from-[#1a1a2e] to-[#2d2d4e] px-5 py-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-2">
+                <div className="bg-white text-green-600 px-2 py-0.5 rounded-md font-display text-xs font-black">GO</div>
+                <span className="font-display text-base tracking-tight text-white">NEW PAPER</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight font-display text-white mb-0.5">Welcome!</h2>
+              <p className="text-white/60 text-[11px] font-medium">Pick your town to see local events, jobs & news</p>
+            </div>
+
+            {/* Town Options */}
+            <div className="p-4 space-y-2.5">
+              {Object.entries(townThemes).map(([id, t]) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    handleTownChange(Number(id), t.name)
+                    setShowTownPickerModal(false)
+                    showToast(`Welcome to ${t.name}!`)
+                  }}
+                  className="w-full p-3.5 rounded-2xl text-left transition-all border-2 border-[#e8e6e1] hover:border-gray-300 active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black font-display" style={{ backgroundColor: t.primaryColor }}>
+                      {t.letter}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-black text-[15px] tracking-tight">{t.name}</p>
+                      <p className="text-xs text-[#8a8778] font-medium">{t.mascot} {t.selectorEmoji}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-300" />
+                  </div>
+                </button>
+              ))}
+
+              <p className="text-center text-[10px] text-[#8a8778] font-medium pt-0.5">
+                You can change this anytime in the menu
+              </p>
+            </div>
           </div>
         </div>
       )}
