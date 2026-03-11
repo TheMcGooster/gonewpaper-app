@@ -231,11 +231,24 @@ export default function GoNewPaper() {
   }, [])
 
   // Save OneSignal subscription ID to Supabase + ensure town tag is set
+  // Also calls OneSignal.login(userId) to link ALL devices to one external_id
   const saveOneSignalPlayerId = (userId: string) => {
     try {
       window.OneSignalDeferred = window.OneSignalDeferred || []
       window.OneSignalDeferred.push(async (OneSignalSDK: typeof OneSignal) => {
         try {
+          // Login with external_id so ALL of this user's devices are linked
+          // This allows push notifications to reach phone + computer simultaneously
+          try {
+            await OneSignalSDK.login(userId)
+            console.log('OneSignal.login() called with userId:', userId)
+          } catch (loginErr: any) {
+            // "already logged in" is fine — ignore it
+            if (!loginErr?.message?.includes('already')) {
+              console.error('OneSignal.login error:', loginErr)
+            }
+          }
+
           const saveId = async (playerId: string) => {
             const { error } = await supabase
               .from('users')

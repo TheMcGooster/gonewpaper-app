@@ -6,10 +6,51 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737c-42e6-bd9d-fc0931d95766'
 const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY!
 
-// Morning event reminder: sends each user a personalized push listing the events
-// they marked "I'm Interested" in for today. Runs once daily at 11 UTC (~5-6 AM Central).
+// Parse event time string (e.g. "16:00:00", "4:00 PM", "16:00") into hours and minutes
+function parseEventTime(timeStr: string): { hours: number; minutes: number } | null {
+  if (!timeStr) return null
+
+  // Try 24-hour format first: "16:00:00" or "16:00"
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/)
+  if (match24) {
+    const h = parseInt(match24[1], 10)
+    const m = parseInt(match24[2], 10)
+    // Check if it has AM/PM suffix (12-hour format like "4:00 PM")
+    const ampmMatch = timeStr.match(/\s*(AM|PM)\s*$/i)
+    if (ampmMatch) {
+      const isPM = ampmMatch[1].toUpperCase() === 'PM'
+      let hours = h
+      if (isPM && h !== 12) hours += 12
+      if (!isPM && h === 12) hours = 0
+      return { hours, minutes: m }
+    }
+    // Pure 24-hour format
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      return { hours: h, minutes: m }
+    }
+  }
+  return null
+}
+
+// Get current time in Central Time as hours and minutes
+function getCentralTimeNow(): { hours: number; minutes: number; dateStr: string } {
+  const now = new Date()
+  // Get Central Time components
+  const centralStr = now.toLocaleString('en-US', { timeZone: 'America/Chicago' })
+  const centralDate = new Date(centralStr)
+  const dateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+  return {
+    hours: centralDate.getHours(),
+    minutes: centralDate.getMinutes(),
+    dateStr,
+  }
+}
+
+// Event reminder: sends each user a push 15-45 min before their interested events.
+// Called every 30 min by ActivePieces (or Vercel Cron as backup).
+// Uses OneSignal external_id (via login) to reach ALL devices per user.
 export async function GET(request: Request) {
-  // Verify this is called by Vercel Cron
+  // Verify this is called by Vercel Cron or ActivePieces
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,129 +59,139 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get today's date in Central Time (en-CA locale gives YYYY-MM-DD format)
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+    const { hours: nowHours, minutes: nowMinutes, dateStr: todayStr } = getCentralTimeNow()
+    const nowTotalMinutes = nowHours * 60 + nowMinutes
 
-    // Use a raw SQL query to avoid PostgREST FK constraint issues.
-    // This joins user_interests, events, and users directly.
-    const { data: rows, error } = await supabase.rpc('get_daily_event_reminders', {
-      target_date: todayStr,
-    })
+    console.log(`Event reminders running at ${nowHours}:${String(nowMinutes).padStart(2, '0')} Central (${todayStr})`)
 
-    // If the RPC function doesn't exist yet, fall back to separate queries
-    let interests = rows
-    if (error) {
-      console.log('RPC not available, using fallback queries:', error.message)
+    // Fetch all today's events that users have marked interest in
+    const { data: interestRows, error: intError } = await supabase
+      .from('user_interests')
+      .select('user_id, event_id')
 
-      // Fallback: query user_interests, then fetch related data separately
-      const { data: interestRows, error: intError } = await supabase
-        .from('user_interests')
-        .select('user_id, event_id')
-
-      if (intError || !interestRows || interestRows.length === 0) {
-        return NextResponse.json({
-          success: true,
-          message: 'No user interests found',
-          sent: 0,
-          debug: intError?.message,
-        })
-      }
-
-      // Get today's events
-      const eventIds = Array.from(new Set(interestRows.map(r => r.event_id)))
-      const { data: todayEvents } = await supabase
-        .from('events')
-        .select('id, title, date, time, location')
-        .eq('date', todayStr)
-        .in('id', eventIds)
-
-      if (!todayEvents || todayEvents.length === 0) {
-        return NextResponse.json({
-          success: true,
-          message: 'No interested events happening today',
-          sent: 0,
-          date: todayStr,
-        })
-      }
-
-      const todayEventIds = new Set(todayEvents.map(e => e.id))
-      const relevantInterests = interestRows.filter(r => todayEventIds.has(r.event_id))
-
-      // Get users with player IDs
-      const userIds = Array.from(new Set(relevantInterests.map(r => r.user_id)))
-      const { data: usersWithPush } = await supabase
-        .from('users')
-        .select('id, onesignal_player_id')
-        .in('id', userIds)
-        .not('onesignal_player_id', 'is', null)
-
-      if (!usersWithPush || usersWithPush.length === 0) {
-        return NextResponse.json({
-          success: true,
-          message: 'No interested users have push notifications enabled',
-          sent: 0,
-          date: todayStr,
-          interestedUsers: userIds.length,
-        })
-      }
-
-      // Check which reminders have already been sent
-      const { data: alreadySent } = await supabase
-        .from('event_reminders_sent')
-        .select('user_id, event_id')
-        .in('user_id', userIds)
-        .in('event_id', Array.from(todayEventIds))
-
-      const sentSet = new Set((alreadySent || []).map(r => `${r.user_id}:${r.event_id}`))
-
-      // Build the combined result
-      const userMap = new Map(usersWithPush.map(u => [u.id, u.onesignal_player_id]))
-      const eventMap = new Map(todayEvents.map(e => [e.id, e]))
-
-      interests = relevantInterests
-        .filter(r => userMap.has(r.user_id) && !sentSet.has(`${r.user_id}:${r.event_id}`))
-        .map(r => ({
-          user_id: r.user_id,
-          onesignal_player_id: userMap.get(r.user_id),
-          event_id: r.event_id,
-          event_title: eventMap.get(r.event_id)?.title,
-          event_time: eventMap.get(r.event_id)?.time,
-          event_location: eventMap.get(r.event_id)?.location,
-        }))
-    }
-
-    if (!interests || interests.length === 0) {
+    if (intError || !interestRows || interestRows.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No reminders to send (no interested users with push for today\'s events, or already sent)',
+        message: 'No user interests found',
         sent: 0,
-        date: todayStr,
+        debug: intError?.message,
       })
     }
 
-    // Group events by user
-    const userEvents: Record<string, { playerId: string; events: { id: number; title: string; time: string; location: string }[] }> = {}
+    // Get today's events
+    const eventIds = Array.from(new Set(interestRows.map(r => r.event_id)))
+    const { data: todayEvents } = await supabase
+      .from('events')
+      .select('id, title, date, time, location')
+      .eq('date', todayStr)
+      .in('id', eventIds)
 
-    for (const row of interests) {
-      const userId = row.user_id
-      const playerId = row.onesignal_player_id
-      if (!playerId) continue
+    if (!todayEvents || todayEvents.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No interested events happening today',
+        sent: 0,
+        date: todayStr,
+        currentTime: `${nowHours}:${String(nowMinutes).padStart(2, '0')} Central`,
+      })
+    }
 
-      if (!userEvents[userId]) {
-        userEvents[userId] = { playerId, events: [] }
+    // Filter events to ONLY those starting within the next 15-45 minute window
+    // This means: event time is 15 to 45 minutes from now
+    const upcomingEvents = todayEvents.filter(event => {
+      const parsed = parseEventTime(event.time)
+      if (!parsed) {
+        // If event has no parseable time, skip it (don't send premature reminder)
+        console.log(`Skipping event "${event.title}" — unparseable time: ${event.time}`)
+        return false
       }
-      userEvents[userId].events.push({
-        id: row.event_id,
-        title: row.event_title,
-        time: row.event_time,
-        location: row.event_location,
+      const eventTotalMinutes = parsed.hours * 60 + parsed.minutes
+      const minutesUntilEvent = eventTotalMinutes - nowTotalMinutes
+
+      console.log(`Event "${event.title}" at ${event.time} → ${minutesUntilEvent} min from now`)
+
+      // Send reminder if event is 15 to 45 minutes away
+      return minutesUntilEvent >= 15 && minutesUntilEvent <= 45
+    })
+
+    if (upcomingEvents.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No events starting in the next 15-45 minutes',
+        sent: 0,
+        date: todayStr,
+        currentTime: `${nowHours}:${String(nowMinutes).padStart(2, '0')} Central`,
+        todayEventCount: todayEvents.length,
+        todayEvents: todayEvents.map(e => ({ title: e.title, time: e.time })),
+      })
+    }
+
+    const upcomingEventIds = new Set(upcomingEvents.map(e => e.id))
+    const relevantInterests = interestRows.filter(r => upcomingEventIds.has(r.event_id))
+
+    // Get users (we target by external_id now, but still need to verify they have push enabled)
+    const userIds = Array.from(new Set(relevantInterests.map(r => r.user_id)))
+    const { data: usersWithPush } = await supabase
+      .from('users')
+      .select('id, onesignal_player_id')
+      .in('id', userIds)
+      .not('onesignal_player_id', 'is', null)
+
+    if (!usersWithPush || usersWithPush.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No interested users have push notifications enabled',
+        sent: 0,
+        date: todayStr,
+        interestedUsers: userIds.length,
+      })
+    }
+
+    // Check which reminders have already been sent (dedup)
+    const { data: alreadySent } = await supabase
+      .from('event_reminders_sent')
+      .select('user_id, event_id')
+      .in('user_id', userIds)
+      .in('event_id', Array.from(upcomingEventIds))
+
+    const sentSet = new Set((alreadySent || []).map(r => `${r.user_id}:${r.event_id}`))
+
+    // Build per-user event lists
+    const userSet = new Set(usersWithPush.map(u => u.id))
+    const eventMap = new Map(upcomingEvents.map(e => [e.id, e]))
+
+    const userEvents: Record<string, { events: { id: number; title: string; time: string; location: string }[] }> = {}
+
+    for (const r of relevantInterests) {
+      if (!userSet.has(r.user_id)) continue
+      if (sentSet.has(`${r.user_id}:${r.event_id}`)) continue
+      const event = eventMap.get(r.event_id)
+      if (!event) continue
+
+      if (!userEvents[r.user_id]) {
+        userEvents[r.user_id] = { events: [] }
+      }
+      userEvents[r.user_id].events.push({
+        id: event.id,
+        title: event.title,
+        time: event.time,
+        location: event.location,
+      })
+    }
+
+    if (Object.keys(userEvents).length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'All reminders already sent for upcoming events',
+        sent: 0,
+        date: todayStr,
       })
     }
 
     let sentCount = 0
     const errors: string[] = []
 
-    // Send one personalized push per user
+    // Send one personalized push per user — target ALL devices via external_id
     for (const [userId, data] of Object.entries(userEvents)) {
       try {
         const eventCount = data.events.length
@@ -148,12 +199,16 @@ export async function GET(request: Request) {
 
         if (eventCount === 1) {
           const e = data.events[0]
-          message = `Reminder: ${e.title} today at ${e.time || 'TBD'}${e.location ? ` - ${e.location}` : ''}`
+          // Format time for display
+          const displayTime = e.time ? formatTime(e.time) : 'soon'
+          message = `Starting soon: ${e.title} at ${displayTime}${e.location ? ` — ${e.location}` : ''}`
         } else {
           const preview = data.events.slice(0, 3).map(e => e.title).join(', ')
-          message = `You have ${eventCount} events today: ${preview}${eventCount > 3 ? ` +${eventCount - 3} more` : ''}`
+          message = `${eventCount} events starting soon: ${preview}${eventCount > 3 ? ` +${eventCount - 3} more` : ''}`
         }
 
+        // Use include_aliases with external_id to reach ALL of the user's devices
+        // This works because page.tsx now calls OneSignal.login(userId) linking devices
         const response = await fetch('https://api.onesignal.com/notifications', {
           method: 'POST',
           headers: {
@@ -163,8 +218,8 @@ export async function GET(request: Request) {
           body: JSON.stringify({
             app_id: oneSignalAppId,
             target_channel: 'push',
-            include_subscription_ids: [data.playerId],
-            headings: { en: 'Your Events Today' },
+            include_aliases: { external_id: [userId] },
+            headings: { en: 'Event Starting Soon!' },
             contents: { en: message },
             url: 'https://www.gonewpaper.com',
           }),
@@ -173,7 +228,7 @@ export async function GET(request: Request) {
         const result = await response.json()
 
         if (response.ok) {
-          // Mark all these events as reminded for this user
+          // Mark these events as reminded for this user (dedup)
           for (const event of data.events) {
             await supabase
               .from('event_reminders_sent')
@@ -198,15 +253,17 @@ export async function GET(request: Request) {
     try {
       await supabase.from('notifications_log').insert({
         notification_type: 'event_reminder',
-        title: 'Daily Event Reminders',
+        title: 'Event Reminders (30 min before)',
         sent_at: new Date().toISOString(),
         sent_via: 'onesignal',
         town_id: 1,
         recipients_count: sentCount,
         metadata: {
           date: todayStr,
+          currentTime: `${nowHours}:${String(nowMinutes).padStart(2, '0')} Central`,
           sent: sentCount,
           totalUsers: Object.keys(userEvents).length,
+          upcomingEvents: upcomingEvents.map(e => ({ title: e.title, time: e.time })),
           errors: errors.length > 0 ? errors : undefined,
         },
       })
@@ -219,10 +276,26 @@ export async function GET(request: Request) {
       sent: sentCount,
       totalUsers: Object.keys(userEvents).length,
       date: todayStr,
+      currentTime: `${nowHours}:${String(nowMinutes).padStart(2, '0')} Central`,
+      upcomingEvents: upcomingEvents.map(e => ({ title: e.title, time: e.time })),
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
     console.error('Event reminders cron error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// Format time from "16:00:00" to "4:00 PM"
+function formatTime(timeStr: string): string {
+  try {
+    if (!timeStr) return ''
+    const [hours24, minutes] = timeStr.split(':')
+    const hours = parseInt(hours24, 10)
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const hour12 = hours % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
+  } catch {
+    return timeStr
   }
 }
