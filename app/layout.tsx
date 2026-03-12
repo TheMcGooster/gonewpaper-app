@@ -55,6 +55,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://auth.gonewpaper.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#2c3e50" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="google-site-verification" content="uC4FQ-KE1lYRbTl4P98TkxHhnH4ccUf88ytmj4TbPZI" />

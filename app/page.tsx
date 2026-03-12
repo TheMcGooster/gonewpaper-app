@@ -1,8 +1,8 @@
 'use client'
-// Go New Paper v2.0.0 - 10 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates
-// Last deploy: Feb 8 2025
-import React, { useState, useEffect } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
+// Go New Paper v3.0.0 - 11 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates, Explore
+// Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
@@ -43,6 +43,60 @@ const formatEventTime = (timeStr: string) => {
   }
 }
 
+// Explore tab — Chariton landmarks, parks, trails, lakes
+type ExploreLocation = {
+  id: number
+  name: string
+  lat: number
+  lng: number
+  category: 'park' | 'lake' | 'trail' | 'recreation' | 'state_park'
+  emoji: string
+  address: string
+  summary: string
+  image?: string
+}
+
+const EXPLORE_LOCATIONS: ExploreLocation[] = [
+  // State Parks
+  { id: 1, name: 'Red Haw State Park', lat: 40.9983, lng: -93.2759, category: 'state_park', emoji: '🏞️', address: '24550 US-34, Chariton, IA 50049', summary: '420-acre state park featuring a 72-acre lake, camping, fishing, hiking trails, and beautiful fall foliage. A true gem of Lucas County.', image: '/explore/red-haw.jpg' },
+  // Lakes
+  { id: 2, name: 'Lake Ellis', lat: 41.0079, lng: -93.2642, category: 'lake', emoji: '🎣', address: 'East of Chariton, Lucas County', summary: 'Scenic lake offering fishing, boating, and peaceful waterfront views. A popular spot for bass and catfish.', image: '/explore/lake-ellis.jpg' },
+  { id: 3, name: 'Lake Morris', lat: 41.0082, lng: -93.2444, category: 'lake', emoji: '🎣', address: 'East of Chariton, Lucas County', summary: 'Quiet lake nestled in the rolling hills east of Chariton. Great for kayaking, fishing, and enjoying nature.', image: '/explore/lake-morris.jpg' },
+  // Trails
+  { id: 4, name: 'Cinder Path Trail', lat: 41.0139, lng: -93.3253, category: 'trail', emoji: '🚴', address: 'Chariton to Derby, IA', summary: 'Converted rail-trail perfect for walking, jogging, and biking. Stretches south from Chariton through scenic countryside.', image: '/explore/cinder-path.jpg' },
+  // Recreation
+  { id: 5, name: 'Lakeview Country Club', lat: 41.0270, lng: -93.3400, category: 'recreation', emoji: '⛳', address: 'West of Chariton, IA', summary: '9-hole golf course with rolling terrain and beautiful views. A local favorite for golfers of all skill levels.', image: '/explore/lakeview-cc.jpg' },
+  { id: 6, name: 'Lucas County Fairgrounds', lat: 41.0155, lng: -93.2985, category: 'recreation', emoji: '🎪', address: 'Chariton, IA 50049', summary: 'Home of the Lucas County Fair and year-round community events. Livestock shows, 4-H exhibits, and family fun.', image: '/explore/fairgrounds.jpg' },
+  { id: 7, name: 'Chariton Disc Golf Course', lat: 41.0290, lng: -93.3263, category: 'recreation', emoji: '🥏', address: 'Curtis Avenue, Chariton, IA 50049', summary: 'Free disc golf course with well-maintained baskets and varied terrain. Fun for beginners and experienced players alike.', image: '/explore/disc-golf.jpg' },
+  // City Parks
+  { id: 8, name: 'North Park', lat: 41.0248, lng: -93.3136, category: 'park', emoji: '🌳', address: 'North Chariton, IA', summary: 'Spacious park on the north side of town with open green space, playground equipment, and picnic areas.' },
+  { id: 9, name: 'Yocom Park', lat: 41.0159, lng: -93.3027, category: 'park', emoji: '🌳', address: 'Downtown Chariton, IA', summary: 'Central community park near downtown featuring playground, shelter, and gathering space for local events.' },
+  { id: 10, name: 'Eikenberry Park', lat: 41.0179, lng: -93.3122, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Neighborhood park with mature trees, walking paths, and a great spot for family picnics.' },
+  { id: 11, name: "Veteran's Memorial Park", lat: 41.0136, lng: -93.3088, category: 'park', emoji: '🎖️', address: 'Downtown Chariton, IA', summary: 'Dedicated to honoring our veterans. Features memorials, flags, and a peaceful place for reflection.' },
+  { id: 12, name: 'Brook Park', lat: 41.0111, lng: -93.2979, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Charming park along a creek with natural scenery, walking areas, and a quiet retreat.' },
+  { id: 13, name: 'Railroad Park', lat: 41.0107, lng: -93.3080, category: 'park', emoji: '🚂', address: 'Chariton, IA', summary: 'Historic park near the railroad with open space and a nod to Chariton\'s railway heritage.' },
+  { id: 14, name: 'Franklin Park', lat: 41.0175, lng: -93.3172, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Quiet neighborhood park with shade trees and a relaxing atmosphere.' },
+  { id: 15, name: 'Constitution Park', lat: 41.0153, lng: -93.3056, category: 'park', emoji: '🏛️', address: 'Chariton, IA', summary: 'Park celebrating our nation\'s founding principles, centrally located near the courthouse.' },
+  { id: 16, name: 'North Ridge Park', lat: 41.0101, lng: -93.3099, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Elevated park with nice views and green space for recreation and relaxation.' },
+  { id: 17, name: "Johnson's Machine Works Park", lat: 41.0170, lng: -93.3095, category: 'park', emoji: '⚙️', address: 'Chariton, IA', summary: 'Small park preserving local industrial heritage with a unique community character.' },
+]
+
+const EXPLORE_CATEGORY_COLORS: Record<string, string> = {
+  state_park: '#16a34a',  // green-600
+  lake: '#2563eb',        // blue-600
+  trail: '#ea580c',       // orange-600
+  recreation: '#9333ea',  // purple-600
+  park: '#059669',        // emerald-600
+}
+
+const EXPLORE_CATEGORY_LABELS: Record<string, string> = {
+  state_park: 'State Park',
+  lake: 'Lake',
+  trail: 'Trail',
+  recreation: 'Recreation',
+  park: 'City Park',
+}
+
 export default function GoNewPaper() {
   const [activeTab, setActiveTabRaw] = useState('events')
   const setActiveTab = (tab: string) => {
@@ -62,6 +116,7 @@ export default function GoNewPaper() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [userInterests, setUserInterests] = useState<number[]>([])
+  const [eventInterestCounts, setEventInterestCounts] = useState<Record<number, number>>({})
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [wantNotifications, setWantNotifications] = useState(true)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
@@ -112,7 +167,7 @@ export default function GoNewPaper() {
 
   // Post Event form state
   const [showPostEventModal, setShowPostEventModal] = useState(false)
-  const [postEventForm, setPostEventForm] = useState({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free' })
+  const [postEventForm, setPostEventForm] = useState({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free', sponsor_name: '', sponsor_logo_url: '' })
   const [postEventSuccess, setPostEventSuccess] = useState(false)
   const [postEventLoading, setPostEventLoading] = useState(false)
 
@@ -122,6 +177,18 @@ export default function GoNewPaper() {
   const [postJobSuccess, setPostJobSuccess] = useState(false)
   const [postJobLoading, setPostJobLoading] = useState(false)
   const [postJobError, setPostJobError] = useState('')
+
+  // Community Dashboard state
+  const [showDashboard, setShowDashboard] = useState(false)
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+
+  // Explore tab state
+  const [selectedExploreLocation, setSelectedExploreLocation] = useState<ExploreLocation | null>(null)
+  const [exploreFilter, setExploreFilter] = useState<string>('all')
+  const exploreMapRef = useRef<HTMLDivElement>(null)
+  const leafletMapRef = useRef<any>(null)
+  const leafletMarkersRef = useRef<any[]>([])
 
   // Pending events (admin approval queue)
   const [pendingEvents, setPendingEvents] = useState<Event[]>([])
@@ -553,6 +620,18 @@ export default function GoNewPaper() {
   }
 
   // Handle logout
+  const fetchDashboard = async () => {
+    setDashboardLoading(true)
+    try {
+      const res = await fetch('/api/dashboard')
+      const data = await res.json()
+      if (data.dashboard) setDashboardData(data.dashboard)
+    } catch (err) {
+      console.error('Dashboard fetch error:', err)
+    }
+    setDashboardLoading(false)
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setShowMenu(false)
@@ -806,7 +885,7 @@ export default function GoNewPaper() {
     if (!user) return
     setPostEventLoading(true)
     try {
-      const { error } = await supabase.from('events').insert({
+      const insertData: any = {
         title: postEventForm.title.trim(),
         date: postEventForm.date,
         time: postEventForm.time || 'TBD',
@@ -818,7 +897,11 @@ export default function GoNewPaper() {
         source: 'Community Submission',
         source_type: 'user_submitted',
         town_id: selectedTownId,
-      })
+      }
+      if (postEventForm.sponsor_name.trim()) insertData.sponsor_name = postEventForm.sponsor_name.trim()
+      if (postEventForm.sponsor_logo_url.trim()) insertData.sponsor_logo_url = postEventForm.sponsor_logo_url.trim()
+      if (user?.id) insertData.submitted_by = user.id
+      const { error } = await supabase.from('events').insert(insertData)
       if (error) throw error
       setPostEventSuccess(true)
     } catch (err) {
@@ -952,6 +1035,7 @@ const handleInterestToggle = async (eventId: number) => {
 
     if (delError) { showToast('Something went wrong. Please try again.'); return }
     setUserInterests(prev => prev.filter(id => id !== eventId))
+    setEventInterestCounts(prev => ({ ...prev, [eventId]: Math.max((prev[eventId] || 1) - 1, 0) }))
     showToast('Removed from your interests')
   } else {
     // Add interest
@@ -961,6 +1045,7 @@ const handleInterestToggle = async (eventId: number) => {
 
     if (insError) { showToast('Something went wrong. Please try again.'); return }
     setUserInterests(prev => [...prev, eventId])
+    setEventInterestCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + 1 }))
 
     // Save OneSignal subscription ID (in case it wasn't captured on login)
     saveOneSignalPlayerId(user.id)
@@ -1019,7 +1104,19 @@ const handleInterestToggle = async (eventId: number) => {
           supabase.from('daily_jokes').select('id,day_of_year,question,punchline,category').in('day_of_year', recentDoys).eq('is_approved', true)
         ])
 
-        if (eventsRes.data) setEvents(eventsRes.data)
+        if (eventsRes.data) {
+          setEvents(eventsRes.data)
+          // Fetch interest counts for all events
+          if (eventsRes.data.length > 0) {
+            const eventIds = eventsRes.data.map((e: any) => e.id)
+            const { data: counts } = await supabase.rpc('get_event_interest_counts', { event_ids: eventIds })
+            if (counts) {
+              const countMap: Record<number, number> = {}
+              counts.forEach((c: any) => { countMap[c.event_id] = Number(c.interest_count) })
+              setEventInterestCounts(countMap)
+            }
+          }
+        }
         if (jobsRes.data) setJobs(jobsRes.data)
         if (businessesRes.data) setBusinesses(businessesRes.data)
         if (housingRes.data) setHousing(housingRes.data)
@@ -1150,6 +1247,91 @@ const handleInterestToggle = async (eventId: number) => {
   const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
   const displayClubs = clubs.length > 0 ? clubs : sampleClubs
 
+  // Explore map — initialize Leaflet when tab is active
+  const filteredExploreLocations = exploreFilter === 'all'
+    ? EXPLORE_LOCATIONS
+    : EXPLORE_LOCATIONS.filter(loc => loc.category === exploreFilter)
+
+  useEffect(() => {
+    if (activeTab !== 'explore') return
+    let mapInstance: any = null
+
+    const initMap = async () => {
+      await new Promise(r => setTimeout(r, 50)) // Wait for DOM
+      const container = document.getElementById('explore-map')
+      if (!container || leafletMapRef.current) return
+
+      const L = (await import('leaflet')).default
+
+      mapInstance = L.map(container, {
+        center: [41.012, -93.300],
+        zoom: 13,
+        zoomControl: false,
+        attributionControl: false,
+      })
+
+      L.control.zoom({ position: 'topright' }).addTo(mapInstance)
+      L.control.attribution({ position: 'bottomright', prefix: false }).addTo(mapInstance)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18,
+      }).addTo(mapInstance)
+
+      // Add markers for all locations
+      const markers: any[] = []
+      EXPLORE_LOCATIONS.forEach(loc => {
+        const color = EXPLORE_CATEGORY_COLORS[loc.category] || '#6b7280'
+        const marker = L.marker([loc.lat, loc.lng], {
+          icon: L.divIcon({
+            className: 'explore-marker',
+            html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">${loc.emoji}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+          })
+        }).addTo(mapInstance)
+
+        marker.on('click', () => {
+          setSelectedExploreLocation(loc)
+          mapInstance.flyTo([loc.lat, loc.lng], 15, { duration: 0.5 })
+        })
+
+        ;(marker as any)._exploreCategory = loc.category
+        markers.push(marker)
+      })
+
+      leafletMapRef.current = mapInstance
+      leafletMarkersRef.current = markers
+
+      // Fix map size after render
+      setTimeout(() => mapInstance.invalidateSize(), 100)
+    }
+
+    initMap()
+
+    return () => {
+      if (mapInstance) {
+        mapInstance.remove()
+        leafletMapRef.current = null
+        leafletMarkersRef.current = []
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
+
+  // Update marker visibility when filter changes
+  useEffect(() => {
+    if (!leafletMapRef.current || leafletMarkersRef.current.length === 0) return
+    leafletMarkersRef.current.forEach((marker: any) => {
+      const cat = marker._exploreCategory
+      if (exploreFilter === 'all' || cat === exploreFilter) {
+        marker.setOpacity(1)
+      } else {
+        marker.setOpacity(0.15)
+      }
+    })
+  }, [exploreFilter])
+
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
     { id: 'affiliates', icon: TrendingUp, label: 'DISCOUNTS/DEALS' },
@@ -1160,7 +1342,8 @@ const handleInterestToggle = async (eventId: number) => {
     { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
     { id: 'comics', icon: Laugh, label: 'DAILY LAUGHS' },
-    { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' }
+    { id: 'celebrations', icon: Flower2, label: 'IN MEMORY' },
+    { id: 'explore', icon: Compass, label: 'EXPLORE' }
   ]
 
   return (
@@ -1417,7 +1600,7 @@ const handleInterestToggle = async (eventId: number) => {
                       if (!user) { setShowAuthModal(true); return }
                       setShowPostEventModal(true)
                       setPostEventSuccess(false)
-                      setPostEventForm({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free' })
+                      setPostEventForm({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free', sponsor_name: '', sponsor_logo_url: '' })
                     }}
                   >
                     <Plus className="w-3.5 h-3.5" />Post
@@ -1449,24 +1632,40 @@ const handleInterestToggle = async (eventId: number) => {
                       <MapPin className={`w-3.5 h-3.5 ${theme.accentTextClass}`} />
                       <span>{event.location || 'TBD'}</span>
                     </div>
-                    <button
-                      onClick={() => handleInterestToggle(event.id)}
-                      className={`btn-interest w-full py-3 rounded-xl text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-2 ${
-                        userInterests.includes(event.id)
-                          ? 'bg-emerald-500 text-white'
-                          : `${theme.accentClass} text-white`
-                      }`}
-                      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-                    >
-                      {userInterests.includes(event.id) ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Interested!
-                        </>
-                      ) : (
-                        "I'm Interested"
+                    {(event as any).sponsor_name && (
+                      <div className="flex items-center gap-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        {(event as any).sponsor_logo_url && (event as any).sponsor_logo_url.startsWith('http') && (
+                          <img src={(event as any).sponsor_logo_url} alt={(event as any).sponsor_name} className="w-6 h-6 rounded object-contain" />
+                        )}
+                        <span className="text-xs font-bold text-amber-800">Sponsored by {(event as any).sponsor_name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleInterestToggle(event.id)}
+                        className={`btn-interest flex-1 py-3 rounded-xl text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-2 ${
+                          userInterests.includes(event.id)
+                            ? 'bg-emerald-500 text-white'
+                            : `${theme.accentClass} text-white`
+                        }`}
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                      >
+                        {userInterests.includes(event.id) ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Interested!
+                          </>
+                        ) : (
+                          "I'm Interested"
+                        )}
+                      </button>
+                      {(eventInterestCounts[event.id] || 0) > 0 && (
+                        <div className="flex items-center gap-1 px-3 py-3 rounded-xl bg-gray-100 text-gray-600">
+                          <Users className="w-3.5 h-3.5" />
+                          <span className="text-sm font-bold">{eventInterestCounts[event.id]}</span>
+                        </div>
                       )}
-                    </button>
+                    </div>
                   </Card>
                 ))}
 
@@ -2209,6 +2408,86 @@ const handleInterestToggle = async (eventId: number) => {
               </>
             )}
 
+            {/* Explore Tab */}
+            {activeTab === 'explore' && (
+              <>
+                <div className="section-banner bg-teal-50/70 border-teal-200 mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Compass className="w-5 h-5 text-teal-600" />
+                    <p className="text-sm font-black text-gray-800">Explore {selectedTownName}</p>
+                  </div>
+                  <p className="text-xs font-medium text-[#8a8778]">
+                    Discover parks, trails, lakes & landmarks. Tap a pin for details!
+                  </p>
+                </div>
+
+                {/* Category filter pills */}
+                <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 animate-fade-in-up" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {[
+                    { key: 'all', label: '🗺️ All', color: 'gray' },
+                    { key: 'state_park', label: '🏞️ State Parks', color: 'green' },
+                    { key: 'lake', label: '🎣 Lakes', color: 'blue' },
+                    { key: 'trail', label: '🚴 Trails', color: 'orange' },
+                    { key: 'recreation', label: '🎯 Recreation', color: 'purple' },
+                    { key: 'park', label: '🌳 City Parks', color: 'emerald' },
+                  ].map(cat => (
+                    <button
+                      key={cat.key}
+                      onClick={() => setExploreFilter(cat.key)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        exploreFilter === cat.key
+                          ? 'bg-teal-600 text-white shadow-md'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Map container */}
+                <div className="relative rounded-[14px] overflow-hidden border-[1.5px] border-[#e8e6e1] shadow-md animate-fade-in-up mb-3" style={{ height: '55vh', minHeight: '300px' }}>
+                  <div id="explore-map" style={{ width: '100%', height: '100%' }} />
+                </div>
+
+                {/* Location cards list */}
+                <div className="space-y-2 animate-fade-in-up">
+                  <p className="text-xs font-bold text-[#8a8778] uppercase tracking-wider px-1">
+                    {exploreFilter === 'all' ? 'All Locations' : EXPLORE_CATEGORY_LABELS[exploreFilter] || 'Locations'} ({filteredExploreLocations.length})
+                  </p>
+                  {filteredExploreLocations.map((loc, idx) => (
+                    <button
+                      key={loc.id}
+                      onClick={() => {
+                        setSelectedExploreLocation(loc)
+                        if (leafletMapRef.current) {
+                          leafletMapRef.current.flyTo([loc.lat, loc.lng], 15, { duration: 0.5 })
+                        }
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      className={`w-full text-left bg-white rounded-[14px] p-4 border-[1.5px] border-[#e8e6e1] card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)} flex items-center gap-3`}
+                      style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                        style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[loc.category]}15` }}
+                      >
+                        {loc.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-900 truncate">{loc.name}</p>
+                        <p className="text-xs text-[#8a8778] font-medium truncate">{loc.address}</p>
+                      </div>
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: EXPLORE_CATEGORY_COLORS[loc.category] }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
             {/* Affiliates Tab */}
             {activeTab === 'affiliates' && (
               <>
@@ -2580,6 +2859,148 @@ const handleInterestToggle = async (eventId: number) => {
         </div>
       )}
 
+      {/* Community Dashboard Modal */}
+      {showDashboard && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowDashboard(false)}>
+          <div className="bg-white w-full max-w-lg rounded-[20px] p-6 max-h-[85vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <div>
+                <h2 className="text-xl font-black tracking-tight font-display">Community Dashboard</h2>
+                <p className="text-xs text-[#8a8778] font-medium mt-0.5">{dashboardData?.date || 'Loading...'}</p>
+              </div>
+              <button onClick={() => setShowDashboard(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {dashboardLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : dashboardData ? (
+              <div className="space-y-3">
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-blue-700">{dashboardData.users?.total_registered || 0}</p>
+                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Registered Users</p>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-green-700">{dashboardData.engagement?.total_event_interests || 0}</p>
+                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Event Interests</p>
+                  </div>
+                </div>
+
+                {/* Events Section */}
+                <div className="bg-white border-[1.5px] border-[#e8e6e1] rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    <p className="text-sm font-black">Events</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-lg font-black text-gray-900">{dashboardData.events?.today || 0}</p>
+                      <p className="text-[10px] font-bold text-[#8a8778]">TODAY</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-gray-900">{dashboardData.events?.this_month || 0}</p>
+                      <p className="text-[10px] font-bold text-[#8a8778]">THIS MONTH</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-gray-900">{dashboardData.events?.total_upcoming || 0}</p>
+                      <p className="text-[10px] font-bold text-[#8a8778]">UPCOMING</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Counts */}
+                <div className="bg-white border-[1.5px] border-[#e8e6e1] rounded-xl p-4">
+                  <p className="text-sm font-black mb-3">Content Overview</p>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Active Jobs', value: dashboardData.jobs?.total_active, icon: '💼', color: 'text-blue-600' },
+                      { label: 'Active Businesses', value: dashboardData.businesses?.total_active, icon: '🏪', color: 'text-purple-600' },
+                      { label: 'Housing Listings', value: dashboardData.housing?.total_active, icon: '🏠', color: 'text-green-600' },
+                      { label: 'Non-Profits', value: dashboardData.nonprofits?.total, icon: '❤️', color: 'text-red-600' },
+                      { label: 'Clubs', value: dashboardData.clubs?.total, icon: '👥', color: 'text-indigo-600' },
+                      { label: 'Community Posts', value: dashboardData.community?.total_posts, icon: '💬', color: 'text-amber-600' },
+                      { label: 'Memorials Listed', value: dashboardData.celebrations?.currently_listed, icon: '🕊️', color: 'text-purple-600' },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{item.icon}</span>
+                          <span className="text-sm font-semibold text-gray-700">{item.label}</span>
+                        </div>
+                        <span className={`text-sm font-black ${item.color}`}>{item.value || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-center text-[#8a8778] font-medium pt-1">
+                  Powered by Go New Paper &bull; Data refreshes on each view
+                </p>
+              </div>
+            ) : (
+              <p className="text-center text-gray-400 py-8 font-medium">Failed to load dashboard data</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Explore Location Detail Modal */}
+      {selectedExploreLocation && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-end" onClick={() => setSelectedExploreLocation(null)}>
+          <div
+            className="bg-white w-full rounded-t-[24px] p-6 max-h-[65vh] overflow-y-auto animate-slide-up"
+            style={{ boxShadow: '0 -8px 40px rgba(26,26,46,0.15)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
+                  style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category]}15` }}
+                >
+                  {selectedExploreLocation.emoji}
+                </div>
+                <div>
+                  <h2 className="text-lg font-black tracking-tight font-display">{selectedExploreLocation.name}</h2>
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category] }}
+                  >
+                    {EXPLORE_CATEGORY_LABELS[selectedExploreLocation.category]}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedExploreLocation(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex items-start gap-2 mb-3">
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-600 font-medium">{selectedExploreLocation.address}</p>
+            </div>
+
+            <p className="text-sm text-gray-700 font-medium leading-relaxed mb-5">
+              {selectedExploreLocation.summary}
+            </p>
+
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${selectedExploreLocation.lat},${selectedExploreLocation.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-full ${theme.accentClass} text-white py-3 rounded-xl font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2`}
+            >
+              <Navigation className="w-4 h-4" />
+              GET DIRECTIONS
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Post Event Modal */}
       {showPostEventModal && (
         <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowPostEventModal(false)}>
@@ -2656,6 +3077,18 @@ const handleInterestToggle = async (eventId: number) => {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
                     <textarea value={postEventForm.description} onChange={(e) => setPostEventForm(f => ({...f, description: e.target.value}))} className={`w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold`} placeholder="Tell people more about this event (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  {/* Event Sponsor Section */}
+                  <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-3">
+                    <p className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5" /> Event Sponsor (optional)
+                    </p>
+                    <div className="space-y-2">
+                      <input type="text" value={postEventForm.sponsor_name} onChange={(e) => setPostEventForm(f => ({...f, sponsor_name: e.target.value}))} className="w-full px-3 py-2 rounded-lg border-2 border-amber-200 focus:border-amber-500 focus:outline-none font-semibold text-sm" placeholder="Sponsor business name" maxLength={100} />
+                      <input type="url" value={postEventForm.sponsor_logo_url} onChange={(e) => setPostEventForm(f => ({...f, sponsor_logo_url: e.target.value}))} className="w-full px-3 py-2 rounded-lg border-2 border-amber-200 focus:border-amber-500 focus:outline-none font-semibold text-sm" placeholder="Sponsor logo URL (https://...)" />
+                    </div>
+                    <p className="text-[10px] text-amber-600 mt-1.5">Sponsor logo will appear on the event card. Contact us for sponsorship info!</p>
                   </div>
 
                   <p className="text-xs text-[#8a8778] font-medium text-center">Events are reviewed before appearing publicly. Thank you for contributing to {selectedTownName}!</p>
@@ -3193,6 +3626,21 @@ const handleInterestToggle = async (eventId: number) => {
               <p className="text-sm font-medium font-editorial italic text-white/80 leading-relaxed">&quot;Bringing back the town newspaper&mdash;but faster &amp; in your pocket.&quot;</p>
             </div>
 
+            {/* Community Dashboard — Admin Only */}
+            {isAdmin && (
+              <button
+                onClick={() => { setShowMenu(false); setShowDashboard(true); fetchDashboard(); }}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-[12px] mb-4 flex items-center gap-3 hover:shadow-lg transition-all"
+                style={{ boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}
+              >
+                <BarChart3 className="w-5 h-5" />
+                <div className="text-left">
+                  <p className="text-sm font-black">Community Dashboard</p>
+                  <p className="text-[10px] font-medium text-blue-200">View app metrics & engagement</p>
+                </div>
+              </button>
+            )}
+
             {/* Town Selector */}
             <div className="space-y-2 mb-5">
               <h3 className="text-[10px] font-bold text-[#8a8778] tracking-[0.15em] mb-3 uppercase">Switch Town Edition</h3>
@@ -3380,6 +3828,34 @@ const handleInterestToggle = async (eventId: number) => {
                   </div>
                 </button>
               ))}
+
+              {/* Location opt-in */}
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2">
+                <input
+                  type="checkbox"
+                  id="location-optin"
+                  defaultChecked={true}
+                  onChange={(e) => {
+                    if (e.target.checked && navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          localStorage.setItem('gnp_location_enabled', 'true')
+                          localStorage.setItem('gnp_last_lat', String(pos.coords.latitude))
+                          localStorage.setItem('gnp_last_lng', String(pos.coords.longitude))
+                        },
+                        () => { localStorage.setItem('gnp_location_enabled', 'false') },
+                        { enableHighAccuracy: false, timeout: 10000 }
+                      )
+                    } else {
+                      localStorage.setItem('gnp_location_enabled', 'false')
+                    }
+                  }}
+                  className="w-4 h-4 rounded text-blue-600 flex-shrink-0"
+                />
+                <label htmlFor="location-optin" className="text-[11px] text-blue-800 font-medium leading-tight cursor-pointer">
+                  <span className="font-bold">Allow location</span> to help improve local insights and get nearby recommendations
+                </label>
+              </div>
 
               <p className="text-center text-[10px] text-[#8a8778] font-medium pt-0.5">
                 You can change this anytime in the menu

@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     purgeObituaries?: Record<string, unknown>
     purgeEvents?: Record<string, unknown>
     purgeHousing?: Record<string, unknown>
+    interestReports?: Record<string, unknown>
   } = {}
 
   // --- 1. Daily Summary Notification (Per-Town) ---
@@ -277,6 +278,59 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Purge housing error:', error)
     results.purgeHousing = { error: 'Purge housing failed' }
+  }
+
+  // --- 5. Day-of Interest Reports for Event Organizers ---
+  // For today's events submitted by users, notify the submitter with interest count
+  try {
+    const { data: todayEvents } = await supabase
+      .from('events')
+      .select('id, title, submitted_by')
+      .eq('date', todayStr)
+      .not('submitted_by', 'is', null)
+
+    if (todayEvents && todayEvents.length > 0) {
+      const eventIds = todayEvents.map(e => e.id)
+      const { data: counts } = await supabase.rpc('get_event_interest_counts', { event_ids: eventIds })
+      const countMap: Record<number, number> = {}
+      if (counts) {
+        counts.forEach((c: any) => { countMap[c.event_id] = Number(c.interest_count) })
+      }
+
+      const sent: string[] = []
+      for (const event of todayEvents) {
+        const count = countMap[event.id] || 0
+        if (count === 0) continue // Only notify if there are interests
+
+        // Send push to the submitter via external_id (all their devices)
+        const response = await fetch('https://api.onesignal.com/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Key ${oneSignalApiKey}`,
+          },
+          body: JSON.stringify({
+            app_id: oneSignalAppId,
+            target_channel: 'push',
+            include_aliases: { external_id: [event.submitted_by] },
+            headings: { en: `Your Event is Today!` },
+            contents: { en: `"${event.title}" has ${count} ${count === 1 ? 'person' : 'people'} interested! Good luck today!` },
+            url: 'https://www.gonewpaper.com',
+          }),
+        })
+
+        if (response.ok) {
+          sent.push(`${event.title}: ${count} interested`)
+        }
+      }
+
+      results.interestReports = { success: true, sent }
+    } else {
+      results.interestReports = { success: true, message: 'No user-submitted events today' }
+    }
+  } catch (error) {
+    console.error('Interest reports error:', error)
+    results.interestReports = { error: 'Interest reports failed' }
   }
 
   return NextResponse.json({ success: true, ...results })
