@@ -6,7 +6,7 @@ import {
   Calendar, Briefcase, Home, ShoppingBag, Users, Bell, MapPin,
   TrendingUp, HeartHandshake, Laugh, Flower2, ArrowRight, Check,
   ChevronDown, Mail, ExternalLink, Smartphone, Building2, Landmark,
-  BarChart3, Globe, Megaphone, UsersRound, Star, Zap, Shield
+  BarChart3, Globe, Megaphone, UsersRound, Star, Zap, Shield, Compass
 } from 'lucide-react'
 
 export default function AboutPage() {
@@ -23,10 +23,11 @@ export default function AboutPage() {
     { icon: Users, label: 'Community', desc: 'Lost pets, sales, & more' },
     { icon: Laugh, label: 'Daily Laughs', desc: 'A joke every day' },
     { icon: Flower2, label: 'In Memory', desc: 'Celebrations of life' },
+    { icon: Compass, label: 'Explore', desc: 'Interactive map of local spots' },
   ]
 
   const stats = [
-    { value: '10', label: 'Community Tabs' },
+    { value: '11', label: 'Community Tabs' },
     { value: '24/7', label: 'Always Available' },
     { value: '$0', label: 'Free for Residents' },
     { value: '∞', label: 'Scalable to Any Town' },
@@ -138,11 +139,11 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ========== 10 TABS SHOWCASE ========== */}
+      {/* ========== 11 TABS SHOWCASE ========== */}
       <section className="max-w-5xl mx-auto px-5 mb-20">
         <div className="text-center mb-10">
           <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-3" style={{ color: 'var(--gnp-ink)' }}>
-            One App. Ten Tabs. Your Whole Town.
+            One App. Eleven Tabs. Your Whole Town.
           </h2>
           <p className="text-gray-500 font-medium max-w-lg mx-auto">
             Every piece of your community&apos;s daily life, organized and accessible.

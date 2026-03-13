@@ -3,7 +3,7 @@
 // Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag } from 'lucide-react'
-import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club } from '@/lib/supabase'
+import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club, ExploreLocation } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
@@ -43,44 +43,7 @@ const formatEventTime = (timeStr: string) => {
   }
 }
 
-// Explore tab — Chariton landmarks, parks, trails, lakes
-type ExploreLocation = {
-  id: number
-  name: string
-  lat: number
-  lng: number
-  category: 'park' | 'lake' | 'trail' | 'recreation' | 'state_park'
-  emoji: string
-  address: string
-  summary: string
-  image?: string
-}
-
-const EXPLORE_LOCATIONS: ExploreLocation[] = [
-  // State Parks
-  { id: 1, name: 'Red Haw State Park', lat: 40.9983, lng: -93.2759, category: 'state_park', emoji: '🏞️', address: '24550 US-34, Chariton, IA 50049', summary: '420-acre state park featuring a 72-acre lake, camping, fishing, hiking trails, and beautiful fall foliage. A true gem of Lucas County.', image: '/explore/red-haw.jpg' },
-  // Lakes
-  { id: 2, name: 'Lake Ellis', lat: 41.0079, lng: -93.2642, category: 'lake', emoji: '🎣', address: 'East of Chariton, Lucas County', summary: 'Scenic lake offering fishing, boating, and peaceful waterfront views. A popular spot for bass and catfish.', image: '/explore/lake-ellis.jpg' },
-  { id: 3, name: 'Lake Morris', lat: 41.0082, lng: -93.2444, category: 'lake', emoji: '🎣', address: 'East of Chariton, Lucas County', summary: 'Quiet lake nestled in the rolling hills east of Chariton. Great for kayaking, fishing, and enjoying nature.', image: '/explore/lake-morris.jpg' },
-  // Trails
-  { id: 4, name: 'Cinder Path Trail', lat: 41.0139, lng: -93.3253, category: 'trail', emoji: '🚴', address: 'Chariton to Derby, IA', summary: 'Converted rail-trail perfect for walking, jogging, and biking. Stretches south from Chariton through scenic countryside.', image: '/explore/cinder-path.jpg' },
-  // Recreation
-  { id: 5, name: 'Lakeview Country Club', lat: 41.0270, lng: -93.3400, category: 'recreation', emoji: '⛳', address: 'West of Chariton, IA', summary: '9-hole golf course with rolling terrain and beautiful views. A local favorite for golfers of all skill levels.', image: '/explore/lakeview-cc.jpg' },
-  { id: 6, name: 'Lucas County Fairgrounds', lat: 41.0155, lng: -93.2985, category: 'recreation', emoji: '🎪', address: 'Chariton, IA 50049', summary: 'Home of the Lucas County Fair and year-round community events. Livestock shows, 4-H exhibits, and family fun.', image: '/explore/fairgrounds.jpg' },
-  { id: 7, name: 'Chariton Disc Golf Course', lat: 41.0290, lng: -93.3263, category: 'recreation', emoji: '🥏', address: 'Curtis Avenue, Chariton, IA 50049', summary: 'Free disc golf course with well-maintained baskets and varied terrain. Fun for beginners and experienced players alike.', image: '/explore/disc-golf.jpg' },
-  // City Parks
-  { id: 8, name: 'North Park', lat: 41.0248, lng: -93.3136, category: 'park', emoji: '🌳', address: 'North Chariton, IA', summary: 'Spacious park on the north side of town with open green space, playground equipment, and picnic areas.' },
-  { id: 9, name: 'Yocom Park', lat: 41.0159, lng: -93.3027, category: 'park', emoji: '🌳', address: 'Downtown Chariton, IA', summary: 'Central community park near downtown featuring playground, shelter, and gathering space for local events.' },
-  { id: 10, name: 'Eikenberry Park', lat: 41.0179, lng: -93.3122, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Neighborhood park with mature trees, walking paths, and a great spot for family picnics.' },
-  { id: 11, name: "Veteran's Memorial Park", lat: 41.0136, lng: -93.3088, category: 'park', emoji: '🎖️', address: 'Downtown Chariton, IA', summary: 'Dedicated to honoring our veterans. Features memorials, flags, and a peaceful place for reflection.' },
-  { id: 12, name: 'Brook Park', lat: 41.0111, lng: -93.2979, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Charming park along a creek with natural scenery, walking areas, and a quiet retreat.' },
-  { id: 13, name: 'Railroad Park', lat: 41.0107, lng: -93.3080, category: 'park', emoji: '🚂', address: 'Chariton, IA', summary: 'Historic park near the railroad with open space and a nod to Chariton\'s railway heritage.' },
-  { id: 14, name: 'Franklin Park', lat: 41.0175, lng: -93.3172, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Quiet neighborhood park with shade trees and a relaxing atmosphere.' },
-  { id: 15, name: 'Constitution Park', lat: 41.0153, lng: -93.3056, category: 'park', emoji: '🏛️', address: 'Chariton, IA', summary: 'Park celebrating our nation\'s founding principles, centrally located near the courthouse.' },
-  { id: 16, name: 'North Ridge Park', lat: 41.0101, lng: -93.3099, category: 'park', emoji: '🌳', address: 'Chariton, IA', summary: 'Elevated park with nice views and green space for recreation and relaxation.' },
-  { id: 17, name: "Johnson's Machine Works Park", lat: 41.0170, lng: -93.3095, category: 'park', emoji: '⚙️', address: 'Chariton, IA', summary: 'Small park preserving local industrial heritage with a unique community character.' },
-]
-
+// Explore tab — category colors & labels (locations fetched from Supabase explore_locations table)
 const EXPLORE_CATEGORY_COLORS: Record<string, string> = {
   state_park: '#16a34a',  // green-600
   lake: '#2563eb',        // blue-600
@@ -229,6 +192,7 @@ export default function GoNewPaper() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
+  const [exploreLocations, setExploreLocations] = useState<ExploreLocation[]>([])
   const [dailyJokes, setDailyJokes] = useState<{ id: number; day_of_year: number; question: string; punchline: string; category: string }[]>([])
 
   // iOS detection — web push only works in installed PWA on iOS (Safari 16.4+)
@@ -1087,7 +1051,8 @@ const handleInterestToggle = async (eventId: number) => {
           affiliatesRes,
           nonprofitsRes,
           clubsRes,
-          jokesRes
+          jokesRes,
+          exploreRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
           supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
@@ -1101,7 +1066,9 @@ const handleInterestToggle = async (eventId: number) => {
           supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
           supabase.from('clubs').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
           // Daily jokes: pre-approved, keyed by day-of-year (safe, no AI generation risk)
-          supabase.from('daily_jokes').select('id,day_of_year,question,punchline,category').in('day_of_year', recentDoys).eq('is_approved', true)
+          supabase.from('daily_jokes').select('id,day_of_year,question,punchline,category').in('day_of_year', recentDoys).eq('is_approved', true),
+          // Explore locations: parks, trails, lakes, landmarks (from DB with image support)
+          supabase.from('explore_locations').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true })
         ])
 
         if (eventsRes.data) {
@@ -1125,6 +1092,7 @@ const handleInterestToggle = async (eventId: number) => {
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
+        if (exploreRes.data) setExploreLocations(exploreRes.data)
         if (jokesRes.data) {
           // Sort so today's joke is first, then yesterday, etc.
           const doyOrder = new Map(recentDoys.map((doy, i) => [doy, i]))
@@ -1247,13 +1215,13 @@ const handleInterestToggle = async (eventId: number) => {
   const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
   const displayClubs = clubs.length > 0 ? clubs : sampleClubs
 
-  // Explore map — initialize Leaflet when tab is active
+  // Explore map — initialize Leaflet when tab is active (data from Supabase)
   const filteredExploreLocations = exploreFilter === 'all'
-    ? EXPLORE_LOCATIONS
-    : EXPLORE_LOCATIONS.filter(loc => loc.category === exploreFilter)
+    ? exploreLocations
+    : exploreLocations.filter(loc => loc.category === exploreFilter)
 
   useEffect(() => {
-    if (activeTab !== 'explore') return
+    if (activeTab !== 'explore' || exploreLocations.length === 0) return
     let mapInstance: any = null
 
     const initMap = async () => {
@@ -1278,9 +1246,9 @@ const handleInterestToggle = async (eventId: number) => {
         maxZoom: 18,
       }).addTo(mapInstance)
 
-      // Add markers for all locations
+      // Add markers for all locations (from DB)
       const markers: any[] = []
-      EXPLORE_LOCATIONS.forEach(loc => {
+      exploreLocations.forEach(loc => {
         const color = EXPLORE_CATEGORY_COLORS[loc.category] || '#6b7280'
         const marker = L.marker([loc.lat, loc.lng], {
           icon: L.divIcon({
@@ -1317,7 +1285,7 @@ const handleInterestToggle = async (eventId: number) => {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab])
+  }, [activeTab, exploreLocations])
 
   // Update marker visibility when filter changes
   useEffect(() => {
@@ -2468,12 +2436,20 @@ const handleInterestToggle = async (eventId: number) => {
                       className={`w-full text-left bg-white rounded-[14px] p-4 border-[1.5px] border-[#e8e6e1] card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)} flex items-center gap-3`}
                       style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
                     >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
-                        style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[loc.category]}15` }}
-                      >
-                        {loc.emoji}
-                      </div>
+                      {loc.image_url && loc.image_url.startsWith('http') ? (
+                        <img
+                          src={loc.image_url}
+                          alt={loc.name}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm"
+                        />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                          style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[loc.category]}15` }}
+                        >
+                          {loc.emoji}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm text-gray-900 truncate">{loc.name}</p>
                         <p className="text-xs text-[#8a8778] font-medium truncate">{loc.address}</p>
@@ -2952,51 +2928,65 @@ const handleInterestToggle = async (eventId: number) => {
       {selectedExploreLocation && (
         <div className="fixed inset-0 modal-overlay z-50 flex items-end" onClick={() => setSelectedExploreLocation(null)}>
           <div
-            className="bg-white w-full rounded-t-[24px] p-6 max-h-[65vh] overflow-y-auto animate-slide-up"
+            className="bg-white w-full rounded-t-[24px] max-h-[75vh] overflow-y-auto animate-slide-up"
             style={{ boxShadow: '0 -8px 40px rgba(26,26,46,0.15)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
-                  style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category]}15` }}
-                >
-                  {selectedExploreLocation.emoji}
-                </div>
-                <div>
-                  <h2 className="text-lg font-black tracking-tight font-display">{selectedExploreLocation.name}</h2>
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category] }}
-                  >
-                    {EXPLORE_CATEGORY_LABELS[selectedExploreLocation.category]}
-                  </span>
-                </div>
+            {/* Location image (if available) */}
+            {selectedExploreLocation.image_url && selectedExploreLocation.image_url.startsWith('http') && (
+              <div className="relative w-full h-44 overflow-hidden rounded-t-[24px]">
+                <img
+                  src={selectedExploreLocation.image_url}
+                  alt={selectedExploreLocation.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
               </div>
-              <button onClick={() => setSelectedExploreLocation(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                <X className="w-6 h-6 text-gray-400" />
-              </button>
+            )}
+
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
+                    style={{ backgroundColor: `${EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category]}15` }}
+                  >
+                    {selectedExploreLocation.emoji}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black tracking-tight font-display">{selectedExploreLocation.name}</h2>
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: EXPLORE_CATEGORY_COLORS[selectedExploreLocation.category] }}
+                    >
+                      {EXPLORE_CATEGORY_LABELS[selectedExploreLocation.category]}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedExploreLocation(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex items-start gap-2 mb-3">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-600 font-medium">{selectedExploreLocation.address}</p>
+              </div>
+
+              <p className="text-sm text-gray-700 font-medium leading-relaxed mb-5">
+                {selectedExploreLocation.summary}
+              </p>
+
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedExploreLocation.lat},${selectedExploreLocation.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full ${theme.accentClass} text-white py-3 rounded-xl font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2`}
+              >
+                <Navigation className="w-4 h-4" />
+                GET DIRECTIONS
+              </a>
             </div>
-
-            <div className="flex items-start gap-2 mb-3">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-gray-600 font-medium">{selectedExploreLocation.address}</p>
-            </div>
-
-            <p className="text-sm text-gray-700 font-medium leading-relaxed mb-5">
-              {selectedExploreLocation.summary}
-            </p>
-
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${selectedExploreLocation.lat},${selectedExploreLocation.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`w-full ${theme.accentClass} text-white py-3 rounded-xl font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2`}
-            >
-              <Navigation className="w-4 h-4" />
-              GET DIRECTIONS
-            </a>
           </div>
         </div>
       )}

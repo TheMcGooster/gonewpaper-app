@@ -207,6 +207,21 @@ export type Club = {
   created_at: string
 }
 
+export type ExploreLocation = {
+  id: number
+  name: string
+  lat: number
+  lng: number
+  category: 'park' | 'lake' | 'trail' | 'recreation' | 'state_park'
+  emoji: string
+  address: string
+  summary: string
+  image_url?: string
+  town_id: number
+  is_active: boolean
+  display_order: number
+}
+
 export type Comic = {
   id: number
   title: string
