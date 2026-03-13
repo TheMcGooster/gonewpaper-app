@@ -220,6 +220,7 @@ export type ExploreLocation = {
   town_id: number
   is_active: boolean
   display_order: number
+  submitted_by?: string
 }
 
 export type Comic = {

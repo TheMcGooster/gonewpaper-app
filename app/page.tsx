@@ -153,6 +153,17 @@ export default function GoNewPaper() {
   const leafletMapRef = useRef<any>(null)
   const leafletMarkersRef = useRef<any[]>([])
 
+  // Submit a Spot (pin drop) state
+  const [pinDropMode, setPinDropMode] = useState(false)
+  const [droppedPin, setDroppedPin] = useState<{ lat: number; lng: number } | null>(null)
+  const droppedPinMarkerRef = useRef<any>(null)
+  const [showSubmitSpotModal, setShowSubmitSpotModal] = useState(false)
+  const [submitSpotForm, setSubmitSpotForm] = useState({ name: '', category: 'park' as string, address: '', summary: '', emoji: '🌳' })
+  const [submitSpotLoading, setSubmitSpotLoading] = useState(false)
+  const [submitSpotSuccess, setSubmitSpotSuccess] = useState(false)
+  const [submitSpotError, setSubmitSpotError] = useState('')
+  const [pendingSpots, setPendingSpots] = useState<ExploreLocation[]>([])
+
   // Pending events (admin approval queue)
   const [pendingEvents, setPendingEvents] = useState<Event[]>([])
 
@@ -802,6 +813,43 @@ export default function GoNewPaper() {
     }
   }
 
+  // Submit a Spot handler
+  const handleSubmitSpot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !droppedPin) return
+    setSubmitSpotError('')
+    if (!submitSpotForm.name.trim()) { setSubmitSpotError('Spot name is required'); return }
+    if (!submitSpotForm.summary.trim()) { setSubmitSpotError('Please add a short description'); return }
+    setSubmitSpotLoading(true)
+    try {
+      const { error } = await supabase.from('explore_locations').insert({
+        name: submitSpotForm.name.trim(),
+        lat: droppedPin.lat,
+        lng: droppedPin.lng,
+        category: submitSpotForm.category,
+        emoji: submitSpotForm.emoji,
+        address: submitSpotForm.address.trim() || `${selectedTownName}, IA`,
+        summary: submitSpotForm.summary.trim(),
+        town_id: selectedTownId,
+        is_active: false,
+        display_order: 999,
+        submitted_by: user.id,
+      })
+      if (error) throw error
+      setSubmitSpotSuccess(true)
+      setPinDropMode(false)
+      // Remove temporary pin marker
+      if (droppedPinMarkerRef.current && leafletMapRef.current) {
+        leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
+        droppedPinMarkerRef.current = null
+      }
+    } catch (err: any) {
+      setSubmitSpotError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setSubmitSpotLoading(false)
+    }
+  }
+
   const handleCommunitySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setCommunityLoading(true)
@@ -1138,6 +1186,22 @@ const handleInterestToggle = async (eventId: number) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin])
 
+  // Fetch pending explore spots for admin approval
+  useEffect(() => {
+    if (!isAdmin) return
+    async function fetchPendingSpots() {
+      const { data } = await supabase
+        .from('explore_locations')
+        .select('*')
+        .eq('is_active', false)
+        .not('submitted_by', 'is', null)
+        .order('id', { ascending: false })
+      if (data) setPendingSpots(data)
+    }
+    fetchPendingSpots()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
   // Track business clicks
   const trackBusinessClick = (business: Business) => {
     // Open website FIRST (must be synchronous for iOS Safari popup blocker)
@@ -1299,6 +1363,57 @@ const handleInterestToggle = async (eventId: number) => {
       }
     })
   }, [exploreFilter])
+
+  // Pin drop mode — add/remove map click handler
+  useEffect(() => {
+    const map = leafletMapRef.current
+    if (!map) return
+
+    const handleMapClick = async (e: any) => {
+      if (!pinDropMode) return
+      const { lat, lng } = e.latlng
+      setDroppedPin({ lat, lng })
+
+      // Remove old temp marker if any
+      if (droppedPinMarkerRef.current) {
+        map.removeLayer(droppedPinMarkerRef.current)
+      }
+
+      // Add pulsing red pin at clicked location
+      const L = (await import('leaflet')).default
+      const tempMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'explore-marker',
+          html: `<div style="background:#DC143C;width:36px;height:36px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(220,20,60,0.3),0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;animation:pulse 1.5s ease-in-out infinite;">📍</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        })
+      }).addTo(map)
+
+      droppedPinMarkerRef.current = tempMarker
+      map.flyTo([lat, lng], 16, { duration: 0.3 })
+
+      // Open the submit form
+      setSubmitSpotForm({ name: '', category: 'park', address: '', summary: '', emoji: '🌳' })
+      setSubmitSpotError('')
+      setSubmitSpotSuccess(false)
+      setShowSubmitSpotModal(true)
+    }
+
+    if (pinDropMode) {
+      map.on('click', handleMapClick)
+      // Change cursor to crosshair
+      map.getContainer().style.cursor = 'crosshair'
+    } else {
+      map.getContainer().style.cursor = ''
+    }
+
+    return () => {
+      map.off('click', handleMapClick)
+      map.getContainer().style.cursor = ''
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinDropMode])
 
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
@@ -2380,14 +2495,57 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'explore' && (
               <>
                 <div className="section-banner bg-teal-50/70 border-teal-200 mb-4 animate-fade-in-up">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Compass className="w-5 h-5 text-teal-600" />
-                    <p className="text-sm font-black text-gray-800">Explore {selectedTownName}</p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-teal-600" />
+                      <p className="text-sm font-black text-gray-800">Explore {selectedTownName}</p>
+                    </div>
+                    <button
+                      className="text-teal-700 text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-teal-200"
+                      style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                      onClick={() => {
+                        if (!user) { setShowAuthModal(true); return }
+                        setPinDropMode(true)
+                        setDroppedPin(null)
+                        if (droppedPinMarkerRef.current && leafletMapRef.current) {
+                          leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
+                          droppedPinMarkerRef.current = null
+                        }
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />Suggest
+                    </button>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
                     Discover parks, trails, lakes & landmarks. Tap a pin for details!
                   </p>
                 </div>
+
+                {/* Pin drop mode banner */}
+                {pinDropMode && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 animate-fade-in-up flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📍</span>
+                      <div>
+                        <p className="text-sm font-bold text-red-700">Tap the map to drop a pin</p>
+                        <p className="text-xs text-red-500 font-medium">Choose the exact location of your spot</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPinDropMode(false)
+                        setDroppedPin(null)
+                        if (droppedPinMarkerRef.current && leafletMapRef.current) {
+                          leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
+                          droppedPinMarkerRef.current = null
+                        }
+                      }}
+                      className="text-xs font-bold text-red-600 bg-white px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
 
                 {/* Category filter pills */}
                 <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 animate-fade-in-up" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -2417,6 +2575,52 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="relative rounded-[14px] overflow-hidden border-[1.5px] border-[#e8e6e1] shadow-md animate-fade-in-up mb-3" style={{ height: '55vh', minHeight: '300px' }}>
                   <div id="explore-map" style={{ width: '100%', height: '100%' }} />
                 </div>
+
+                {/* Admin: Pending Spots Approval Panel */}
+                {isAdmin && pendingSpots.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3 animate-fade-in-up">
+                    <h3 className="text-base font-black tracking-tight font-display text-amber-800 mb-3">📍 Pending Spots ({pendingSpots.length})</h3>
+                    <div className="space-y-2">
+                      {pendingSpots.map(spot => (
+                        <div key={spot.id} className="bg-white rounded-lg p-3 border border-amber-100">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm text-gray-900">{spot.emoji} {spot.name}</p>
+                              <p className="text-xs text-gray-500 font-medium">{EXPLORE_CATEGORY_LABELS[spot.category]} &bull; {spot.address}</p>
+                              <p className="text-xs text-gray-600 mt-1">{spot.summary}</p>
+                              <p className="text-[10px] text-gray-400 mt-1">Coords: {spot.lat.toFixed(4)}, {spot.lng.toFixed(4)}</p>
+                            </div>
+                            <div className="flex gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={async () => {
+                                  await supabase.from('explore_locations').update({ is_active: true }).eq('id', spot.id)
+                                  setPendingSpots(prev => prev.filter(s => s.id !== spot.id))
+                                  // Re-fetch explore locations to show the new spot on map
+                                  const { data } = await supabase.from('explore_locations').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true })
+                                  if (data) setExploreLocations(data)
+                                  showToast('Spot approved!')
+                                }}
+                                className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-200 transition-colors"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await supabase.from('explore_locations').delete().eq('id', spot.id)
+                                  setPendingSpots(prev => prev.filter(s => s.id !== spot.id))
+                                  showToast('Spot rejected')
+                                }}
+                                className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-bold hover:bg-red-200 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Location cards list */}
                 <div className="space-y-2 animate-fade-in-up">
@@ -2987,6 +3191,134 @@ const handleInterestToggle = async (eventId: number) => {
                 GET DIRECTIONS
               </a>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit a Spot Modal */}
+      {showSubmitSpotModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => { setShowSubmitSpotModal(false) }}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {submitSpotSuccess ? 'Submitted!' : 'Suggest a Spot'}
+              </h2>
+              <button onClick={() => setShowSubmitSpotModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {submitSpotSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">📍</div>
+                <p className="text-lg font-black mb-2">Spot Submitted!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  It will appear on the Explore map after review by our team. Thanks for helping us map {selectedTownName}!
+                </p>
+                <button
+                  onClick={() => { setShowSubmitSpotModal(false); setDroppedPin(null) }}
+                  className="w-full bg-teal-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg"
+                >
+                  CLOSE
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitSpot}>
+                <div className="space-y-4">
+                  {/* Pinned location indicator */}
+                  {droppedPin && (
+                    <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center gap-2">
+                      <span className="text-lg">📍</span>
+                      <div>
+                        <p className="text-xs font-bold text-teal-700">Pin Dropped</p>
+                        <p className="text-xs text-teal-600 font-medium">{droppedPin.lat.toFixed(4)}, {droppedPin.lng.toFixed(4)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Spot Name */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Spot Name *</label>
+                    <input
+                      type="text"
+                      value={submitSpotForm.name}
+                      onChange={(e) => setSubmitSpotForm(f => ({...f, name: e.target.value}))}
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-teal-500 focus:outline-none font-semibold"
+                      placeholder="e.g. Lake Morris Boat Ramp"
+                      required
+                      maxLength={100}
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Category *</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: 'park', label: 'City Park', emoji: '🌳' },
+                        { key: 'lake', label: 'Lake', emoji: '🎣' },
+                        { key: 'trail', label: 'Trail', emoji: '🚴' },
+                        { key: 'recreation', label: 'Recreation', emoji: '🎯' },
+                        { key: 'state_park', label: 'State Park', emoji: '🏞️' },
+                      ].map(cat => (
+                        <button
+                          type="button"
+                          key={cat.key}
+                          onClick={() => setSubmitSpotForm(f => ({...f, category: cat.key, emoji: cat.emoji}))}
+                          className={`px-3 py-2 rounded-lg text-xs font-bold border-2 transition-all ${
+                            submitSpotForm.category === cat.key
+                              ? 'border-teal-500 bg-teal-50 text-teal-700'
+                              : 'border-gray-200 text-gray-500 hover:border-teal-300'
+                          }`}
+                        >
+                          {cat.emoji} {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Address <span className="text-gray-400 font-medium">(optional)</span></label>
+                    <input
+                      type="text"
+                      value={submitSpotForm.address}
+                      onChange={(e) => setSubmitSpotForm(f => ({...f, address: e.target.value}))}
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-teal-500 focus:outline-none font-semibold"
+                      placeholder="e.g. 21806 483rd Ln, Chariton, IA"
+                      maxLength={200}
+                    />
+                  </div>
+
+                  {/* Summary */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description *</label>
+                    <textarea
+                      value={submitSpotForm.summary}
+                      onChange={(e) => setSubmitSpotForm(f => ({...f, summary: e.target.value}))}
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-teal-500 focus:outline-none font-semibold resize-none"
+                      placeholder="What makes this spot special? What can people do here?"
+                      rows={3}
+                      required
+                      maxLength={500}
+                    />
+                  </div>
+
+                  {/* Error */}
+                  {submitSpotError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs text-red-600 font-bold">{submitSpotError}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitSpotLoading}
+                    className={`w-full bg-teal-600 text-white py-3 rounded-xl font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase flex items-center justify-center gap-2 ${submitSpotLoading ? 'opacity-50' : ''}`}
+                  >
+                    {submitSpotLoading ? 'Submitting...' : 'SUBMIT SPOT'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
