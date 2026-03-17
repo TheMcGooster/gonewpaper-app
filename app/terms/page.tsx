@@ -107,7 +107,7 @@ export default function TermsOfService() {
           <section>
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '12px' }}>12. Contact Us</h2>
             <p>If you have questions about these Terms of Service, please contact us:</p>
-            <p style={{ marginTop: '8px' }}><strong>Email:</strong> <a href="mailto:jarrettcmcgee@gmail.com" style={{ color: '#2563eb' }}>jarrettcmcgee@gmail.com</a></p>
+            <p style={{ marginTop: '8px' }}><strong>Email:</strong> <a href="mailto:gonewpaper@gmail.com" style={{ color: '#2563eb' }}>gonewpaper@gmail.com</a></p>
             <p><strong>Website:</strong> <a href="https://www.gonewpaper.com" style={{ color: '#2563eb' }}>www.gonewpaper.com</a></p>
           </section>
         </div>

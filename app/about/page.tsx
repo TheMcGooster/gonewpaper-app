@@ -494,7 +494,7 @@ export default function AboutPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <a
-                    href="mailto:thenewpaperchariton@gmail.com?subject=Community Hero Inquiry"
+                    href="mailto:gonewpaper@gmail.com?subject=Community Hero Inquiry"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white btn-cta"
                     style={{ background: 'linear-gradient(135deg, #DC143C 0%, #B91232 100%)', boxShadow: '0 4px 15px rgba(220,20,60,0.4)' }}
                   >
@@ -666,7 +666,7 @@ export default function AboutPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="mailto:thenewpaperchariton@gmail.com?subject=Go New Paper for Our Town"
+              href="mailto:gonewpaper@gmail.com?subject=Go New Paper for Our Town"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold text-white btn-cta w-full sm:w-auto justify-center"
               style={{ background: 'linear-gradient(135deg, #DC143C 0%, #B91232 100%)', boxShadow: '0 4px 15px rgba(220,20,60,0.4)' }}
             >
