@@ -113,8 +113,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // Filter events to ONLY those starting within the next 15-45 minute window
-    // This means: event time is 15 to 45 minutes from now
+    // Filter events to ONLY those starting within the next 45-75 minute window
+    // Wider window accounts for OneSignal delivery delay (~10-30+ min)
     const upcomingEvents = todayEvents.filter(event => {
       const parsed = parseEventTime(event.time)
       if (!parsed) {
@@ -127,14 +127,14 @@ export async function GET(request: Request) {
 
       console.log(`Event "${event.title}" at ${event.time} → ${minutesUntilEvent} min from now`)
 
-      // Send reminder if event is 15 to 45 minutes away
-      return minutesUntilEvent >= 15 && minutesUntilEvent <= 45
+      // Send reminder if event is 45 to 75 minutes away
+      return minutesUntilEvent >= 45 && minutesUntilEvent <= 75
     })
 
     if (upcomingEvents.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No events starting in the next 15-45 minutes',
+        message: 'No events starting in the next 45-75 minutes',
         sent: 0,
         date: todayStr,
         currentTime: `${nowHours}:${String(nowMinutes).padStart(2, '0')} Central`,
@@ -270,7 +270,7 @@ export async function GET(request: Request) {
     try {
       await supabase.from('notifications_log').insert({
         notification_type: 'event_reminder',
-        title: 'Event Reminders (30 min before)',
+        title: 'Event Reminders (1 hour before)',
         sent_at: new Date().toISOString(),
         sent_via: 'onesignal',
         town_id: 1,
