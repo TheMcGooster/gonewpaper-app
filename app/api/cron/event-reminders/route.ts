@@ -33,17 +33,34 @@ function parseEventTime(timeStr: string): { hours: number; minutes: number } | n
 }
 
 // Get current time in Central Time as hours and minutes
+// Uses Intl.DateTimeFormat.formatToParts for reliable timezone conversion
+// (avoids fragile new Date(toLocaleString()) re-parsing pattern)
 function getCentralTimeNow(): { hours: number; minutes: number; dateStr: string } {
   const now = new Date()
-  // Get Central Time components
-  const centralStr = now.toLocaleString('en-US', { timeZone: 'America/Chicago' })
-  const centralDate = new Date(centralStr)
-  const dateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
-  return {
-    hours: centralDate.getHours(),
-    minutes: centralDate.getMinutes(),
-    dateStr,
-  }
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const parts = formatter.formatToParts(now)
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '0'
+
+  let hours = parseInt(get('hour'), 10)
+  // hour12:false can return '24' for midnight in some environments — normalize
+  if (hours === 24) hours = 0
+
+  const minutes = parseInt(get('minute'), 10)
+  const dateStr = `${get('year')}-${get('month')}-${get('day')}`
+
+  console.log(`getCentralTimeNow: UTC=${now.toISOString()}, Central=${hours}:${String(minutes).padStart(2, '0')}, date=${dateStr}`)
+
+  return { hours, minutes, dateStr }
 }
 
 // Event reminder: sends each user a push 15-45 min before their interested events.
