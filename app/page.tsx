@@ -1417,10 +1417,10 @@ const handleInterestToggle = async (eventId: number) => {
 
   const tabs = [
     { id: 'events', icon: Calendar, label: 'EVENTS' },
-    { id: 'affiliates', icon: TrendingUp, label: 'DISCOUNTS/DEALS' },
     { id: 'businesses', icon: ShoppingBag, label: 'BUSINESS' },
     { id: 'housing', icon: Home, label: 'HOUSING' },
     { id: 'jobs', icon: Briefcase, label: 'JOBS' },
+    { id: 'affiliates', icon: TrendingUp, label: 'DEALS' },
     { id: 'clubs', icon: UsersRound, label: 'CLUBS' },
     { id: 'nonprofits', icon: HeartHandshake, label: 'NON-PROFITS' },
     { id: 'community', icon: Users, label: 'COMMUNITY' },
