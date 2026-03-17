@@ -157,6 +157,7 @@ export default function GoNewPaper() {
   const [pinDropMode, setPinDropMode] = useState(false)
   const [droppedPin, setDroppedPin] = useState<{ lat: number; lng: number } | null>(null)
   const droppedPinMarkerRef = useRef<any>(null)
+  const [editPinsMode, setEditPinsMode] = useState(false)
   const [showSubmitSpotModal, setShowSubmitSpotModal] = useState(false)
   const [submitSpotForm, setSubmitSpotForm] = useState({ name: '', category: 'park' as string, address: '', summary: '', emoji: '🌳' })
   const [submitSpotLoading, setSubmitSpotLoading] = useState(false)
@@ -1324,11 +1325,17 @@ const handleInterestToggle = async (eventId: number) => {
         }).addTo(mapInstance)
 
         marker.on('click', () => {
+          // Skip click if we just finished dragging (edit mode)
+          if ((marker as any)._justDragged) {
+            ;(marker as any)._justDragged = false
+            return
+          }
           setSelectedExploreLocation(loc)
           mapInstance.flyTo([loc.lat, loc.lng], 15, { duration: 0.5 })
         })
 
         ;(marker as any)._exploreCategory = loc.category
+        ;(marker as any)._exploreLocationId = loc.id
         markers.push(marker)
       })
 
@@ -1349,7 +1356,7 @@ const handleInterestToggle = async (eventId: number) => {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, exploreLocations])
+  }, [activeTab, exploreLocations.length])
 
   // Update marker visibility when filter changes
   useEffect(() => {
@@ -1363,6 +1370,66 @@ const handleInterestToggle = async (eventId: number) => {
       }
     })
   }, [exploreFilter])
+
+  // Admin: toggle draggable on markers when edit pins mode changes
+  useEffect(() => {
+    if (!leafletMapRef.current || leafletMarkersRef.current.length === 0) return
+
+    leafletMarkersRef.current.forEach((marker: any) => {
+      if (editPinsMode) {
+        marker.dragging.enable()
+
+        const handleDragStart = () => {
+          marker._justDragged = true
+        }
+
+        const handleDragEnd = async () => {
+          const newLatLng = marker.getLatLng()
+          const locationId = marker._exploreLocationId
+          if (!locationId) return
+
+          const { error } = await supabase
+            .from('explore_locations')
+            .update({ lat: newLatLng.lat, lng: newLatLng.lng })
+            .eq('id', locationId)
+
+          if (error) {
+            showToast('❌ Failed to save pin position')
+            // Revert to original position
+            const original = exploreLocations.find(l => l.id === locationId)
+            if (original) marker.setLatLng([original.lat, original.lng])
+          } else {
+            // Update local state (won't rebuild map since we use .length dependency)
+            setExploreLocations(prev =>
+              prev.map(loc =>
+                loc.id === locationId
+                  ? { ...loc, lat: newLatLng.lat, lng: newLatLng.lng }
+                  : loc
+              )
+            )
+            showToast('📍 Pin moved!')
+          }
+        }
+
+        marker.on('dragstart', handleDragStart)
+        marker.on('dragend', handleDragEnd)
+        marker._editDragStartHandler = handleDragStart
+        marker._editDragEndHandler = handleDragEnd
+      } else {
+        marker.dragging.disable()
+        if (marker._editDragStartHandler) {
+          marker.off('dragstart', marker._editDragStartHandler)
+          delete marker._editDragStartHandler
+        }
+        if (marker._editDragEndHandler) {
+          marker.off('dragend', marker._editDragEndHandler)
+          delete marker._editDragEndHandler
+        }
+        marker._justDragged = false
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editPinsMode])
 
   // Pin drop mode — add/remove map click handler
   useEffect(() => {
@@ -2500,21 +2567,49 @@ const handleInterestToggle = async (eventId: number) => {
                       <Compass className="w-5 h-5 text-teal-600" />
                       <p className="text-sm font-black text-gray-800">Explore {selectedTownName}</p>
                     </div>
-                    <button
-                      className="text-teal-700 text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-teal-200"
-                      style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
-                      onClick={() => {
-                        if (!user) { setShowAuthModal(true); return }
-                        setPinDropMode(true)
-                        setDroppedPin(null)
-                        if (droppedPinMarkerRef.current && leafletMapRef.current) {
-                          leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
-                          droppedPinMarkerRef.current = null
-                        }
-                      }}
-                    >
-                      <Plus className="w-3.5 h-3.5" />Suggest
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isAdmin && (
+                        <button
+                          className={`text-xs font-bold flex items-center gap-1 tracking-wide px-3 py-1.5 rounded-lg border transition-colors ${
+                            editPinsMode
+                              ? 'bg-amber-500 text-white border-amber-600'
+                              : 'text-amber-700 bg-white border-amber-200 hover:bg-amber-50'
+                          }`}
+                          style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                          onClick={() => {
+                            const entering = !editPinsMode
+                            setEditPinsMode(entering)
+                            if (entering && pinDropMode) {
+                              setPinDropMode(false)
+                              setDroppedPin(null)
+                              if (droppedPinMarkerRef.current && leafletMapRef.current) {
+                                leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
+                                droppedPinMarkerRef.current = null
+                              }
+                            }
+                          }}
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          {editPinsMode ? 'Done' : 'Edit Pins'}
+                        </button>
+                      )}
+                      <button
+                        className="text-teal-700 text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-teal-200"
+                        style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                        onClick={() => {
+                          if (!user) { setShowAuthModal(true); return }
+                          if (editPinsMode) setEditPinsMode(false)
+                          setPinDropMode(true)
+                          setDroppedPin(null)
+                          if (droppedPinMarkerRef.current && leafletMapRef.current) {
+                            leafletMapRef.current.removeLayer(droppedPinMarkerRef.current)
+                            droppedPinMarkerRef.current = null
+                          }
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />Suggest
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
                     Discover parks, trails, lakes & landmarks. Tap a pin for details!
@@ -2543,6 +2638,25 @@ const handleInterestToggle = async (eventId: number) => {
                       className="text-xs font-bold text-red-600 bg-white px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
                     >
                       Cancel
+                    </button>
+                  </div>
+                )}
+
+                {/* Edit pins mode banner (admin) */}
+                {editPinsMode && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 animate-fade-in-up flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">✏️</span>
+                      <div>
+                        <p className="text-sm font-bold text-amber-700">Edit Mode: Drag pins to reposition</p>
+                        <p className="text-xs text-amber-500 font-medium">Changes save automatically</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setEditPinsMode(false)}
+                      className="text-xs font-bold text-amber-600 bg-white px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-50 transition-colors"
+                    >
+                      Done
                     </button>
                   </div>
                 )}
