@@ -1388,12 +1388,13 @@ const handleInterestToggle = async (eventId: number) => {
           const locationId = marker._exploreLocationId
           if (!locationId) return
 
-          const { error } = await supabase
+          const { error, data } = await supabase
             .from('explore_locations')
             .update({ lat: newLatLng.lat, lng: newLatLng.lng })
             .eq('id', locationId)
+            .select('id')
 
-          if (error) {
+          if (error || !data || data.length === 0) {
             showToast('❌ Failed to save pin position')
             // Revert to original position
             const original = exploreLocations.find(l => l.id === locationId)
