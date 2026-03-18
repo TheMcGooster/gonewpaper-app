@@ -1707,6 +1707,37 @@ const handleInterestToggle = async (eventId: number) => {
               const todaysEvents = displayEvents.filter(event => {
                 const eventDate = event.date.split('T')[0]
                 return eventDate === today
+              }).sort((a, b) => {
+                // Parse time string to minutes since midnight for sorting
+                const parseTime = (timeStr: string | null | undefined, dateStr: string): number => {
+                  if (!timeStr && dateStr.includes('T')) {
+                    // Extract time from ISO date string
+                    const timePart = dateStr.split('T')[1]
+                    if (timePart) {
+                      const [h, m] = timePart.split(':').map(Number)
+                      return (h || 0) * 60 + (m || 0)
+                    }
+                  }
+                  if (!timeStr) return 9999 // No time → sort to end
+                  const t = timeStr.trim()
+                  // Handle 24h format like "16:00:00"
+                  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(t)) {
+                    const [h, m] = t.split(':').map(Number)
+                    return (h || 0) * 60 + (m || 0)
+                  }
+                  // Handle 12h format like "4:00 PM" or "9:30 AM"
+                  const match = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+                  if (match) {
+                    let h = parseInt(match[1])
+                    const m = parseInt(match[2])
+                    const period = match[3].toUpperCase()
+                    if (period === 'PM' && h !== 12) h += 12
+                    if (period === 'AM' && h === 12) h = 0
+                    return h * 60 + m
+                  }
+                  return 9999 // Unparseable → sort to end
+                }
+                return parseTime(a.time, a.date) - parseTime(b.time, b.date)
               })
 
               return (
