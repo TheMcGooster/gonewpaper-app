@@ -681,10 +681,18 @@ export default function AboutPage() {
               <ExternalLink className="w-4 h-4" />
               See It Live
             </Link>
+            <Link
+              href="/for-communities"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold text-white/80 hover:text-white transition-colors w-full sm:w-auto justify-center"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}
+            >
+              <MapPin className="w-4 h-4" />
+              Bring GNP to Your Town
+            </Link>
           </div>
 
           <p className="text-white/30 text-xs font-medium mt-6">
-            thenewpaperchariton@gmail.com
+            gonewpaper@gmail.com
           </p>
         </div>
       </section>
