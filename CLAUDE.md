@@ -14,21 +14,29 @@
 - OneSignal SDK loaded in `app/layout.tsx`, initialized via `OneSignalDeferred` pattern
 - Cron jobs in `app/api/cron/` — authenticated via `CRON_SECRET` Bearer token
 - Vercel Hobby plan: crons limited to daily schedules only (no `*/5` minute intervals)
+- ActivePieces calls `/api/cron/event-reminders` every 30 min — this provides the frequency for 30-min-before-event reminders
+- Event reminders use time-window filtering: only sends for events starting 15-45 min from now (Central Time)
+- `ensureUserRow()` in auth useEffect — creates public.users row if trigger missed + detects first login
 
 ## Database Notes
 - `user_interests` table links users to events they're interested in
 - `user_interests` FK to `public.users` was added manually (not in main schema) — see `fix-database-issues.sql`
 - `event_reminders_sent` tracks which user+event combos have been notified (prevents duplicates)
-- `get_daily_event_reminders(target_date)` RPC function handles the join query for event reminders
-- `get_upcoming_event_reminders()` RPC exists for 25-35 min window approach (unused while on Hobby plan)
-- Events use TEXT for `date` ('YYYY-MM-DD') and `time` ('9:30 AM' format)
+- `get_daily_event_reminders(target_date)` RPC function handles the join query (SECURITY DEFINER)
+- Events use TEXT for `date` ('YYYY-MM-DD') and `time` (mixed formats: '16:00:00', '9:30 AM', '4:00 PM')
+- `users.last_login` — null means first tracked login → triggers town picker modal
+- **GOTCHA**: RLS is enabled on all tables. RPC functions MUST use `SECURITY DEFINER SET search_path = public` or they silently return empty results when called from API routes
+- **GOTCHA**: `handle_new_user` trigger can fail silently — `ensureUserRow()` in page.tsx is the client-side fallback
 
 ## OneSignal Notes
 - Player ID (`onesignal_player_id`) saved to `users` table on login + subscription change
-- Player ID capture has 3 layers: immediate check, polling fallback (10 attempts), change listener
+- Player ID capture has 3 layers: immediate check, polling fallback (15 attempts), change listener
+- `OneSignal.login(userId)` called in `saveOneSignalPlayerId()` — links ALL user devices via `external_id`
 - Town-based targeting uses OneSignal tags (`town_id`)
-- Individual targeting uses `include_subscription_ids` with player IDs
+- Per-user targeting (event reminders): `include_aliases: { external_id: [userId] }` — reaches ALL devices
 - Broadcast uses `included_segments: ['Total Subscriptions']`
+- **GOTCHA**: `include_subscription_ids` only targets ONE device — always use `include_aliases` for user notifications
+- iOS Safari: web push ONLY works in PWA mode (Add to Home Screen). Detect with `isIOSNonPWA` flag in page.tsx
 
 ## Build & TypeScript Quirks
 - TypeScript target doesn't support `[...new Set()]` spread — use `Array.from(new Set())` instead

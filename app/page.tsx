@@ -26,6 +26,28 @@ const formatEventDate = (dateStr: string) => {
   }
 }
 
+// Parse mixed time formats ("16:00:00", "9:30 AM", "4:00 PM") to minutes since midnight for sorting
+const parseTimeToMinutes = (timeStr: string): number => {
+  if (!timeStr) return 9999
+  const trimmed = timeStr.trim()
+  // Check for AM/PM format first
+  const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1], 10)
+    const m = parseInt(ampmMatch[2], 10)
+    const period = ampmMatch[3].toUpperCase()
+    if (period === 'AM' && h === 12) h = 0
+    if (period === 'PM' && h !== 12) h += 12
+    return h * 60 + m
+  }
+  // 24-hour format "16:00:00" or "16:00"
+  const parts = trimmed.split(':')
+  const h = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  if (isNaN(h)) return 9999
+  return h * 60 + (isNaN(m) ? 0 : m)
+}
+
 // Format time from 24-hour format (HH:MM:SS) to 12-hour AM/PM
 const formatEventTime = (timeStr: string) => {
   try {
@@ -102,6 +124,8 @@ export default function GoNewPaper() {
   const townThemes: Record<number, { name: string; mascot: string; letter: string; primaryColor: string; darkColor: string; accentClass: string; accentTextClass: string; accentBg: string; tabActiveText: string; shieldFill: string; selectorBg: string; selectorBorder: string; selectorEmoji: string; colorLabel: string }> = {
     1: { name: 'Chariton', mascot: 'Chargers', letter: 'C', primaryColor: '#DC143C', darkColor: '#A01020', accentClass: 'charger-red', accentTextClass: 'charger-red-text', accentBg: 'bg-red-600', tabActiveText: 'text-red-600', shieldFill: '#DC143C', selectorBg: 'bg-red-50', selectorBorder: 'border-red-400', selectorEmoji: '🔴', colorLabel: 'Chargers Red/White' },
     2: { name: 'Knoxville', mascot: 'Panthers', letter: 'K', primaryColor: '#D4A843', darkColor: '#1a1a1a', accentClass: 'panther-gold', accentTextClass: 'panther-gold-text', accentBg: 'bg-yellow-600', tabActiveText: 'text-yellow-700', shieldFill: '#1a1a1a', selectorBg: 'bg-yellow-50', selectorBorder: 'border-yellow-500', selectorEmoji: '🟡', colorLabel: 'Panthers Black/Gold' },
+    3: { name: 'Albia', mascot: 'Blue Demons', letter: 'A', primaryColor: '#1E3A8A', darkColor: '#DC2626', accentClass: 'demon-blue', accentTextClass: 'demon-blue-text', accentBg: 'bg-blue-800', tabActiveText: 'text-blue-800', shieldFill: '#1E3A8A', selectorBg: 'bg-blue-50', selectorBorder: 'border-blue-400', selectorEmoji: '🔵', colorLabel: 'Blue Demons Blue/Scarlet' },
+    4: { name: 'Corydon', mascot: 'Falcons', letter: 'C', primaryColor: '#1a1a1a', darkColor: '#4B5563', accentClass: 'falcon-black', accentTextClass: 'falcon-black-text', accentBg: 'bg-gray-800', tabActiveText: 'text-gray-800', shieldFill: '#1a1a1a', selectorBg: 'bg-gray-100', selectorBorder: 'border-gray-400', selectorEmoji: '⚫', colorLabel: 'Falcons Black/Grey' },
   }
   const theme = townThemes[selectedTownId] || townThemes[1]
 
@@ -234,7 +258,10 @@ export default function GoNewPaper() {
           console.log('OneSignal permission:', oneSignalPermission, 'Has subscription:', hasSubscription, 'Player ID:', OneSignalSDK.User.PushSubscription.id)
           // If permission granted, show as enabled even if subscription is pending
           // (autoResubscribe will create the subscription shortly)
-          setNotificationsEnabled(oneSignalPermission)
+          // Only override to false if browser also denies — prevents OneSignal lag from clearing fast check
+          if (oneSignalPermission || !(canSupportPush && Notification.permission === 'granted')) {
+            setNotificationsEnabled(oneSignalPermission)
+          }
 
           // Listen for permission changes
           OneSignalSDK.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
@@ -1121,7 +1148,11 @@ const handleInterestToggle = async (eventId: number) => {
         ])
 
         if (eventsRes.data) {
-          setEvents(eventsRes.data)
+          setEvents((eventsRes.data || []).sort((a: Event, b: Event) => {
+            const dateCmp = (a.date || '').localeCompare(b.date || '')
+            if (dateCmp !== 0) return dateCmp
+            return parseTimeToMinutes(a.time || '') - parseTimeToMinutes(b.time || '')
+          }))
           // Fetch interest counts for all events
           if (eventsRes.data.length > 0) {
             const eventIds = eventsRes.data.map((e: any) => e.id)
@@ -1884,7 +1915,11 @@ const handleInterestToggle = async (eventId: number) => {
                               const { error } = await supabase.from('events').update({ verified: true }).eq('id', event.id)
                               if (!error) {
                                 setPendingEvents(prev => prev.filter(e => e.id !== event.id))
-                                setEvents(prev => [...prev, { ...event, verified: true }].sort((a, b) => a.date.localeCompare(b.date)))
+                                setEvents(prev => [...prev, { ...event, verified: true }].sort((a, b) => {
+                                  const dateCmp = (a.date || '').localeCompare(b.date || '')
+                                  if (dateCmp !== 0) return dateCmp
+                                  return parseTimeToMinutes(a.time || '') - parseTimeToMinutes(b.time || '')
+                                }))
                                 showToast('Event approved!')
                               } else {
                                 showToast('Error approving event')
@@ -4145,15 +4180,37 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
               </button>
 
-              {/* Coming Soon Towns */}
-              <div className="bg-white border-[1.5px] border-[#e8e6e1] rounded-[12px] p-3">
-                <p className="text-[10px] font-bold text-[#8a8778] mb-2 tracking-[0.15em] uppercase">Coming Soon</p>
-                <div className="space-y-1.5 text-sm text-gray-500 font-medium">
-                  <p>🔵 Indianola</p>
-                  <p>🟣 Osceola</p>
-                  <p>⚫ Centerville</p>
+              {/* Albia - Active */}
+              <button
+                onClick={() => { handleTownChange(3, 'Albia'); setShowMenu(false) }}
+                className={`w-full p-3 rounded-[12px] text-left transition-all ${selectedTownId === 3 ? 'bg-blue-50 border-[1.5px] border-blue-300' : 'bg-white border-[1.5px] border-[#e8e6e1] hover:border-blue-200'}`}
+                style={selectedTownId === 3 ? { boxShadow: '0 2px 8px rgba(30,58,138,0.12)' } : undefined}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🔵</span>
+                  <div>
+                    <p className="font-bold text-sm">Albia</p>
+                    <p className="text-[11px] text-[#8a8778] font-medium">{selectedTownId === 3 ? 'Current Edition' : 'Tap to switch'} &bull; Blue Demons</p>
+                  </div>
+                  {selectedTownId === 3 && <Check className="w-4 h-4 text-blue-600 ml-auto" />}
                 </div>
-              </div>
+              </button>
+
+              {/* Corydon - Active */}
+              <button
+                onClick={() => { handleTownChange(4, 'Corydon'); setShowMenu(false) }}
+                className={`w-full p-3 rounded-[12px] text-left transition-all ${selectedTownId === 4 ? 'bg-gray-100 border-[1.5px] border-gray-400' : 'bg-white border-[1.5px] border-[#e8e6e1] hover:border-gray-300'}`}
+                style={selectedTownId === 4 ? { boxShadow: '0 2px 8px rgba(26,26,26,0.12)' } : undefined}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">⚫</span>
+                  <div>
+                    <p className="font-bold text-sm">Corydon</p>
+                    <p className="text-[11px] text-[#8a8778] font-medium">{selectedTownId === 4 ? 'Current Edition' : 'Tap to switch'} &bull; Falcons</p>
+                  </div>
+                  {selectedTownId === 4 && <Check className="w-4 h-4 text-gray-700 ml-auto" />}
+                </div>
+              </button>
             </div>
 
             {/* Engagement Reports — replaces Market & Partners for authorized users */}
