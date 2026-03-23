@@ -133,12 +133,14 @@ export async function GET(request: Request) {
       .eq('is_approved', true)
       .lt('service_date', todayStr)
 
-    // Rule 2: passing_date is 21+ days ago (excludes NULLs by design — handled in Rule 3)
+    // Rule 2: passing_date is 21+ days ago AND no future service_date
+    // (If service_date exists, Rule 1 handles it — don't hide someone whose service hasn't happened yet)
     const { data: pastByPassing } = await supabase
       .from('celebrations_of_life')
       .select('id, full_name')
       .eq('is_approved', true)
       .lt('passing_date', cutoffStr)
+      .is('service_date', null)
 
     // Rule 3: NULL dates — use created_at as fallback (catches scraper entries with broken date parsing)
     const { data: pastByCreated } = await supabase
