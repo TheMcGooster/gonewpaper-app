@@ -618,6 +618,183 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* ========== ANALYTICS SHOWCASE ========== */}
+      <section className="py-16" style={{ background: 'var(--gnp-paper-warm)' }}>
+        <div className="max-w-5xl mx-auto px-5">
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+              <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="text-xs font-bold tracking-wide text-indigo-700">BUILT-IN ANALYTICS</span>
+            </div>
+            <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-3" style={{ color: 'var(--gnp-ink)' }}>
+              Real Data. Real Engagement.<br />
+              <span className="font-editorial italic text-indigo-600">Right at Your Fingertips.</span>
+            </h2>
+            <p className="text-gray-500 font-medium max-w-lg mx-auto">
+              Every town gets a Community Dashboard and monthly Engagement Reports — no extra cost, no third-party tools.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mt-10">
+            {/* Community Dashboard Mockup */}
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid var(--gnp-border)', boxShadow: 'var(--gnp-shadow-xl)' }}>
+              <div className="bg-white p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="font-display text-lg tracking-tight" style={{ color: 'var(--gnp-ink)' }}>Community Dashboard</h3>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Live snapshot of your town</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                    <BarChart3 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="rounded-xl p-4 text-center" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+                    <div className="font-display text-2xl text-white">17</div>
+                    <div className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Registered Users</div>
+                  </div>
+                  <div className="rounded-xl p-4 text-center" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
+                    <div className="font-display text-2xl text-white">14</div>
+                    <div className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Event Interests</div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid var(--gnp-border-light)', background: 'var(--gnp-paper)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-bold text-gray-500">Events</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <div className="font-display text-xl" style={{ color: 'var(--gnp-ink)' }}>3</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Today</div>
+                    </div>
+                    <div>
+                      <div className="font-display text-xl" style={{ color: 'var(--gnp-ink)' }}>121</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">This Month</div>
+                    </div>
+                    <div>
+                      <div className="font-display text-xl" style={{ color: 'var(--gnp-ink)' }}>121</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Upcoming</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-4" style={{ border: '1px solid var(--gnp-border-light)', background: 'var(--gnp-paper)' }}>
+                  <div className="text-xs font-bold text-gray-500 mb-3">Content Overview</div>
+                  <div className="space-y-2.5">
+                    {[
+                      { label: 'Active Jobs', value: '101', color: '#DC143C' },
+                      { label: 'Active Businesses', value: '10', color: '#6366f1' },
+                      { label: 'Non-Profits', value: '2', color: '#f59e0b' },
+                      { label: 'Clubs', value: '3', color: '#10b981' },
+                      { label: 'Memorials Listed', value: '1', color: '#8b5cf6' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
+                          <span className="text-xs font-medium text-gray-600">{item.label}</span>
+                        </div>
+                        <span className="text-xs font-bold" style={{ color: item.color }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Engagement Reports Mockup */}
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid var(--gnp-border)', boxShadow: 'var(--gnp-shadow-xl)' }}>
+              <div className="p-6 text-white" style={{ background: 'linear-gradient(160deg, #4338ca 0%, #6366f1 50%, #818cf8 100%)' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart3 className="w-4 h-4" />
+                  <h3 className="font-display text-lg tracking-tight">Engagement Reports</h3>
+                </div>
+                <p className="text-xs text-white/60 font-medium">Monthly Analytics</p>
+                <div className="mt-4 flex items-center justify-center gap-4">
+                  <ChevronDown className="w-4 h-4 text-white/40 rotate-90" />
+                  <span className="text-sm font-bold">March 2026</span>
+                  <ChevronDown className="w-4 h-4 text-white/40 -rotate-90" />
+                </div>
+              </div>
+              <div className="bg-white p-6">
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  {[
+                    { label: 'Business Clicks', value: '34', icon: '🏪', change: null },
+                    { label: 'Event Interest', value: '13', icon: '📅', change: null },
+                    { label: 'Notifications Sent', value: '13', icon: '🔔', change: null },
+                    { label: 'New Signups', value: '3', icon: '👥', change: '▼ 79% vs last month' },
+                  ].map((s, i) => (
+                    <div key={i} className="rounded-xl p-3.5" style={{ border: '1.5px solid var(--gnp-border-light)', background: i === 3 ? 'rgba(251,191,36,0.04)' : 'var(--gnp-paper)' }}>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-sm">{s.icon}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</span>
+                      </div>
+                      <div className="font-display text-2xl" style={{ color: 'var(--gnp-ink)' }}>{s.value}</div>
+                      {s.change ? (
+                        <div className="text-[10px] font-bold text-red-400 mt-0.5">{s.change}</div>
+                      ) : (
+                        <div className="text-[10px] font-medium text-gray-300 mt-0.5">prev: 0</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid var(--gnp-border-light)', background: 'var(--gnp-paper)' }}>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">🏆 Top Businesses by Clicks</div>
+                  <div className="space-y-2.5">
+                    {[
+                      { rank: 1, name: 'Knoxville Chamber of Commerce', cat: 'Community', clicks: 31 },
+                      { rank: 2, name: 'City of Chariton', cat: 'Government', clicks: 2 },
+                      { rank: 3, name: 'Chariton Area Chamber', cat: 'Community', clicks: 1 },
+                    ].map((b, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: i === 0 ? '#DC143C' : i === 1 ? '#6366f1' : '#9ca3af' }}>{b.rank}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold truncate" style={{ color: 'var(--gnp-ink)' }}>{b.name}</div>
+                          <div className="text-[10px] text-gray-400">{b.cat}</div>
+                        </div>
+                        <div className="text-xs font-bold text-indigo-500">{b.clicks}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl p-4" style={{ border: '1px solid var(--gnp-border-light)', background: 'var(--gnp-paper)' }}>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">🎯 Top Events by Interest</div>
+                  <div className="space-y-2.5">
+                    {[
+                      { rank: 1, name: 'LEGOs @ Chariton Public Library', date: 'Wed, Mar 25', interested: 1 },
+                      { rank: 2, name: 'Midweek Bible Study', date: 'Wed, Mar 25', interested: 1 },
+                      { rank: 3, name: 'ICC Food Pantry Open', date: 'Wed, Mar 25', interested: 1 },
+                    ].map((e, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: i === 0 ? '#DC143C' : i === 1 ? '#6366f1' : '#9ca3af' }}>{e.rank}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold truncate" style={{ color: 'var(--gnp-ink)' }}>{e.name}</div>
+                          <div className="text-[10px] text-gray-400">{e.date}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-bold text-indigo-500">{e.interested}</div>
+                          <div className="text-[10px] text-gray-400">interested</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-400 font-medium italic">
+              Real data from Chariton, Iowa — the first Go New Paper community.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ========== FAQ ========== */}
       <section className="py-16" style={{ background: 'var(--gnp-paper-warm)' }}>
         <div className="max-w-2xl mx-auto px-5">
