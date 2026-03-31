@@ -1957,8 +1957,8 @@ const handleInterestToggle = async (eventId: number) => {
               <>
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h2 className="text-xl font-black tracking-tight font-display">Jobs</h2>
-                    <p className="text-xs text-[#8a8778] font-medium mt-0.5">{displayJobs.length} jobs near {selectedTownName}</p>
+                    <h2 className="text-xl font-black tracking-tight font-display">Jobs Near {selectedTownName}</h2>
+                    <p className="text-xs text-[#8a8778] font-medium mt-0.5">{displayJobs.filter(j => j.auto_scraped).length} auto-discovered 🤖, {displayJobs.filter(j => !j.auto_scraped).length} posted locally 📍</p>
                   </div>
                   <button
                     className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`}
@@ -1975,12 +1975,8 @@ const handleInterestToggle = async (eventId: number) => {
                   </button>
                 </div>
                 <div className="section-banner bg-emerald-50/80 border-emerald-200 mb-4 animate-fade-in-up">
-                  <div className="flex items-center gap-2.5 mb-1.5">
-                    <span className="text-lg">🤖</span>
-                    <p className="text-sm font-bold text-gray-800">AI Auto-Finding Jobs Within 50 Miles</p>
-                  </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    {displayJobs.filter(j => j.auto_scraped).length} auto-discovered &bull; {displayJobs.filter(j => !j.auto_scraped).length} posted locally
+                    Local jobs are posted by employers. Auto-discovered jobs are sourced from public listings within 50 miles.
                   </p>
                 </div>
                 {displayJobs.map((job, idx) => (
@@ -2012,7 +2008,10 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'housing' && (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-black tracking-tight font-display">Housing</h2>
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight font-display">Local Housing</h2>
+                    <p className="text-xs text-[#8a8778] font-medium mt-0.5">Browse available rentals or post your property in minutes</p>
+                  </div>
                   <a
                     href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
                     target="_blank"
@@ -2039,16 +2038,16 @@ const handleInterestToggle = async (eventId: number) => {
                       </p>
                     )}
                     <button className={`btn-interest w-full ${theme.accentClass} text-white py-3 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                      Contact
+                      Inquire Now
                     </button>
                   </Card>
                 ))}
                 {/* Pricing Info Banner */}
                 <div className="section-banner bg-emerald-50/80 border-emerald-200 mt-4 animate-fade-in-up">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Post your rental or property listing!</p>
+                  <p className="text-sm font-bold text-gray-800 mb-2">List your property.</p>
                   <div className="space-y-2.5">
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-[#8a8778] font-medium">Single post: <span className="price-tag text-emerald-700">$8</span> (30 days)</p>
+                      <p className="text-xs text-[#8a8778] font-medium">Single Listing: <span className="price-tag text-emerald-700">$8</span> (30 days)</p>
                       <a
                         href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
                         target="_blank"
@@ -2060,7 +2059,7 @@ const handleInterestToggle = async (eventId: number) => {
                       </a>
                     </div>
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-[#8a8778] font-medium">5-Pack: <span className="price-tag text-emerald-700">$30</span> (save $10!)</p>
+                      <p className="text-xs text-[#8a8778] font-medium">5 Listings: <span className="price-tag text-emerald-700">$30</span> (save $10!)</p>
                       <a
                         href="https://buy.stripe.com/eVq8wQ3Cm8x38ddgan5ZC08"
                         target="_blank"
@@ -2068,7 +2067,7 @@ const handleInterestToggle = async (eventId: number) => {
                         className="btn-cta bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-wide"
                         style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
                       >
-                        5-Pack
+                        Buy 5
                       </a>
                     </div>
                   </div>
@@ -2079,10 +2078,10 @@ const handleInterestToggle = async (eventId: number) => {
             {/* Businesses Tab */}
             {activeTab === 'businesses' && (
               <>
-                {/* COMMUNITY SPONSORS SECTION */}
-                <div className="section-banner bg-blue-50/70 border-blue-200 mb-4 animate-fade-in-up">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">Community Sponsors</span></p>
-                  <p className="text-xs font-medium text-[#8a8778] mt-1">Proud sponsors of your community hub &bull; Support local!</p>
+                {/* COMMUNITY PARTNERS SECTION */}
+                <div className="section-banner bg-red-50/70 border-red-200 mb-4 animate-fade-in-up">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-red-600">Community Partners</span></p>
+                  <p className="text-xs font-medium text-[#8a8778] mt-1">Proud sponsors of Go New Paper &mdash; Keeping this app free for our community</p>
                 </div>
 
                 {displayBusinesses.filter(b => b.tier === 'spotlight' || b.featured).map((b, idx) => (
@@ -2096,7 +2095,7 @@ const handleInterestToggle = async (eventId: number) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-[15px] font-bold tracking-tight">{b.name}</h3>
-                          <span className="badge bg-amber-50 text-amber-700 border border-amber-200">Community Sponsor</span>
+                          <span className="badge bg-red-50 text-red-700 border border-red-200">Community Partner</span>
                         </div>
                         <p className="text-[13px] text-gray-500 font-medium mb-2 font-editorial italic">{b.tagline}</p>
                         <div className="flex items-center gap-3 text-[11px] text-[#8a8778] font-medium mb-3">
@@ -2117,30 +2116,31 @@ const handleInterestToggle = async (eventId: number) => {
 
                 {/* DIGITAL BUSINESS CARDS SECTION */}
                 <div className="section-divider"></div>
-                <div className="section-banner bg-purple-50/70 border-purple-200 mb-4">
-                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-purple-600">Local Professionals</span></p>
-                  <p className="text-xs font-medium text-[#8a8778] mt-1">Financial advisors, agents, services & more</p>
+                {/* FEATURED BUSINESSES SECTION */}
+                <div className="section-banner bg-blue-50/70 border-blue-200 mb-4">
+                  <p className="text-sm font-bold text-gray-800"><span className="font-black text-blue-600">Featured Businesses</span></p>
+                  <p className="text-xs font-medium text-[#8a8778] mt-1">Highlighted local businesses and trusted services</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {displayBusinesses.filter(b => b.tier === 'card').map((b, idx) => (
-                    <div key={b.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-purple-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+                    <div key={b.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-blue-100 card-hover animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                       <div className="flex items-center gap-3 mb-2">
                         {b.logo_url ? (
                           <img src={b.logo_url} alt={b.name} className="w-11 h-11 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }} />
                         ) : (
-                          <div className="w-11 h-11 rounded-lg flex items-center justify-center text-2xl bg-purple-50">{b.logo_emoji}</div>
+                          <div className="w-11 h-11 rounded-lg flex items-center justify-center text-2xl bg-blue-50">{b.logo_emoji}</div>
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-bold tracking-tight truncate">{b.name}</h3>
-                          <span className="badge bg-purple-50 text-purple-600 border border-purple-200">{b.category}</span>
+                          <span className="badge bg-blue-50 text-blue-600 border border-blue-200">{b.category}</span>
                         </div>
                       </div>
                       <p className="text-xs text-gray-500 font-medium mb-3 font-editorial italic">&quot;{b.tagline}&quot;</p>
                       <a
                         href={`tel:${b.phone}`}
-                        className="btn-interest w-full bg-purple-600 text-white py-2 rounded-lg text-xs font-bold tracking-wide uppercase flex items-center justify-center gap-2"
-                        style={{ boxShadow: '0 2px 6px rgba(147,51,234,0.25)' }}
+                        className="btn-interest w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold tracking-wide uppercase flex items-center justify-center gap-2"
+                        style={{ boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}
                       >
                         <span>📞</span> {b.phone}
                       </a>
@@ -2161,8 +2161,8 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="section-banner bg-emerald-50/80 border-emerald-200">
                   <p className="text-sm font-bold text-gray-800 mb-2">Want to be listed here?</p>
                   <div className="space-y-1.5 text-xs text-[#8a8778] font-medium mb-3">
-                    <p><span className="font-bold text-blue-600">Community Sponsor</span> &mdash; <span className="font-bold text-emerald-700">$30/mo</span> or <span className="font-bold text-emerald-700">$250/yr</span> &mdash; Full card, website link, priority placement, sponsor badge</p>
-                    <p><span className="font-bold text-purple-600">Community Professional</span> &mdash; <span className="font-bold text-emerald-700">$15/mo</span> or <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
+                    <p><span className="font-bold text-blue-600">Featured Business</span> &mdash; <span className="font-bold text-emerald-700">$30/mo</span> or <span className="font-bold text-emerald-700">$250/yr</span> &mdash; Full card, website link, priority placement</p>
+                    <p><span className="font-bold text-purple-600">Business Listing</span> &mdash; <span className="font-bold text-emerald-700">$15/mo</span> or <span className="font-bold text-emerald-700">$100/yr</span> &mdash; Compact card, click-to-call</p>
                   </div>
                   <button
                     onClick={() => { setBusinessForm(f => ({ ...f, townId: selectedTownId })); setBusinessSuccess(false); setBusinessError(''); setBusinessLogo(null); setBusinessLogoPreview(null); setShowBusinessModal(true) }}
@@ -2183,7 +2183,7 @@ const handleInterestToggle = async (eventId: number) => {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-bold text-sm text-gray-900">{biz.name}</p>
-                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Community Sponsor $250/yr' : 'Community Professional $100/yr'}</span></p>
+                              <p className="text-xs text-gray-500">{biz.category} &bull; <span className={biz.tier === 'spotlight' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold'}>{biz.tier === 'spotlight' ? 'Featured Business $250/yr' : 'Business Listing $100/yr'}</span></p>
                             </div>
                             <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px] whitespace-nowrap">Pending</span>
                           </div>
@@ -2234,13 +2234,14 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Daily Laughs</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    A new joke every day — hand-picked and family-friendly for the whole community!
+                    A new joke every day! Family-friendly and easy to share.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                   {dailyJokes.map((joke, index) => {
-                    const label = index === 0 ? 'Today' : index === 1 ? 'Yesterday' : `${index} days ago`
+                    const jokeDate = new Date(); jokeDate.setDate(jokeDate.getDate() - index);
+                    const label = index === 0 ? 'Today' : index === 1 ? 'Yesterday' : jokeDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     return (
                       <div key={joke.id} className={`bg-white rounded-[14px] overflow-hidden card-hover animate-fade-in-up stagger-${Math.min(index + 1, 8)} ${index === 0 ? 'border-[1.5px] border-amber-300' : 'border-[1.5px] border-[#e8e6e1]'}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
                         <div className={`p-6 ${index === 0 ? 'bg-gradient-to-br from-amber-50/80 to-white' : 'bg-gradient-to-br from-gray-50/60 to-white'}`}>
@@ -2250,7 +2251,7 @@ const handleInterestToggle = async (eventId: number) => {
                         <div className="px-4 py-3 border-t border-[#e8e6e1]">
                           <div className="flex items-center justify-between">
                             <span className={`badge ${index === 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-50 text-gray-500 border border-gray-200'}`}>{label}</span>
-                            <span className="text-xs text-[#8a8778] font-medium">Daily Laughs</span>
+                            <span className="text-xs text-[#8a8778] font-medium">{label}</span>
                           </div>
                         </div>
                       </div>
@@ -2277,7 +2278,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Community Board</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Lost pets, garage sales, volunteer needs & local announcements from your neighbors.
+                    Lost pets, garage sales, volunteer needs, and local announcements.
                   </p>
                 </div>
 
@@ -2365,7 +2366,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Local Non-Profits</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Support the organizations that make {selectedTownName} great. Donate directly!
+                    Support the organizations that make Lucas County strong. Donate directly!
                   </p>
                 </div>
 
@@ -2388,7 +2389,7 @@ const handleInterestToggle = async (eventId: number) => {
                           <span className="badge bg-rose-50 text-rose-600 border border-rose-200">{np.category}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{np.tagline}&quot;</p>
+                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">{np.tagline}</p>
                       {np.description && (
                         <p className="text-xs text-gray-500 font-semibold mb-3">{np.description}</p>
                       )}
@@ -2447,7 +2448,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Clubs & Groups</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Find your people! Local clubs, groups, and organizations in {selectedTownName}.
+                    Find your people. Discover and join local organizations across Lucas County.
                   </p>
                 </div>
 
@@ -2470,7 +2471,7 @@ const handleInterestToggle = async (eventId: number) => {
                           <span className="badge bg-cyan-50 text-cyan-700 border border-cyan-200">{club.category}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">&quot;{club.tagline}&quot;</p>
+                      <p className="text-sm text-gray-600 font-semibold mb-3 italic">{club.tagline}</p>
                       {club.description && (
                         <p className="text-xs text-gray-500 font-semibold mb-3">{club.description}</p>
                       )}
@@ -2541,7 +2542,7 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Celebrations of Life</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Honoring those we&apos;ve lost. Remembering the lives that made our community special.
+                    Honoring those we&apos;ve lost and the lives that shaped our community.
                   </p>
                 </div>
 
@@ -2679,7 +2680,7 @@ const handleInterestToggle = async (eventId: number) => {
                     </div>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Discover parks, trails, lakes & landmarks. Tap a pin for details!
+                    Discover parks, trails, lakes, and landmarks across Lucas County. Tap a pin for details.
                   </p>
                 </div>
 
@@ -2858,62 +2859,44 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Local discounts, partner deals & affiliate offers that help keep this app free!
+                    Local deals and partner offers. Some links support the app at no extra cost to you.
                   </p>
                 </div>
 
-                {/* Trading Partners */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>🤝</span> Trading Partners
-                  </h3>
-                  {displayAffiliates.filter(a => a.category === 'Trading' || a.category === 'Broker').map(aff => (
-                    <Card key={aff.id} className="border-blue-200 hover:shadow-xl transition-all cursor-pointer">
-                      <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
-                        <div className="text-4xl">{aff.logo_emoji}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
+                  {displayAffiliates.map(aff => {
+                    const isTrading = aff.category === 'Trading' || aff.category === 'Broker'
+                    const isLocal = aff.category === 'Local' || aff.category === 'Restaurant' || aff.category === 'Dining'
+                    const pillLabel = isLocal ? 'Local' : 'Online'
+                    const pillClass = isLocal ? 'bg-green-100 text-green-800 border-green-200' : 'bg-blue-100 text-blue-800 border-blue-200'
+                    const btnText = isTrading ? 'Get Offer' : 'View Deal'
+                    const btnClass = isTrading
+                      ? `${theme.accentClass} text-white`
+                      : 'bg-purple-600 text-white'
+                    const btnShadow = isTrading
+                      ? '0 2px 8px rgba(0,0,0,0.12)'
+                      : '0 2px 8px rgba(147,51,234,0.25)'
+                    return (
+                      <Card key={aff.id} className="hover:shadow-xl transition-all cursor-pointer mb-3">
+                        <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
+                          <div className="text-4xl">{aff.logo_emoji}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${pillClass}`}>{pillLabel}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-black ${isTrading ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-800'}`}>{aff.commission}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category === 'Trading' ? 'Trading tools and education' : aff.category === 'Health' ? 'Daily wellness and supplements' : aff.category}</p>
+                            <button className={`btn-interest btn-cta w-full ${btnClass} py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: btnShadow }}>
+                              {btnText} &rarr;
+                            </button>
                           </div>
-                          <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
-                          <button className={`btn-interest btn-cta w-full ${theme.accentClass} text-white py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-                            Check It Out &rarr;
-                          </button>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Other Affiliate Partners */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-black tracking-tight font-display mb-3 flex items-center gap-2">
-                    <span>⭐</span> Partner Deals
-                  </h3>
-                  {displayAffiliates.filter(a => a.category !== 'Trading' && a.category !== 'Broker').map(aff => (
-                    <Card key={aff.id} className="border-purple-200 hover:shadow-xl transition-all cursor-pointer">
-                      <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
-                        <div className="text-4xl">{aff.logo_emoji}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
-                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-black">{aff.commission}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category}</p>
-                          <button className="btn-interest btn-cta w-full bg-purple-600 text-white py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase" style={{ boxShadow: '0 2px 8px rgba(147,51,234,0.25)' }}>
-                            Get Deal &rarr;
-                          </button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="bg-white border-[1.5px] border-[#e8e6e1] p-4 rounded-[14px]">
-                  <p className="text-xs text-[#8a8778] font-medium text-center font-editorial italic leading-relaxed">
-                    These affiliate partnerships help keep Go New Paper free for everyone! When you sign up through our links, we may earn a small commission at no extra cost to you.
-                  </p>
+                      </Card>
+                    )
+                  })}
                 </div>
               </>
             )}
@@ -3130,18 +3113,18 @@ const handleInterestToggle = async (eventId: number) => {
                     <select value={listingForm.category} onChange={(e) => setListingForm(f => ({...f, category: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" required>
                       <option value="">Select a category...</option>
                       <option value="General">General</option>
-                      <option value="Community Events">Community Events</option>
-                      <option value="Sports & Recreation">Sports & Recreation</option>
                       <option value="Arts & Culture">Arts & Culture</option>
+                      <option value="Civic & Community">Civic & Community</option>
+                      <option value="Faith-Based">Faith-Based</option>
+                      <option value="Hobby & Interest">Hobby & Interest</option>
+                      <option value="Sports & Recreation">Sports & Recreation</option>
+                      <option value="Veterans">Veterans</option>
                       <option value="Youth">Youth</option>
                       <option value="Education">Education</option>
-                      <option value="Faith-Based">Faith-Based</option>
                       <option value="Health & Wellness">Health & Wellness</option>
-                      <option value="Veterans">Veterans</option>
                       <option value="Social Services">Social Services</option>
                       <option value="Environment">Environment</option>
                       <option value="Animal Welfare">Animal Welfare</option>
-                      <option value="Civic/Government">Civic/Government</option>
                     </select>
                   </div>
 
@@ -3725,8 +3708,8 @@ const handleInterestToggle = async (eventId: number) => {
                   style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.35)' }}
                 >
                   Complete Payment — {submittedTier === 'spotlight'
-                    ? (submittedBilling === 'monthly' ? '$30/mo Community Sponsor' : '$250/yr Community Sponsor')
-                    : (submittedBilling === 'monthly' ? '$15/mo Community Professional' : '$100/yr Community Professional')} →
+                    ? (submittedBilling === 'monthly' ? '$30/mo Featured Business' : '$250/yr Featured Business')
+                    : (submittedBilling === 'monthly' ? '$15/mo Business Listing' : '$100/yr Business Listing')} →
                 </a>
                 <button onClick={() => setShowBusinessModal(false)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl text-sm font-bold">
                   Close
@@ -3756,7 +3739,7 @@ const handleInterestToggle = async (eventId: number) => {
                         onClick={() => setBusinessForm(f => ({ ...f, tier: 'card' }))}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'card' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <p className="text-xs font-black text-purple-600">COMMUNITY PROFESSIONAL</p>
+                        <p className="text-xs font-black text-purple-600">BUSINESS LISTING</p>
                         <p className="text-lg font-black text-gray-900">
                           {billingPeriod === 'monthly' ? '$15' : '$100'}
                           <span className="text-xs font-semibold text-gray-500">{billingPeriod === 'monthly' ? '/mo' : '/yr'}</span>
@@ -3768,13 +3751,13 @@ const handleInterestToggle = async (eventId: number) => {
                         onClick={() => setBusinessForm(f => ({ ...f, tier: 'spotlight' }))}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${businessForm.tier === 'spotlight' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <p className="text-xs font-black text-blue-600">COMMUNITY SPONSOR</p>
+                        <p className="text-xs font-black text-blue-600">FEATURED BUSINESS</p>
                         <p className="text-lg font-black text-gray-900">
                           {billingPeriod === 'monthly' ? '$30' : '$250'}
                           <span className="text-xs font-semibold text-gray-500">{billingPeriod === 'monthly' ? '/mo' : '/yr'}</span>
                         </p>
                         {billingPeriod === 'annual' && <p className="text-[10px] text-emerald-600 font-bold">vs $360/yr monthly</p>}
-                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, priority placement, sponsor badge</p>
+                        <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Full card, website link, priority placement</p>
                       </button>
                     </div>
                   </div>
@@ -3791,7 +3774,7 @@ const handleInterestToggle = async (eventId: number) => {
                         <label className="block text-sm font-bold text-gray-700 mb-1">Category *</label>
                         <select value={businessForm.category} onChange={e => setBusinessForm(f => ({ ...f, category: e.target.value }))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" required>
                           <option value="">Select a category…</option>
-                          {['Restaurant','Cafe/Coffee Shop','Retail','Grocery','Auto Services','Insurance','Financial Advisor','Real Estate','Healthcare','Salon/Beauty','Entertainment','Event Services','Professional Services','Home Services','Agriculture','Other'].map(c => (
+                          {['Automotive','Cafe/Coffee Shop','Construction & Trades','Education & Childcare','Entertainment','Event Services','Farm & Agriculture','Financial Services','Food & Dining','Grocery','Health & Wellness','Home & Garden','Insurance','Legal Services','Pet Services','Professional Services','Real Estate','Retail & Shopping','Salon/Beauty','Technology & IT','Other'].map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
                         </select>
@@ -4126,7 +4109,7 @@ const handleInterestToggle = async (eventId: number) => {
 
             <div className="bg-[#1a1a2e] text-white p-4 rounded-[14px] mb-5" style={{ boxShadow: '0 4px 16px rgba(26,26,46,0.2)' }}>
               <p className="text-[10px] font-bold mb-1.5 text-white/40 tracking-[0.15em] uppercase">Our Mission</p>
-              <p className="text-sm font-medium font-editorial italic text-white/80 leading-relaxed">&quot;Bringing back the town newspaper&mdash;but faster &amp; in your pocket.&quot;</p>
+              <p className="text-sm font-medium font-editorial italic text-white/80 leading-relaxed">Helping communities stay connected by bringing local information, resources, and opportunities into one place.</p>
             </div>
 
             {/* Community Dashboard — Admin Only */}
