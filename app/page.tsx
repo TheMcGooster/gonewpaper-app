@@ -100,6 +100,7 @@ export default function GoNewPaper() {
   const [authPassword, setAuthPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  const [showSignupNudge, setShowSignupNudge] = useState(false)
   const [userInterests, setUserInterests] = useState<number[]>([])
   const [eventInterestCounts, setEventInterestCounts] = useState<Record<number, number>>({})
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
@@ -560,6 +561,15 @@ export default function GoNewPaper() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // 15-second sign-up nudge for unauthenticated users
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (sessionStorage.getItem('gnp_nudge_dismissed')) return
+    if (user) return
+    const timer = setTimeout(() => setShowSignupNudge(true), 15000)
+    return () => clearTimeout(timer)
+  }, [user])
 
   // Fetch user's interested events
   const fetchUserInterests = async (userId: string) => {
@@ -2942,6 +2952,41 @@ const handleInterestToggle = async (eventId: number) => {
           ))}
         </div>
       </nav>
+
+      {/* Sign-up Nudge */}
+      {showSignupNudge && !user && (
+        <div className="fixed bottom-20 left-0 right-0 flex justify-center px-4 z-40 pointer-events-none">
+          <div className="bg-white w-full max-w-sm rounded-[20px] p-5 pointer-events-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.25)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">📰 Go New Paper</p>
+                <h3 className="text-base font-black tracking-tight font-display leading-tight">Your town. Your news.</h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">Sign in to follow events, get job alerts, and stay connected to your community.</p>
+              </div>
+              <button
+                onClick={() => { setShowSignupNudge(false); sessionStorage.setItem('gnp_nudge_dismissed', '1') }}
+                className="ml-3 p-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 -mt-0.5"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => { setAuthMode('signup'); setShowAuthModal(true); setShowSignupNudge(false); sessionStorage.setItem('gnp_nudge_dismissed', '1') }}
+                className={`flex-1 ${theme.accentClass} text-white py-2.5 rounded-xl font-black tracking-wide text-sm uppercase`}
+              >
+                Sign Up Free
+              </button>
+              <button
+                onClick={() => { setAuthMode('login'); setShowAuthModal(true); setShowSignupNudge(false); sessionStorage.setItem('gnp_nudge_dismissed', '1') }}
+                className="flex-1 bg-gray-100 text-gray-800 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+              >
+                Log In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Panel */}
       {showNotifications && (
