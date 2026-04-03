@@ -2088,7 +2088,7 @@ const handleInterestToggle = async (eventId: number) => {
                   <button
                     onClick={() => {
                       if (!user) { setAuthMode('login'); setShowAuthModal(true); return }
-                      if (isSubscriber || user?.email === 'jarrettcmcgee@gmail.com') {
+                      if (isSubscriber || isAdmin) {
                         setPostHousingForm({ title: '', price: '', listing_type: 'rent', bedrooms: '', bathrooms: '', location: '', description: '', details: '', contact_name: '', contact_phone: '', contact_email: '', pets_allowed: false })
                         setPostHousingSuccess(false); setPostHousingError('')
                         setShowPostHousingModal(true)
