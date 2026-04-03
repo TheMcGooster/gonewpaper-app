@@ -674,7 +674,7 @@ export default function GoNewPaper() {
   }
 
   // Admin check
-  const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'jarrettmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com' || user?.email === 'thenewpaperchariton@gmail.com'
+  const isAdmin = user?.email === 'jarrettcmcgee@gmail.com' || user?.email === 'jarrettmcgee@gmail.com' || user?.email === 'goflufffactory@gmail.com' || user?.email === 'thenewpaperchariton@gmail.com' || user?.email === 'gonewpaper@gmail.com'
 
   // Check if user has access to reports (admin or chamber/city contact)
   const canViewReports = isAdmin || reportAccessTownIds.length > 0
