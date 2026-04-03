@@ -2042,36 +2042,6 @@ const handleInterestToggle = async (eventId: number) => {
                     </button>
                   </Card>
                 ))}
-                {/* Pricing Info Banner */}
-                <div className="section-banner bg-emerald-50/80 border-emerald-200 mt-4 animate-fade-in-up">
-                  <p className="text-sm font-bold text-gray-800 mb-2">List your property.</p>
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-[#8a8778] font-medium">Single Listing: <span className="price-tag text-emerald-700">$8</span> (30 days)</p>
-                      <a
-                        href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-cta bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-wide"
-                        style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
-                      >
-                        Post Now
-                      </a>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-[#8a8778] font-medium">5 Listings: <span className="price-tag text-emerald-700">$30</span> (save $10!)</p>
-                      <a
-                        href="https://buy.stripe.com/eVq8wQ3Cm8x38ddgan5ZC08"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-cta bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-wide"
-                        style={{ boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
-                      >
-                        Buy 5
-                      </a>
-                    </div>
-                  </div>
-                </div>
               </>
             )}
 
