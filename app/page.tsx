@@ -1168,7 +1168,25 @@ const handleInterestToggle = async (eventId: number) => {
         if (businessesRes.data) setBusinesses(businessesRes.data)
         if (housingRes.data) setHousing(housingRes.data)
         if (communityRes.data) setCommunityPosts(communityRes.data)
-        if (celebrationsRes.data) setCelebrations(celebrationsRes.data)
+        if (celebrationsRes.data) {
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+          const sorted = [...celebrationsRes.data].sort((a, b) => {
+            const aDate = a.service_date || ''
+            const bDate = b.service_date || ''
+            const aUpcoming = aDate >= today
+            const bUpcoming = bDate >= today
+            // Upcoming/today service dates first, nearest date on top
+            if (aUpcoming && !bUpcoming) return -1
+            if (!aUpcoming && bUpcoming) return 1
+            if (aUpcoming && bUpcoming) return aDate.localeCompare(bDate)
+            // Past or no service date: sort by passing_date desc, then created_at desc
+            if (aDate && bDate) return bDate.localeCompare(aDate)
+            if (aDate && !bDate) return -1
+            if (!aDate && bDate) return 1
+            return 0
+          })
+          setCelebrations(sorted)
+        }
         if (affiliatesRes.data) setAffiliates(affiliatesRes.data)
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
