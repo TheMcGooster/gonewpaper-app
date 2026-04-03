@@ -165,6 +165,15 @@ export default function GoNewPaper() {
   const [postJobLoading, setPostJobLoading] = useState(false)
   const [postJobError, setPostJobError] = useState('')
 
+  // Post Housing form state
+  const [showPostHousingModal, setShowPostHousingModal] = useState(false)
+  const [showSubscribePrompt, setShowSubscribePrompt] = useState(false)
+  const [isSubscriber, setIsSubscriber] = useState(false)
+  const [postHousingForm, setPostHousingForm] = useState({ title: '', price: '', listing_type: 'rent' as 'rent' | 'sale' | 'room', bedrooms: '', bathrooms: '', location: '', description: '', details: '', contact_name: '', contact_phone: '', contact_email: '', pets_allowed: false })
+  const [postHousingSuccess, setPostHousingSuccess] = useState(false)
+  const [postHousingLoading, setPostHousingLoading] = useState(false)
+  const [postHousingError, setPostHousingError] = useState('')
+
   // Community Dashboard state
   const [showDashboard, setShowDashboard] = useState(false)
   const [dashboardData, setDashboardData] = useState<any>(null)
@@ -531,6 +540,12 @@ export default function GoNewPaper() {
         .eq('id', authUser.id)
     }
 
+    // Check if user has an active business subscription
+    const checkSubscriber = async (email: string) => {
+      const { data } = await supabase.from('businesses').select('id').or(`contact_email.ilike.${email},email.ilike.${email}`).eq('payment_status', 'active').limit(1)
+      setIsSubscriber(!!(data && data.length > 0))
+    }
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -539,6 +554,7 @@ export default function GoNewPaper() {
         fetchUserInterests(session.user.id)
         saveOneSignalPlayerId(session.user.id)
         loadUserTown(session.user.id)
+        if (session.user.email) checkSubscriber(session.user.email)
       }
     })
 
@@ -552,9 +568,11 @@ export default function GoNewPaper() {
         loadUserTown(session.user.id)
         // Auto-request notification permission for Google OAuth redirects and email confirmations
         requestNotificationPermission(session.user.id)
+        if (session.user.email) checkSubscriber(session.user.email)
       } else {
         setUserInterests([])
         setNotificationsEnabled(false)
+        setIsSubscriber(false)
       }
     })
 
@@ -979,6 +997,43 @@ export default function GoNewPaper() {
       setPostJobError('Something went wrong. Please try again.')
     } finally {
       setPostJobLoading(false)
+    }
+  }
+
+  const handlePostHousingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setPostHousingError('')
+    if (!postHousingForm.title.trim()) { setPostHousingError('Title is required'); return }
+    if (!postHousingForm.price.trim()) { setPostHousingError('Price is required'); return }
+    if (!postHousingForm.location.trim()) { setPostHousingError('Location is required'); return }
+    if (!postHousingForm.contact_phone.trim() && !postHousingForm.contact_email.trim()) { setPostHousingError('At least one contact method (phone or email) is required'); return }
+    setPostHousingLoading(true)
+    try {
+      const { error } = await supabase.from('housing').insert({
+        title: postHousingForm.title.trim(),
+        price: postHousingForm.price.trim(),
+        listing_type: postHousingForm.listing_type,
+        bedrooms: postHousingForm.bedrooms ? parseInt(postHousingForm.bedrooms) : null,
+        bathrooms: postHousingForm.bathrooms ? parseInt(postHousingForm.bathrooms) : null,
+        location: postHousingForm.location.trim(),
+        description: postHousingForm.description.trim() || null,
+        details: postHousingForm.details.trim() || null,
+        contact_name: postHousingForm.contact_name.trim() || null,
+        contact_phone: postHousingForm.contact_phone.trim() || null,
+        contact_email: postHousingForm.contact_email.trim() || null,
+        pets_allowed: postHousingForm.pets_allowed,
+        town_id: selectedTownId,
+        is_active: true,
+      })
+      if (error) throw error
+      setPostHousingSuccess(true)
+      const { data } = await supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20)
+      if (data) setHousing(data)
+    } catch (err) {
+      setPostHousingError('Something went wrong. Please try again.')
+    } finally {
+      setPostHousingLoading(false)
     }
   }
 
@@ -2030,15 +2085,22 @@ const handleInterestToggle = async (eventId: number) => {
                     <h2 className="text-xl font-black tracking-tight font-display">Local Housing</h2>
                     <p className="text-xs text-[#8a8778] font-medium mt-0.5">Browse available rentals or post your property in minutes</p>
                   </div>
-                  <a
-                    href="https://buy.stripe.com/14A7sM1uefZvdxx1ft5ZC09"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => {
+                      if (!user) { setAuthMode('login'); setShowAuthModal(true); return }
+                      if (isSubscriber || user?.email === 'jarrettcmcgee@gmail.com') {
+                        setPostHousingForm({ title: '', price: '', listing_type: 'rent', bedrooms: '', bathrooms: '', location: '', description: '', details: '', contact_name: '', contact_phone: '', contact_email: '', pets_allowed: false })
+                        setPostHousingSuccess(false); setPostHousingError('')
+                        setShowPostHousingModal(true)
+                      } else {
+                        setShowSubscribePrompt(true)
+                      }
+                    }}
                     className={`${theme.accentTextClass} text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-[#e8e6e1]`}
                     style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
                   >
                     <Plus className="w-3.5 h-3.5" />Post
-                  </a>
+                  </button>
                 </div>
                 {displayHousing.map((h, idx) => (
                   <Card key={h.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
@@ -3659,6 +3721,152 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Post Housing Modal */}
+      {showPostHousingModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowPostHousingModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {postHousingSuccess ? 'Posted!' : 'Post a Listing'}
+              </h2>
+              <button onClick={() => setShowPostHousingModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {postHousingSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">🏠</div>
+                <p className="text-lg font-black mb-2">Listing Posted!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  Your housing listing is now live in the Housing tab.
+                </p>
+                <button
+                  onClick={() => setShowPostHousingModal(false)}
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg`}
+                >
+                  CLOSE
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePostHousingSubmit}>
+                <div className="space-y-4">
+                  {postHousingError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 font-semibold">{postHousingError}</div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Title *</label>
+                    <input type="text" value={postHousingForm.title} onChange={(e) => setPostHousingForm(f => ({...f, title: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. 2BR Apartment, 3BR House" required maxLength={100} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
+                      <select value={postHousingForm.listing_type} onChange={(e) => setPostHousingForm(f => ({...f, listing_type: e.target.value as 'rent' | 'sale' | 'room'}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold">
+                        <option value="rent">For Rent</option>
+                        <option value="sale">For Sale</option>
+                        <option value="room">Room</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Price *</label>
+                      <input type="text" value={postHousingForm.price} onChange={(e) => setPostHousingForm(f => ({...f, price: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. $550/mo, $125k" required maxLength={30} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Bedrooms</label>
+                      <input type="number" min="0" max="20" value={postHousingForm.bedrooms} onChange={(e) => setPostHousingForm(f => ({...f, bedrooms: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. 2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Bathrooms</label>
+                      <input type="number" min="0" max="20" value={postHousingForm.bathrooms} onChange={(e) => setPostHousingForm(f => ({...f, bathrooms: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. 1" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Location *</label>
+                    <input type="text" value={postHousingForm.location} onChange={(e) => setPostHousingForm(f => ({...f, location: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. Downtown, North side" required maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                    <textarea value={postHousingForm.description} onChange={(e) => setPostHousingForm(f => ({...f, description: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="Describe the property (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Details/Amenities</label>
+                    <input type="text" value={postHousingForm.details} onChange={(e) => setPostHousingForm(f => ({...f, details: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="e.g. Updated kitchen, parking, laundry" maxLength={200} />
+                  </div>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" checked={postHousingForm.pets_allowed} onChange={(e) => setPostHousingForm(f => ({...f, pets_allowed: e.target.checked}))} className="w-4 h-4 accent-red-500" />
+                    <span className="text-sm font-bold text-gray-700">Pets Allowed</span>
+                  </label>
+
+                  <div className="border-t pt-4 mt-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Contact Info</p>
+                    <div className="space-y-3">
+                      <input type="text" value={postHousingForm.contact_name} onChange={(e) => setPostHousingForm(f => ({...f, contact_name: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="Contact name (optional)" maxLength={100} />
+                      <input type="tel" value={postHousingForm.contact_phone} onChange={(e) => setPostHousingForm(f => ({...f, contact_phone: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="Phone number *" maxLength={20} />
+                      <input type="email" value={postHousingForm.contact_email} onChange={(e) => setPostHousingForm(f => ({...f, contact_email: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold" placeholder="Email (optional)" maxLength={100} />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#8a8778] font-medium text-center">Free housing posts for Go New Paper subscribers. Thank you for supporting {selectedTownName}!</p>
+
+                  <button type="submit" disabled={postHousingLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
+                    {postHousingLoading ? 'POSTING...' : 'POST LISTING'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Subscribe Prompt Modal */}
+      {showSubscribePrompt && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowSubscribePrompt(false)}>
+          <div className="bg-white w-full max-w-sm rounded-[20px] p-6" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-black tracking-tight font-display">Subscriber Perk</h2>
+              <button onClick={() => setShowSubscribePrompt(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="text-center py-2">
+              <div className="text-5xl mb-4">🏠</div>
+              <p className="text-sm text-gray-700 font-semibold leading-relaxed mb-1">
+                Housing posts are a <span className="font-black text-gray-900">free perk</span> for Go New Paper business subscribers.
+              </p>
+              <p className="text-xs text-gray-500 font-medium mb-5">
+                List your business to unlock free housing posts, featured placement, and more.
+              </p>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => {
+                    setShowSubscribePrompt(false)
+                    setBusinessForm((f: any) => ({ ...f, townId: selectedTownId }))
+                    setBusinessSuccess(false); setBusinessError('')
+                    setBusinessLogo(null); setBusinessLogoPreview(null)
+                    setShowBusinessModal(true)
+                  }}
+                  className={`w-full ${theme.accentClass} text-white py-3 rounded-xl font-black tracking-wide text-sm uppercase`}
+                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                >
+                  List My Business
+                </button>
+                <button
+                  onClick={() => setShowSubscribePrompt(false)}
+                  className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
