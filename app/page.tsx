@@ -1329,7 +1329,7 @@ const handleInterestToggle = async (eventId: number) => {
           exploreRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
-          supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(20),
+          supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(100),
           supabase.from('jobs').select('*').eq('town_id', selectedTownId).order('created_at', { ascending: false }).limit(20),
           supabase.from('businesses').select('*').or(`town_id.eq.${selectedTownId},additional_town_ids.cs.{${selectedTownId}}`).eq('payment_status', 'active').order('featured', { ascending: false }).limit(20),
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
