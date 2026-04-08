@@ -406,7 +406,7 @@ export default function ForCommunitiesPage() {
       </section>
 
       {/* ========== LIVE EVENT UPDATES SPOTLIGHT ========== */}
-      <section className="max-w-5xl mx-auto px-5 py-20">
+      <section id="live-updates" className="max-w-5xl mx-auto px-5 py-20 scroll-mt-20">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4" style={{ background: 'rgba(220,20,60,0.08)', border: '1px solid rgba(220,20,60,0.18)' }}>
             <Zap className="w-3.5 h-3.5" style={{ color: '#DC143C' }} />
