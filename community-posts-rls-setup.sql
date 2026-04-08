@@ -25,6 +25,7 @@ CREATE POLICY "Admins can update community posts"
   USING (
     auth.role() = 'authenticated'
     AND auth.jwt() ->> 'email' IN (
+      'jarrettmcgee@gmail.com',
       'jarrettcmcgee@gmail.com',
       'goflufffactory@gmail.com',
       'thenewpaperchariton@gmail.com'
@@ -33,6 +34,7 @@ CREATE POLICY "Admins can update community posts"
   WITH CHECK (
     auth.role() = 'authenticated'
     AND auth.jwt() ->> 'email' IN (
+      'jarrettmcgee@gmail.com',
       'jarrettcmcgee@gmail.com',
       'goflufffactory@gmail.com',
       'thenewpaperchariton@gmail.com'

@@ -35,7 +35,7 @@ RETURNING id, title, date, time;
 -- ^^^ NOTE THE RETURNED EVENT ID - you'll need it below
 
 -- Step 3: Find your user ID
--- Look for jarrettcmcgee@gmail.com or goflufffactory@gmail.com
+-- Look for jarrettmcgee@gmail.com, jarrettcmcgee@gmail.com, or goflufffactory@gmail.com
 SELECT id, email, raw_user_meta_data->>'full_name' as name
 FROM auth.users
 ORDER BY created_at DESC

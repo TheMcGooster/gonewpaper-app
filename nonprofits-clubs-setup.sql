@@ -82,7 +82,7 @@ VALUES (
   'Sports & Recreation',
   '🧗',
   'Climb higher together!',
-  'jarrettcmcgee@gmail.com',
+  'jarrettmcgee@gmail.com',
   1,
   1
 );
