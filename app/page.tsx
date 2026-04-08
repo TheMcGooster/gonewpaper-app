@@ -2147,8 +2147,20 @@ const handleInterestToggle = async (eventId: number) => {
                         <div className="flex gap-2">
                           <button
                             onClick={async () => {
-                              const { error } = await supabase.from('events').update({ verified: true }).eq('id', event.id)
-                              if (!error) {
+                              // `.select()` forces PostgREST to return the updated rows so we can
+                              // detect RLS-silent 0-row updates (policy rejects without throwing).
+                              const { data: updated, error } = await supabase
+                                .from('events')
+                                .update({ verified: true })
+                                .eq('id', event.id)
+                                .select('id')
+                              if (error) {
+                                console.error('Approve error:', error)
+                                showToast('Error approving event')
+                              } else if (!updated || updated.length === 0) {
+                                console.error('Approve blocked by RLS (0 rows updated). Check is_admin() email list.')
+                                showToast('Not authorized — admin email not recognized by database')
+                              } else {
                                 setPendingEvents(prev => prev.filter(e => e.id !== event.id))
                                 setEvents(prev => [...prev, { ...event, verified: true }].sort((a, b) => {
                                   const dateCmp = (a.date || '').localeCompare(b.date || '')
@@ -2156,8 +2168,6 @@ const handleInterestToggle = async (eventId: number) => {
                                   return parseTimeToMinutes(a.time || '') - parseTimeToMinutes(b.time || '')
                                 }))
                                 showToast('Event approved!')
-                              } else {
-                                showToast('Error approving event')
                               }
                             }}
                             className="flex-1 bg-emerald-500 text-white py-2 rounded-lg text-xs font-black tracking-wide uppercase"
