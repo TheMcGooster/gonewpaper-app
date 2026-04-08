@@ -7,6 +7,8 @@ import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLi
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
+const isDev = process.env.NODE_ENV === 'development'
+
 // Format date from YYYY-MM-DD string to readable format (FIXED - no timezone shift)
 const formatEventDate = (dateStr: string) => {
   try {
@@ -158,6 +160,14 @@ export default function GoNewPaper() {
   const [postEventSuccess, setPostEventSuccess] = useState(false)
   const [postEventLoading, setPostEventLoading] = useState(false)
 
+  // Edit Event form state (organizer-edit-with-notification flow)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [editEventForm, setEditEventForm] = useState({ date: '', time: '', location: '', cancelled: false })
+  const [editEventMessage, setEditEventMessage] = useState('')
+  const [editEventMessageDirty, setEditEventMessageDirty] = useState(false)
+  const [editEventLoading, setEditEventLoading] = useState(false)
+  const [editEventError, setEditEventError] = useState('')
+
   // Post Job form state
   const [showPostJobModal, setShowPostJobModal] = useState(false)
   const [postJobForm, setPostJobForm] = useState({ title: '', company: '', type: 'Full-Time', pay: '', description: '', apply_url: '', location: '' })
@@ -264,7 +274,7 @@ export default function GoNewPaper() {
         window.OneSignalDeferred.push(async (OneSignalSDK: any) => {
           const oneSignalPermission = OneSignalSDK.Notifications.permission
           const hasSubscription = !!OneSignalSDK.User.PushSubscription.id
-          console.log('OneSignal permission:', oneSignalPermission, 'Has subscription:', hasSubscription, 'Player ID:', OneSignalSDK.User.PushSubscription.id)
+          isDev && console.log('OneSignal permission:', oneSignalPermission, 'Has subscription:', hasSubscription, 'Player ID:', OneSignalSDK.User.PushSubscription.id)
           // If permission granted, show as enabled even if subscription is pending
           // (autoResubscribe will create the subscription shortly)
           // Only override to false if browser also denies — prevents OneSignal lag from clearing fast check
@@ -274,7 +284,7 @@ export default function GoNewPaper() {
 
           // Listen for permission changes
           OneSignalSDK.Notifications.addEventListener('permissionChange', (newPermission: boolean) => {
-            console.log('Notification permission changed:', newPermission)
+            isDev && console.log('Notification permission changed:', newPermission)
             setNotificationsEnabled(newPermission)
             if (newPermission) {
               showToast('🔔 Notifications enabled!')
@@ -283,7 +293,7 @@ export default function GoNewPaper() {
 
           // Listen for subscription changes — save player ID + set town tag
           OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
-            console.log('Subscription changed:', event.current.id, 'optedIn:', event.current.optedIn)
+            isDev && console.log('Subscription changed:', event.current.id, 'optedIn:', event.current.optedIn)
             if (event.current.id && event.current.optedIn) {
               setNotificationsEnabled(true)
               // Save player ID to DB
@@ -293,12 +303,12 @@ export default function GoNewPaper() {
                   .from('users')
                   .update({ onesignal_player_id: event.current.id })
                   .eq('id', session.user.id)
-                console.log('Player ID saved from status listener:', event.current.id)
+                isDev && console.log('Player ID saved from status listener:', event.current.id)
               }
               // Set town tag on new subscriptions so daily digest reaches them
               const savedTownId = localStorage.getItem('selectedTownId') || '1'
               OneSignalSDK.User.addTag('town_id', savedTownId)
-              console.log('Town tag set on new subscription:', savedTownId)
+              isDev && console.log('Town tag set on new subscription:', savedTownId)
             }
           })
         })
@@ -320,7 +330,7 @@ export default function GoNewPaper() {
           // This allows push notifications to reach phone + computer simultaneously
           try {
             await OneSignalSDK.login(userId)
-            console.log('OneSignal.login() called with userId:', userId)
+            isDev && console.log('OneSignal.login() called with userId:', userId)
           } catch (loginErr: any) {
             // "already logged in" is fine — ignore it
             if (!loginErr?.message?.includes('already')) {
@@ -336,7 +346,7 @@ export default function GoNewPaper() {
             if (error) {
               console.error('Supabase update error:', error)
             } else {
-              console.log('OneSignal subscription ID saved:', playerId)
+              isDev && console.log('OneSignal subscription ID saved:', playerId)
               // Always ensure town tag is set when saving player ID
               const savedTownId = localStorage.getItem('selectedTownId') || '1'
               OneSignalSDK.User.addTag('town_id', savedTownId)
@@ -348,7 +358,7 @@ export default function GoNewPaper() {
           if (playerId) {
             await saveId(playerId)
           } else {
-            console.log('No subscription ID yet - will poll and listen for changes')
+            isDev && console.log('No subscription ID yet - will poll and listen for changes')
             let attempts = 0
             const pollInterval = setInterval(async () => {
               attempts++
@@ -358,7 +368,7 @@ export default function GoNewPaper() {
                 await saveId(id)
               } else if (attempts >= 15) {
                 clearInterval(pollInterval)
-                console.log('OneSignal: no subscription ID after polling')
+                isDev && console.log('OneSignal: no subscription ID after polling')
               }
             }, 2000)
           }
@@ -367,7 +377,7 @@ export default function GoNewPaper() {
           OneSignalSDK.User.PushSubscription.addEventListener('change', async (event: any) => {
             const newPlayerId = event.current.id
             if (newPlayerId && event.current.optedIn) {
-              console.log('Subscription changed! Saving ID:', newPlayerId)
+              isDev && console.log('Subscription changed! Saving ID:', newPlayerId)
               await saveId(newPlayerId)
             }
           })
@@ -417,7 +427,7 @@ export default function GoNewPaper() {
         }
       })
     } catch (err) {
-      console.log('Could not request notification permission:', err)
+      isDev && console.log('Could not request notification permission:', err)
     }
   }
 
@@ -440,7 +450,7 @@ export default function GoNewPaper() {
       window.OneSignalDeferred = window.OneSignalDeferred || []
       window.OneSignalDeferred.push((OneSignalSDK: typeof OneSignal) => {
         OneSignalSDK.User.addTag('town_id', String(townId))
-        console.log('OneSignal town_id tag set to:', townId)
+        isDev && console.log('OneSignal town_id tag set to:', townId)
       })
     } catch (err) {
       console.error('Error setting OneSignal town tag:', err)
@@ -515,7 +525,7 @@ export default function GoNewPaper() {
         .single()
       if (!data) {
         // Row is missing — create it from auth metadata (brand new user)
-        console.log('Public user row missing, creating...')
+        isDev && console.log('Public user row missing, creating...')
         await supabase.from('users').insert({
           id: authUser.id,
           email: authUser.email || 'unknown@unknown.com',
@@ -966,6 +976,139 @@ export default function GoNewPaper() {
       showToast('Something went wrong. Please try again.')
     } finally {
       setPostEventLoading(false)
+    }
+  }
+
+  // Open the edit modal for an event the current user owns.
+  // Pre-fills form + auto-generates a notification message based on the (empty) diff.
+  const openEditEventModal = (event: Event) => {
+    setEditingEvent(event)
+    setEditEventForm({
+      date: event.date || '',
+      time: normalizeTimeForInput(event.time || ''),
+      location: event.location || '',
+      cancelled: !!event.cancelled,
+    })
+    setEditEventMessage('')
+    setEditEventMessageDirty(false)
+    setEditEventError('')
+  }
+
+  // Convert mixed-format time strings ("4:00 PM", "16:00:00") to HH:MM for <input type="time">.
+  // Returns '' if unparseable so the field renders empty rather than crashing.
+  function normalizeTimeForInput(timeStr: string): string {
+    if (!timeStr || timeStr === 'TBD') return ''
+    const m24 = timeStr.match(/^(\d{1,2}):(\d{2})/)
+    if (!m24) return ''
+    let h = parseInt(m24[1], 10)
+    const min = m24[2]
+    const ampm = timeStr.match(/\s*(AM|PM)\s*$/i)
+    if (ampm) {
+      const isPM = ampm[1].toUpperCase() === 'PM'
+      if (isPM && h !== 12) h += 12
+      if (!isPM && h === 12) h = 0
+    }
+    if (h < 0 || h > 23) return ''
+    return `${String(h).padStart(2, '0')}:${min}`
+  }
+
+  // Build a human-readable auto-fill message from the diff between the original event and form state.
+  // Used both as the initial value and to refresh while the user hasn't manually edited the box.
+  const buildEditNotificationMessage = (original: Event, form: { date: string; time: string; location: string; cancelled: boolean }): string => {
+    if (form.cancelled && !original.cancelled) {
+      return `This event has been cancelled.`
+    }
+    const parts: string[] = []
+    if (form.location.trim() && form.location.trim() !== (original.location || '').trim()) {
+      parts.push(`New location: ${form.location.trim()}`)
+    }
+    if (form.date && form.date !== original.date) {
+      parts.push(`New date: ${formatEventDate(form.date)}`)
+    }
+    if (form.time && form.time !== normalizeTimeForInput(original.time || '')) {
+      parts.push(`New time: ${form.time}`)
+    }
+    if (parts.length === 0) return ''
+    return parts.join(' • ')
+  }
+
+  // Refresh the auto-message when form fields change, but only if the user hasn't typed their own.
+  useEffect(() => {
+    if (!editingEvent) return
+    if (editEventMessageDirty) return
+    setEditEventMessage(buildEditNotificationMessage(editingEvent, editEventForm))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editEventForm, editingEvent])
+
+  const handleEditEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingEvent || !user) return
+    setEditEventError('')
+
+    // Build only the changed fields
+    const updates: Record<string, string | boolean> = {}
+    if (editEventForm.location.trim() !== (editingEvent.location || '').trim()) {
+      updates.location = editEventForm.location.trim()
+    }
+    if (editEventForm.date && editEventForm.date !== editingEvent.date) {
+      updates.date = editEventForm.date
+    }
+    if (editEventForm.time && editEventForm.time !== normalizeTimeForInput(editingEvent.time || '')) {
+      // <input type="time"> returns HH:MM; DB canonical format is HH:MM:SS — append seconds so
+      // the event-reminders cron time parser continues to work.
+      updates.time = /^\d{2}:\d{2}$/.test(editEventForm.time) ? `${editEventForm.time}:00` : editEventForm.time
+    }
+    if (editEventForm.cancelled !== !!editingEvent.cancelled) {
+      updates.cancelled = editEventForm.cancelled
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setEditEventError('Nothing to update — change a field first.')
+      return
+    }
+    if (!editEventMessage.trim()) {
+      setEditEventError('Notification message is required.')
+      return
+    }
+
+    setEditEventLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        setEditEventError('Your session has expired. Please log in again.')
+        return
+      }
+
+      const res = await fetch('/api/events/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          eventId: editingEvent.id,
+          updates,
+          message: editEventMessage.trim(),
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setEditEventError(result?.error || 'Failed to update event.')
+        return
+      }
+
+      // Optimistically update local state so the card reflects the change immediately
+      setEvents(prev => prev.map(ev =>
+        ev.id === editingEvent.id ? { ...ev, ...updates } as Event : ev
+      ))
+      const notified = typeof result?.notified === 'number' ? result.notified : 0
+      showToast(notified > 0 ? `Event updated — ${notified} interested ${notified === 1 ? 'person' : 'people'} notified.` : 'Event updated.')
+      setEditingEvent(null)
+    } catch (err) {
+      setEditEventError('Something went wrong. Please try again.')
+    } finally {
+      setEditEventLoading(false)
     }
   }
 
@@ -1893,11 +2036,16 @@ const handleInterestToggle = async (eventId: number) => {
                   </button>
                 </div>
                 {displayEvents.map((event, idx) => (
-                  <Card key={event.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}>
+                  <Card key={event.id} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)} ${event.cancelled ? 'opacity-75' : ''}`}>
+                    {event.cancelled && (
+                      <div className="mb-3 -mt-1 inline-flex items-center gap-1.5 bg-red-100 border border-red-300 text-red-800 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider">
+                        <X className="w-3 h-3" /> Cancelled
+                      </div>
+                    )}
                     <div className="flex items-start gap-3 mb-3">
                       <span className="text-2xl flex-shrink-0 mt-0.5">{event.category}</span>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[15px] font-bold tracking-tight leading-snug">{event.title}</h3>
+                        <h3 className={`text-[15px] font-bold tracking-tight leading-snug ${event.cancelled ? 'line-through text-gray-500' : ''}`}>{event.title}</h3>
                         <p className="text-[11px] text-[#8a8778] font-semibold uppercase tracking-wider mt-0.5">{event.source}</p>
                       </div>
                       {event.price && (
@@ -1928,15 +2076,20 @@ const handleInterestToggle = async (eventId: number) => {
                     )}
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleInterestToggle(event.id)}
+                        onClick={() => { if (!event.cancelled) handleInterestToggle(event.id) }}
+                        disabled={!!event.cancelled}
                         className={`btn-interest flex-1 py-3 rounded-xl text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-2 ${
-                          userInterests.includes(event.id)
-                            ? 'bg-emerald-500 text-white'
-                            : `${theme.accentClass} text-white`
+                          event.cancelled
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            : userInterests.includes(event.id)
+                              ? 'bg-emerald-500 text-white'
+                              : `${theme.accentClass} text-white`
                         }`}
-                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                        style={{ boxShadow: event.cancelled ? 'none' : '0 2px 8px rgba(0,0,0,0.12)' }}
                       >
-                        {userInterests.includes(event.id) ? (
+                        {event.cancelled ? (
+                          'Cancelled'
+                        ) : userInterests.includes(event.id) ? (
                           <>
                             <Check className="w-4 h-4" />
                             Interested!
@@ -1945,6 +2098,15 @@ const handleInterestToggle = async (eventId: number) => {
                           "I'm Interested"
                         )}
                       </button>
+                      {user && !event.cancelled && (event.submitted_by === user.id || isAdmin) && (
+                        <button
+                          onClick={() => openEditEventModal(event)}
+                          className="px-3 py-3 rounded-xl bg-white border-2 border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wide hover:border-gray-400 transition-colors"
+                          title={event.submitted_by === user.id ? 'Edit this event' : 'Edit this event (admin)'}
+                        >
+                          Edit
+                        </button>
+                      )}
                       {(eventInterestCounts[event.id] || 0) > 0 && (
                         <div className="flex items-center gap-1 px-3 py-3 rounded-xl bg-gray-100 text-gray-600">
                           <Users className="w-3.5 h-3.5" />
@@ -3635,6 +3797,72 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal — organizer can update date/time/location or cancel, with push notification */}
+      {editingEvent && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setEditingEvent(null)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-black tracking-tight font-display">Edit Event</h2>
+              <button onClick={() => setEditingEvent(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <p className="text-xs text-[#8a8778] font-semibold mb-4">{editingEvent.title}</p>
+
+            <form onSubmit={handleEditEventSubmit}>
+              <div className="space-y-4">
+                {editEventError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 font-semibold">{editEventError}</div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
+                    <input type="date" value={editEventForm.date} onChange={(e) => setEditEventForm(f => ({...f, date: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
+                    <input type="time" value={editEventForm.time} onChange={(e) => setEditEventForm(f => ({...f, time: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                  <input type="text" value={editEventForm.location} onChange={(e) => setEditEventForm(f => ({...f, location: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" maxLength={100} />
+                </div>
+
+                <label className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editEventForm.cancelled}
+                    onChange={(e) => setEditEventForm(f => ({...f, cancelled: e.target.checked}))}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-bold text-red-800">Cancel this event</span>
+                </label>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Notification Message</label>
+                  <textarea
+                    value={editEventMessage}
+                    onChange={(e) => { setEditEventMessage(e.target.value); setEditEventMessageDirty(true) }}
+                    rows={3}
+                    maxLength={240}
+                    placeholder="What should interested people know? e.g. 'Moved indoors due to weather — now at the City Hall basement.'"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold text-sm"
+                  />
+                  <p className="text-[11px] text-[#8a8778] mt-1">{editEventMessageDirty ? 'Custom message' : 'Auto-generated from changes — feel free to edit'} · {editEventMessage.length}/240</p>
+                </div>
+
+                <p className="text-xs text-[#8a8778] font-medium text-center">Everyone marked Interested in this event will get a push notification.</p>
+
+                <button type="submit" disabled={editEventLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
+                  {editEventLoading ? 'SAVING...' : (editEventForm.cancelled ? 'CANCEL EVENT & NOTIFY' : 'SAVE & NOTIFY')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

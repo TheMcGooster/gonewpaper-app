@@ -38,6 +38,10 @@ export type Event = {
   source_type?: string
   end_time?: string
   address?: string
+  submitted_by?: string
+  cancelled?: boolean
+  sponsor_name?: string
+  sponsor_logo_url?: string
 }
 
 export type Job = {
