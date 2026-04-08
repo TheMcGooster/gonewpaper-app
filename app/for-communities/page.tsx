@@ -525,8 +525,9 @@ export default function ForCommunitiesPage() {
 
                 {/* Push notification toast */}
                 <div className="rounded-[12px] p-3 flex items-start gap-2.5" style={{ background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 100%)', boxShadow: '0 6px 20px rgba(26,26,46,0.25)' }}>
-                  <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(220,20,60,0.2)', border: '1px solid rgba(220,20,60,0.35)' }}>
-                    <Bell className="w-3.5 h-3.5 text-red-300" />
+                  <div className="w-7 h-7 rounded-lg flex-shrink-0 overflow-hidden bg-white flex items-center justify-center" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
