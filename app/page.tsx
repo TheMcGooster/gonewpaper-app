@@ -1521,7 +1521,12 @@ const handleInterestToggle = async (eventId: number) => {
   ]
 
   const sampleAffiliates: Affiliate[] = [
-    { id: 1, name: 'Everyday Dose', category: 'Health', logo_emoji: '☕', url: 'https://affiliate.link/everydaydose', commission: '20%', is_active: true, display_order: 1, clicks: 0 },
+    { id: 1, name: 'Everyday Dose',      category: 'Health & Wellness', logo_emoji: '☕', url: 'http://www.everydaydose.com/MCGEE',          commission: '', description: 'Steady energy. No crash.',           is_active: true, display_order: 1,  clicks: 0 },
+    { id: 4, name: 'Magnesium',          category: 'Health & Wellness', logo_emoji: '🌙', url: 'https://a.co/d/01Ce2OGJ',                    commission: '', description: 'Sleep better. Stress less.',         is_active: true, display_order: 2,  clicks: 0 },
+    { id: 5, name: 'Electrolytes',       category: 'Health & Wellness', logo_emoji: '💧', url: 'https://amzn.to/4lZGFgV',                    commission: '', description: 'Hydration that actually helps.',     is_active: true, display_order: 3,  clicks: 0 },
+    { id: 6, name: 'Protein',            category: 'Health & Wellness', logo_emoji: '💪', url: 'https://amzn.to/4bJWXqR',                    commission: '', description: 'Easy, no-prep nutrition.',           is_active: true, display_order: 4,  clicks: 0 },
+    { id: 7, name: 'Corgi Approved',     category: 'Pet Picks',         logo_emoji: '🐕', url: 'https://beacons.ai/corgicopilots',           commission: '', description: 'Real solutions for real dog problems.', is_active: true, display_order: 10, clicks: 0 },
+    { id: 2, name: 'Take Profit Trader', category: 'Money & Tools',     logo_emoji: '📈', url: 'https://takeprofittrader.com/?referralCode=STOCKSMCGEE', commission: '', description: 'Trade with structure and access to funding.', is_active: true, display_order: 20, clicks: 0 },
   ]
 
   const sampleNonprofits: NonProfit[] = [
@@ -3089,55 +3094,146 @@ const handleInterestToggle = async (eventId: number) => {
             )}
 
             {/* Affiliates Tab */}
-            {activeTab === 'affiliates' && (
-              <>
-                <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
-                  </div>
-                  <p className="text-xs font-medium text-[#8a8778]">
-                    Local deals and partner offers. Some links support the app at no extra cost to you.
-                  </p>
-                </div>
+            {activeTab === 'affiliates' && (() => {
+              // ---- Section + CTA helpers -----------------------------------------
+              // Button label is keyed to category so new products slot in automatically.
+              const ctaForCategory = (category: string): string => {
+                if (category === 'Money & Tools') return 'Get Offer'
+                if (category === 'Pet Picks') return 'See What Works'
+                return 'View Deal'
+              }
 
-                <div className="mb-4">
-                  {displayAffiliates.map(aff => {
-                    const isTrading = aff.category === 'Trading' || aff.category === 'Broker'
-                    const isLocal = aff.category === 'Local' || aff.category === 'Restaurant' || aff.category === 'Dining'
-                    const pillLabel = isLocal ? 'Local' : 'Online'
-                    const pillClass = isLocal ? 'bg-green-100 text-green-800 border-green-200' : 'bg-blue-100 text-blue-800 border-blue-200'
-                    const btnText = isTrading ? 'Get Offer' : 'View Deal'
-                    const btnClass = isTrading
-                      ? `${theme.accentClass} text-white`
-                      : 'bg-purple-600 text-white'
-                    const btnShadow = isTrading
-                      ? '0 2px 8px rgba(0,0,0,0.12)'
-                      : '0 2px 8px rgba(147,51,234,0.25)'
-                    return (
-                      <Card key={aff.id} className="hover:shadow-xl transition-all cursor-pointer mb-3">
-                        <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
-                          <div className="text-4xl">{aff.logo_emoji}</div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="text-lg font-black tracking-tight">{aff.name}</h3>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${pillClass}`}>{pillLabel}</span>
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-black ${isTrading ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-800'}`}>{aff.commission}</span>
-                            </div>
-                            <p className="text-sm text-gray-600 font-semibold mb-3">{aff.category === 'Trading' ? 'Trading tools and education' : aff.category === 'Health' ? 'Daily wellness and supplements' : aff.category}</p>
-                            <button className={`btn-interest btn-cta w-full ${btnClass} py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`} style={{ boxShadow: btnShadow }}>
-                              {btnText} &rarr;
-                            </button>
-                          </div>
+              // Group active affiliates by category.
+              const byCategory = (cat: string) =>
+                displayAffiliates.filter(a => a.category === cat && a.is_active !== false)
+
+              const healthWellness = byCategory('Health & Wellness')
+              const petPicks = byCategory('Pet Picks')
+              const moneyTools = byCategory('Money & Tools')
+
+              // Featured = Everyday Dose + the most-clicked Health & Wellness card
+              // that isn't Everyday Dose. Defaults to Electrolytes if no click data yet.
+              const everydayDose = displayAffiliates.find(a => a.name === 'Everyday Dose')
+              const featuredRunnerUpCandidates = displayAffiliates.filter(
+                a => a.name !== 'Everyday Dose' && a.is_active !== false && a.category === 'Health & Wellness'
+              )
+              const mostClicked = [...featuredRunnerUpCandidates].sort(
+                (a, b) => (b.clicks || 0) - (a.clicks || 0)
+              )[0]
+              const hasClickData = featuredRunnerUpCandidates.some(a => (a.clicks || 0) > 0)
+              const electrolytes = featuredRunnerUpCandidates.find(a => a.name === 'Electrolytes')
+              const featuredRunnerUp = hasClickData ? mostClicked : (electrolytes || mostClicked)
+              const featured: Affiliate[] = [
+                ...(everydayDose ? [everydayDose] : []),
+                ...(featuredRunnerUp ? [featuredRunnerUp] : []),
+              ]
+              const featuredIds = new Set(featured.map(a => a.id))
+
+              // Avoid showing the runner-up twice (once in Featured, once in its section).
+              const healthWellnessMinusFeaturedRunnerUp = healthWellness.filter(
+                a => !(featuredRunnerUp && a.id === featuredRunnerUp.id && a.name !== 'Everyday Dose')
+              )
+
+              // ---- Card renderer --------------------------------------------------
+              const renderAffiliateCard = (aff: Affiliate, opts?: { featured?: boolean }) => {
+                const isFeatured = !!opts?.featured
+                const btnText = ctaForCategory(aff.category)
+                // Color system: Money & Tools uses the theme accent (red),
+                // everything else uses purple to match the existing style.
+                const isMoneyTools = aff.category === 'Money & Tools'
+                const btnClass = isMoneyTools
+                  ? `${theme.accentClass} text-white`
+                  : 'bg-purple-600 text-white'
+                const btnShadow = isMoneyTools
+                  ? '0 2px 8px rgba(0,0,0,0.12)'
+                  : '0 2px 8px rgba(147,51,234,0.25)'
+                return (
+                  <Card
+                    key={`${isFeatured ? 'feat-' : ''}${aff.id}`}
+                    className={`hover:shadow-xl transition-all cursor-pointer mb-3 ${isFeatured ? 'ring-2 ring-amber-300/70' : ''}`}
+                  >
+                    <div className="flex items-start gap-4" onClick={() => trackAffiliateClick(aff)}>
+                      <div className="text-4xl">{aff.logo_emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="text-lg font-black tracking-tight truncate">{aff.name}</h3>
+                          {isFeatured && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-black border bg-amber-100 text-amber-800 border-amber-200 flex-shrink-0">
+                              ★ Featured
+                            </span>
+                          )}
                         </div>
-                      </Card>
-                    )
-                  })}
+                        {aff.description && (
+                          <p className="text-sm text-gray-600 font-semibold mb-3">{aff.description}</p>
+                        )}
+                        <button
+                          className={`btn-interest btn-cta w-full ${btnClass} py-2.5 rounded-xl text-sm font-bold tracking-wide uppercase`}
+                          style={{ boxShadow: btnShadow }}
+                        >
+                          {btnText} &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              }
+
+              const renderSectionHeader = (label: string) => (
+                <div className="flex items-center gap-2 mt-6 mb-3">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <h2 className="text-xs font-black tracking-[0.15em] uppercase text-gray-500">{label}</h2>
+                  <div className="h-px flex-1 bg-gray-200" />
                 </div>
-              </>
-            )}
+              )
+
+              return (
+                <>
+                  <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
+                    </div>
+                    <p className="text-xs font-medium text-[#8a8778]">
+                      Local deals and partner offers. Some links support the app at no extra cost to you.
+                    </p>
+                  </div>
+
+                  {/* Featured */}
+                  {featured.length > 0 && (
+                    <div className="mb-2">
+                      {renderSectionHeader('Featured')}
+                      {featured.map(a => renderAffiliateCard(a, { featured: true }))}
+                    </div>
+                  )}
+
+                  {/* Health & Wellness */}
+                  {healthWellnessMinusFeaturedRunnerUp.length > 0 && (
+                    <div className="mb-2">
+                      {renderSectionHeader('Health & Wellness')}
+                      {healthWellnessMinusFeaturedRunnerUp
+                        .filter(a => !(featuredIds.has(a.id) && a.name === 'Everyday Dose'))
+                        .map(a => renderAffiliateCard(a))}
+                    </div>
+                  )}
+
+                  {/* Pet Picks */}
+                  {petPicks.length > 0 && (
+                    <div className="mb-2">
+                      {renderSectionHeader('Pet Picks')}
+                      {petPicks.map(a => renderAffiliateCard(a))}
+                    </div>
+                  )}
+
+                  {/* Money & Tools */}
+                  {moneyTools.length > 0 && (
+                    <div className="mb-4">
+                      {renderSectionHeader('Money & Tools')}
+                      {moneyTools.map(a => renderAffiliateCard(a))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </>
         )}
         {/* Footer Links */}
