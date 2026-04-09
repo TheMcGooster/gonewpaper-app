@@ -63,7 +63,6 @@ export default function ForCommunitiesPage() {
       border: 'rgba(220,20,60,0.15)',
       points: [
         'Business directory gives members a visible, searchable presence',
-        'Sponsorship tiers ($100–$250/yr) create additional revenue for the chamber',
         'Community event calendar promotes chamber events alongside everything else',
         'Edit chamber events on the fly — push a location change to every interested resident instantly',
         'Attract new members by offering digital visibility as a membership perk',
