@@ -484,11 +484,13 @@ body #onesignal-popover-container .popover-body-message {
   font-size: 13px !important;
 }
 
+/* Hide the icon entirely — the message text reads better with the
+   full card width on its own. */
 body #onesignal-slidedown-container .slidedown-body-icon,
-body #onesignal-popover-container .popover-body-icon {
-  width: 48px !important;
-  height: 48px !important;
-  flex-shrink: 0 !important;
+body #onesignal-popover-container .popover-body-icon,
+body #onesignal-slidedown-container img.slidedown-body-icon,
+body #onesignal-popover-container img.popover-body-icon {
+  display: none !important;
 }
 
 body #onesignal-slidedown-container .slidedown-footer,
