@@ -445,43 +445,67 @@ body {
 }
 
 /* ------------------------------------------------------------------
-   OneSignal slide prompt overrides
-   The default position collides with our sticky Chariton header at the
-   top of the page, which makes the prompt look cramped/squished and
-   hides the bell + menu buttons. Force it to the bottom of the viewport
-   as a clean floating card, capped to a comfortable width.
+   OneSignal prompt overrides
+   Target every container variant OneSignal v16 uses (slidedown,
+   popover, category prompt) and pin it well above our bottom nav bar
+   so it can never overlap content or look squished against the header.
+   Body-scoped selectors bump specificity above OneSignal's own inline
+   styles.
    ------------------------------------------------------------------ */
-#onesignal-slidedown-container,
-.onesignal-slidedown-container {
+body #onesignal-slidedown-container,
+body .onesignal-slidedown-container,
+body #onesignal-popover-container,
+body .onesignal-popover-container {
   position: fixed !important;
   left: 50% !important;
   right: auto !important;
-  bottom: 88px !important; /* sit above the bottom nav bar */
   top: auto !important;
+  bottom: 96px !important; /* clear the bottom nav + breathing room */
   transform: translateX(-50%) !important;
   width: calc(100% - 32px) !important;
-  max-width: 420px !important;
-  z-index: 50 !important;
+  max-width: 380px !important;
+  z-index: 45 !important; /* below our bottom nav (z-40) + top modals */
+  margin: 0 !important;
 }
 
-#onesignal-slidedown-dialog {
+body #onesignal-slidedown-dialog,
+body #onesignal-popover-dialog {
   max-width: 100% !important;
+  width: 100% !important;
   border-radius: 16px !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+  padding: 16px !important;
 }
 
-#onesignal-slidedown-container .slidedown-body,
-#onesignal-slidedown-container .slidedown-body-message {
-  line-height: 1.4 !important;
+body #onesignal-slidedown-container .slidedown-body,
+body #onesignal-slidedown-container .slidedown-body-message,
+body #onesignal-popover-container .popover-body-message {
+  line-height: 1.45 !important;
+  font-size: 13px !important;
+}
+
+body #onesignal-slidedown-container .slidedown-body-icon,
+body #onesignal-popover-container .popover-body-icon {
+  width: 48px !important;
+  height: 48px !important;
+  flex-shrink: 0 !important;
+}
+
+body #onesignal-slidedown-container .slidedown-footer,
+body #onesignal-popover-container .popover-footer {
+  margin-top: 12px !important;
+  gap: 8px !important;
 }
 
 @media (min-width: 768px) {
-  #onesignal-slidedown-container,
-  .onesignal-slidedown-container {
+  body #onesignal-slidedown-container,
+  body .onesignal-slidedown-container,
+  body #onesignal-popover-container,
+  body .onesignal-popover-container {
     left: auto !important;
     right: 24px !important;
-    bottom: 24px !important;
+    bottom: 96px !important; /* bottom nav is fixed on desktop too */
     transform: none !important;
-    width: 380px !important;
+    width: 360px !important;
   }
 }
