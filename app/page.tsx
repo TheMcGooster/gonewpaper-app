@@ -50,17 +50,33 @@ const parseTimeToMinutes = (timeStr: string): number => {
   return h * 60 + (isNaN(m) ? 0 : m)
 }
 
-// Format time from 24-hour format (HH:MM:SS) to 12-hour AM/PM
+// Format time to 12-hour AM/PM. Handles mixed inputs:
+//   "16:30"  →  "4:30 PM"
+//   "16:30:00" → "4:30 PM"
+//   "4:30 PM" (already formatted) → "4:30 PM"
+//   "9:00 am" → "9:00 AM"
+// Idempotent and safe on garbage/empty values.
 const formatEventTime = (timeStr: string) => {
   try {
     if (!timeStr) return ''
-    
-    // Parse 24-hour time format "16:00:00" or "16:00"
-    const [hours24, minutes] = timeStr.split(':')
-    const hours = parseInt(hours24, 10)
+    const trimmed = timeStr.trim()
+
+    // Already in AM/PM format — normalize casing and return.
+    const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+    if (ampmMatch) {
+      const h = parseInt(ampmMatch[1], 10)
+      const m = ampmMatch[2]
+      const period = ampmMatch[3].toUpperCase()
+      return `${h}:${m} ${period}`
+    }
+
+    // 24-hour format "16:00" or "16:00:00"
+    const parts = trimmed.split(':')
+    const hours = parseInt(parts[0], 10)
+    if (isNaN(hours)) return trimmed
+    const minutes = parts[1] ? parts[1].padStart(2, '0') : '00'
     const ampm = hours >= 12 ? 'PM' : 'AM'
     const hour12 = hours % 12 || 12
-    
     return `${hour12}:${minutes} ${ampm}`
   } catch {
     return timeStr
@@ -1026,7 +1042,7 @@ export default function GoNewPaper() {
       parts.push(`New date: ${formatEventDate(form.date)}`)
     }
     if (form.time && form.time !== normalizeTimeForInput(original.time || '')) {
-      parts.push(`New time: ${form.time}`)
+      parts.push(`New time: ${formatEventTime(form.time)}`)
     }
     if (parts.length === 0) return ''
     return parts.join(' • ')
@@ -2004,7 +2020,7 @@ const handleInterestToggle = async (eventId: number) => {
                           <li key={idx} className="flex items-center gap-2.5">
                             <span className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></span>
                             <span>{event.category} {event.title}</span>
-                            <span className="text-white/50 text-xs ml-auto">{event.time || formatEventTime(event.date)}</span>
+                            <span className="text-white/50 text-xs ml-auto">{event.time ? formatEventTime(event.time) : formatEventTime(event.date)}</span>
                           </li>
                         ))}
                       </ul>
@@ -2059,7 +2075,7 @@ const handleInterestToggle = async (eventId: number) => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className={`w-3.5 h-3.5 ${theme.accentTextClass}`} />
-                        <span>{event.time || formatEventTime(event.date)}</span>
+                        <span>{event.time ? formatEventTime(event.time) : formatEventTime(event.date)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-[13px] text-gray-500 font-medium mb-4">
@@ -2136,7 +2152,7 @@ const handleInterestToggle = async (eventId: number) => {
                         </div>
                         <div className="flex items-center gap-3 text-[12px] text-gray-600 font-medium mb-2">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatEventDate(event.date)}</span>
-                          {event.time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{event.time}</span>}
+                          {event.time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatEventTime(event.time)}</span>}
                         </div>
                         {event.location && (
                           <p className="text-[12px] text-gray-500 font-medium mb-2 flex items-center gap-1"><MapPin className="w-3 h-3" />{event.location}</p>
