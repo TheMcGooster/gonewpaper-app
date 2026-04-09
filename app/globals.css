@@ -443,3 +443,45 @@ body {
 .btn-cta:hover::before {
   left: 100%;
 }
+
+/* ------------------------------------------------------------------
+   OneSignal slide prompt overrides
+   The default position collides with our sticky Chariton header at the
+   top of the page, which makes the prompt look cramped/squished and
+   hides the bell + menu buttons. Force it to the bottom of the viewport
+   as a clean floating card, capped to a comfortable width.
+   ------------------------------------------------------------------ */
+#onesignal-slidedown-container,
+.onesignal-slidedown-container {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 88px !important; /* sit above the bottom nav bar */
+  top: auto !important;
+  transform: translateX(-50%) !important;
+  width: calc(100% - 32px) !important;
+  max-width: 420px !important;
+  z-index: 50 !important;
+}
+
+#onesignal-slidedown-dialog {
+  max-width: 100% !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+}
+
+#onesignal-slidedown-container .slidedown-body,
+#onesignal-slidedown-container .slidedown-body-message {
+  line-height: 1.4 !important;
+}
+
+@media (min-width: 768px) {
+  #onesignal-slidedown-container,
+  .onesignal-slidedown-container {
+    left: auto !important;
+    right: 24px !important;
+    bottom: 24px !important;
+    transform: none !important;
+    width: 380px !important;
+  }
+}
