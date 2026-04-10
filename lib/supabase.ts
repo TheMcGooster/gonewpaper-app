@@ -166,6 +166,7 @@ export type Affiliate = {
   name: string
   category: string
   logo_emoji: string
+  image_url?: string
   url: string
   commission: string
   description?: string
