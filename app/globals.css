@@ -84,6 +84,22 @@ body {
   color: #1a1a1a;
 }
 
+.demon-blue {
+  background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%);
+}
+
+.demon-blue-text {
+  color: #1E3A8A;
+}
+
+.falcon-black {
+  background: linear-gradient(135deg, #1a1a1a 0%, #374151 100%);
+}
+
+.falcon-black-text {
+  color: #1a1a1a;
+}
+
 /* --- AI Badge --- */
 .ai-badge {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
