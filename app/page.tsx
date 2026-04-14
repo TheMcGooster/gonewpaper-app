@@ -1540,8 +1540,8 @@ const handleInterestToggle = async (eventId: number) => {
   const displayHousing = housing.length > 0 ? housing : sampleHousing
   const displayCommunity = communityPosts.length > 0 ? communityPosts : sampleCommunity
   const displayAffiliates = affiliates.length > 0 ? affiliates : sampleAffiliates
-  const displayNonprofits = nonprofits.length > 0 ? nonprofits : sampleNonprofits
-  const displayClubs = clubs.length > 0 ? clubs : sampleClubs
+  const displayNonprofits = nonprofits
+  const displayClubs = clubs
 
   // Explore map — initialize Leaflet when tab is active (data from Supabase)
   const filteredExploreLocations = exploreFilter === 'all'
@@ -2604,9 +2604,17 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Local Non-Profits</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Support the organizations that make Lucas County strong. Donate directly!
+                    Support the organizations that make {selectedTownName} strong. Donate directly!
                   </p>
                 </div>
+
+                {displayNonprofits.length === 0 && (
+                  <div className="text-center py-8 text-gray-400">
+                    <HeartHandshake className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-semibold">No non-profits listed yet in {selectedTownName}</p>
+                    <p className="text-xs mt-1">Know a local organization? Help them get listed below!</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-3">
                   {displayNonprofits.map((np, idx) => (
@@ -2686,9 +2694,17 @@ const handleInterestToggle = async (eventId: number) => {
                     <p className="text-sm font-black text-gray-800">Clubs & Groups</p>
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
-                    Find your people. Discover and join local organizations across Lucas County.
+                    Find your people. Discover and join local organizations in {selectedTownName}.
                   </p>
                 </div>
+
+                {displayClubs.length === 0 && (
+                  <div className="text-center py-8 text-gray-400">
+                    <UsersRound className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-semibold">No clubs or groups listed yet in {selectedTownName}</p>
+                    <p className="text-xs mt-1">Part of a local group? Get it listed below!</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-3">
                   {displayClubs.map((club, idx) => (
