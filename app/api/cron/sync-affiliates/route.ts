@@ -93,11 +93,39 @@ export async function GET(request: Request) {
       const description = row['Description'] || ''
       const category = row['Category'] || 'General'
 
-      // Upsert by name
-      const { error } = await supabase
+      // Check if affiliate already exists
+      const { data: existing } = await supabase
         .from('affiliates')
-        .upsert(
-          {
+        .select('id, image_url')
+        .eq('name', name)
+        .maybeSingle()
+
+      let error: any = null
+
+      if (existing) {
+        // Update existing — only overwrite image_url if the sheet provides one,
+        // so we never clobber a manually-set image with null
+        const updatePayload: Record<string, any> = {
+          category,
+          url: affiliateUrl,
+          commission,
+          description,
+          is_active: isActive,
+          display_order: displayOrder,
+        }
+        if (imageUrl) {
+          updatePayload.image_url = imageUrl
+        }
+        const result = await supabase
+          .from('affiliates')
+          .update(updatePayload)
+          .eq('id', existing.id)
+        error = result.error
+      } else {
+        // Insert new affiliate
+        const result = await supabase
+          .from('affiliates')
+          .insert({
             name,
             category,
             image_url: imageUrl,
@@ -107,9 +135,9 @@ export async function GET(request: Request) {
             is_active: isActive,
             display_order: displayOrder,
             logo_emoji: '',
-          },
-          { onConflict: 'name' }
-        )
+          })
+        error = result.error
+      }
 
       if (error) {
         errors.push(`${name}: ${error.message}`)
