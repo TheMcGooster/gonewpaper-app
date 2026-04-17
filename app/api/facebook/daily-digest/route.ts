@@ -81,6 +81,11 @@ export async function GET(request: Request) {
   // Build the Facebook post
   const lines: string[] = []
 
+  // CTA + Link at the top
+  lines.push(`📱 See all events, jobs, housing & more on Go New Paper!`)
+  lines.push(`🔗 www.gonewpaper.com`)
+  lines.push('')
+
   // Header
   lines.push(`GOOD MORNING, CHARITON! ☀️`)
   lines.push(`📅 ${displayDate}`)
@@ -108,10 +113,7 @@ export async function GET(request: Request) {
     lines.push(`👉 ${joke.punchline}`)
   }
 
-  // Footer / CTA
-  lines.push('')
-  lines.push(`📱 See all events, jobs, housing & more on Go New Paper!`)
-  lines.push(`🔗 www.gonewpaper.com`)
+  // Footer
   lines.push('')
   lines.push(`#Chariton #Iowa #LucasCounty #LocalEvents #GoNewPaper`)
 
