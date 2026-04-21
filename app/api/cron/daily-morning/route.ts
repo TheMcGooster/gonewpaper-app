@@ -335,26 +335,5 @@ export async function GET(request: Request) {
     results.interestReports = { error: 'Interest reports failed' }
   }
 
-  // --- 6. Sync Event Calendars ---
-  const syncResults: Record<string, unknown> = {}
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gonewpaper.com'
-  const cronAuth = `Bearer ${process.env.CRON_SECRET}`
-
-  for (const [name, path] of [
-    ['chariton-calendar', '/api/cron/sync-chariton-events'],
-    ['school-events', '/api/cron/sync-school-events'],
-  ] as const) {
-    try {
-      const res = await fetch(`${baseUrl}${path}`, {
-        headers: { authorization: cronAuth },
-        signal: AbortSignal.timeout(45000),
-      })
-      const data = await res.json()
-      syncResults[name] = res.ok ? { success: true, ...data } : { error: `HTTP ${res.status}`, ...data }
-    } catch (err) {
-      syncResults[name] = { error: err instanceof Error ? err.message : 'fetch failed' }
-    }
-  }
-
-  return NextResponse.json({ success: true, ...results, syncResults })
+  return NextResponse.json({ success: true, ...results })
 }
