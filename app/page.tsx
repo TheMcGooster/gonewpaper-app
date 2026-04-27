@@ -4894,54 +4894,91 @@ const handleInterestToggle = async (eventId: number) => {
         </div>
       )}
 
-      {/* Install Instructions Bottom Sheet */}
+      {/* Install Instructions — Polished Modal */}
       {showInstallHelp && (
-        <div className="fixed inset-0 modal-overlay z-50" onClick={() => setShowInstallHelp(false)}>
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 pb-10" style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-gray-700" />
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fadeIn"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowInstallHelp(false)}
+        >
+          <div
+            className="bg-white w-full max-w-sm rounded-3xl overflow-hidden animate-slideUp"
+            style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-br from-[#1a1a2e] via-[#2d2d4e] to-[#1a1a2e] px-6 pt-8 pb-6 text-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-3 left-4 text-3xl">📱</div>
+                <div className="absolute bottom-3 right-4 text-3xl">⚡</div>
+                <div className="absolute top-6 right-8 text-3xl">🏠</div>
               </div>
-              <div>
-                <h3 className="font-black text-lg tracking-tight">Add to Your Phone</h3>
-                <p className="text-sm text-gray-500 font-medium">Install Go New Paper for quick access</p>
+              <div className="relative">
+                <div className="w-20 h-20 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-lg">
+                  <Smartphone className="w-10 h-10 text-[#1a1a2e]" />
+                </div>
+                <h2 className="text-white font-black text-2xl tracking-tight mb-1.5">Add to Home Screen</h2>
+                <p className="text-white/70 text-sm font-medium">Quick access + push notifications</p>
               </div>
             </div>
+
+            {/* Steps */}
             {typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
-                  <span className="text-2xl">1️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap the <strong>Share</strong> button <span className="text-base">⬆️</span> at the bottom of your Safari browser</p>
+              <div className="p-6 space-y-3">
+                {/* Visual cue — animated arrow pointing down (toward Safari share button) */}
+                <div className="flex items-center justify-center mb-1">
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">3 quick steps</div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
-                  <span className="text-2xl">2️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">1</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap the <strong>Share</strong> button <span className="inline-block">⬆️</span> at the bottom of Safari
+                  </p>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-2xl">
-                  <span className="text-2xl">3️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Add"</strong> in the top right — done!</p>
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">2</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap <strong>"Add to Home Screen"</strong>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 p-3.5 bg-blue-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">3</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap <strong>"Add"</strong> — that's it!
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
-                  <span className="text-2xl">1️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap the <strong>⋮ menu</strong> (3 dots) in the top right of your browser</p>
+              <div className="p-6 space-y-3">
+                <div className="flex items-center gap-3 p-3.5 bg-green-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">1</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap the <strong>⋮ menu</strong> (3 dots) in the top right
+                  </p>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
-                  <span className="text-2xl">2️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Look for the <strong>download icon ⬇</strong> in the top icon row — tap it. If you don't see it, scroll the list and tap <strong>"Add to Home Screen"</strong></p>
+                <div className="flex items-center gap-3 p-3.5 bg-green-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">2</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong>
+                  </p>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-2xl">
-                  <span className="text-2xl">3️⃣</span>
-                  <p className="text-sm font-semibold text-gray-700 pt-1">Tap <strong>"Install"</strong> or <strong>"Add"</strong> to confirm — the app icon will appear on your home screen!</p>
+                <div className="flex items-center gap-3 p-3.5 bg-green-50 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">3</div>
+                  <p className="text-sm font-semibold text-gray-700">
+                    Tap <strong>"Install"</strong> to confirm — done!
+                  </p>
                 </div>
               </div>
             )}
-            <button onClick={() => setShowInstallHelp(false)} className="w-full mt-5 bg-gray-900 text-white py-3.5 rounded-2xl font-black text-sm tracking-wide">
-              Got it!
-            </button>
+
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => setShowInstallHelp(false)}
+                className="w-full bg-gradient-to-br from-[#1a1a2e] to-[#2d2d4e] text-white py-4 rounded-2xl font-black text-base tracking-tight shadow-lg active:scale-[0.98] transition-transform"
+              >
+                Got it!
+              </button>
+            </div>
           </div>
         </div>
       )}
