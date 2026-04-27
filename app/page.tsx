@@ -125,6 +125,8 @@ export default function GoNewPaper() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [showInstallHelp, setShowInstallHelp] = useState(false)
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+  const [showIOSInstallPrompt, setShowIOSInstallPrompt] = useState(false)
   const [showTownPickerModal, setShowTownPickerModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [selectedTownId, setSelectedTownId] = useState(1) // Default to Chariton
@@ -333,6 +335,36 @@ export default function GoNewPaper() {
       }
     }
     checkNotificationStatus()
+  }, [])
+
+  // ChatGPT-style smooth onboarding for notifications
+  // Auto-shows a polished prompt on first launch — once per device
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const NOTIF_PROMPT_KEY = 'gnp_notif_prompt_seen'
+    const IOS_INSTALL_KEY = 'gnp_ios_install_seen'
+    const alreadySeenNotif = localStorage.getItem(NOTIF_PROMPT_KEY)
+    const alreadySeenInstall = localStorage.getItem(IOS_INSTALL_KEY)
+
+    // Wait a beat after page load so the modal doesn't compete with town picker / loading
+    const t = setTimeout(() => {
+      // Case 1: iOS user not in PWA mode → show install-to-home-screen prompt
+      if (isIOSNonPWA && !alreadySeenInstall) {
+        setShowIOSInstallPrompt(true)
+        return
+      }
+
+      // Case 2: PWA installed (or desktop browser) and notifications not yet granted/denied → show smooth prompt
+      if (canSupportPush && Notification.permission === 'default' && !alreadySeenNotif) {
+        // Only show on PWA on iOS, or any browser on desktop/Android
+        if (!isIOS || isStandaloneMode) {
+          setShowNotifPrompt(true)
+        }
+      }
+    }, 1800)
+
+    return () => clearTimeout(t)
   }, [])
 
   // Save OneSignal subscription ID to Supabase + ensure town tag is set
@@ -3165,7 +3197,7 @@ const handleInterestToggle = async (eventId: number) => {
           <span className="text-[#e8e6e1]">|</span>
           <a href="/terms" className="underline hover:text-gray-600 transition-colors">Terms of Service</a>
           <span className="text-[#e8e6e1]">|</span>
-          <a href="/for-communities" className="underline hover:text-gray-600 transition-colors">For Communities</a>
+          <a href="/about" className="underline hover:text-gray-600 transition-colors">For Communities</a>
           <span className="text-[#e8e6e1]">|</span>
           <a href="/about" className="underline hover:text-gray-600 transition-colors">&copy; 2026 Go New Paper</a>
         </div>
@@ -4712,6 +4744,151 @@ const handleInterestToggle = async (eventId: number) => {
                   <a href="https://www.knoxville.k12.ia.us/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 hover:bg-white rounded-[10px] font-semibold text-sm text-gray-700 transition-all">🎓 Knoxville Schools</a>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smooth ChatGPT-style Notification Permission Prompt */}
+      {showNotifPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fadeIn"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+          onClick={() => {
+            localStorage.setItem('gnp_notif_prompt_seen', '1')
+            setShowNotifPrompt(false)
+          }}
+        >
+          <div
+            className="bg-white w-full max-w-sm rounded-3xl overflow-hidden animate-slideUp"
+            style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with bell icon */}
+            <div className="bg-gradient-to-br from-[#1a1a2e] via-[#2d2d4e] to-[#1a1a2e] px-6 pt-8 pb-6 text-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-2 left-4 text-4xl">🔔</div>
+                <div className="absolute bottom-2 right-4 text-4xl">📅</div>
+                <div className="absolute top-8 right-8 text-3xl">📰</div>
+              </div>
+              <div className="relative">
+                <div className="w-20 h-20 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-lg">
+                  <Bell className="w-10 h-10 text-[#1a1a2e]" fill="#1a1a2e" />
+                </div>
+                <h2 className="text-white font-black text-2xl tracking-tight mb-1.5">Stay in the Loop</h2>
+                <p className="text-white/70 text-sm font-medium">Never miss what's happening in {selectedTownName}</p>
+              </div>
+            </div>
+
+            {/* Benefits list */}
+            <div className="p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-lg">📅</div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900">Daily morning digest</p>
+                  <p className="text-xs text-gray-500">Today's events delivered each morning</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-lg">⏰</div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900">Event reminders</p>
+                  <p className="text-xs text-gray-500">30 minutes before events you're interested in</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center text-lg">🆕</div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900">Breaking local news</p>
+                  <p className="text-xs text-gray-500">Important updates from your community</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="px-6 pb-6 space-y-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('gnp_notif_prompt_seen', '1')
+                  setShowNotifPrompt(false)
+                  // Trigger native iOS / browser permission prompt — must be in click handler for user gesture
+                  requestNotificationPermission(user?.id)
+                }}
+                className="w-full bg-gradient-to-br from-[#1a1a2e] to-[#2d2d4e] text-white py-4 rounded-2xl font-black text-base tracking-tight shadow-lg active:scale-[0.98] transition-transform"
+              >
+                Allow Notifications
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('gnp_notif_prompt_seen', '1')
+                  setShowNotifPrompt(false)
+                }}
+                className="w-full text-gray-500 py-3 rounded-2xl font-semibold text-sm"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS PWA Install Prompt — shown automatically for iOS Safari users not in PWA */}
+      {showIOSInstallPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fadeIn"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+          onClick={() => {
+            localStorage.setItem('gnp_ios_install_seen', '1')
+            setShowIOSInstallPrompt(false)
+          }}
+        >
+          <div
+            className="bg-white w-full max-w-sm rounded-3xl overflow-hidden animate-slideUp"
+            style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-br from-[#1a1a2e] via-[#2d2d4e] to-[#1a1a2e] px-6 pt-8 pb-6 text-center">
+              <div className="w-20 h-20 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-lg">
+                <Smartphone className="w-10 h-10 text-[#1a1a2e]" />
+              </div>
+              <h2 className="text-white font-black text-2xl tracking-tight mb-1.5">Add to Home Screen</h2>
+              <p className="text-white/70 text-sm font-medium">Get notifications & quick access</p>
+            </div>
+
+            {/* Steps */}
+            <div className="p-6 space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-2xl">
+                <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">1</div>
+                <p className="text-sm font-semibold text-gray-700">
+                  Tap the <strong>Share</strong> button <span className="inline-block">⬆️</span> at the bottom of Safari
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-2xl">
+                <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">2</div>
+                <p className="text-sm font-semibold text-gray-700">
+                  Scroll down and tap <strong>"Add to Home Screen"</strong>
+                </p>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-2xl">
+                <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-black text-sm shrink-0">3</div>
+                <p className="text-sm font-semibold text-gray-700">
+                  Tap <strong>"Add"</strong> — then open the app from your home screen
+                </p>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => {
+                  localStorage.setItem('gnp_ios_install_seen', '1')
+                  setShowIOSInstallPrompt(false)
+                }}
+                className="w-full bg-gradient-to-br from-[#1a1a2e] to-[#2d2d4e] text-white py-4 rounded-2xl font-black text-base tracking-tight shadow-lg active:scale-[0.98] transition-transform"
+              >
+                Got it
+              </button>
             </div>
           </div>
         </div>

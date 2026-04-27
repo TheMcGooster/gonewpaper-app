@@ -6,7 +6,8 @@ import {
   Calendar, Briefcase, Home, ShoppingBag, Users, Bell, MapPin,
   TrendingUp, HeartHandshake, Laugh, Flower2, ArrowRight, Check,
   ChevronDown, Mail, ExternalLink, Smartphone, Building2, Landmark,
-  BarChart3, Globe, Megaphone, UsersRound, Star, Zap, Shield, Compass
+  BarChart3, Globe, Megaphone, UsersRound, Star, Zap, Shield, Compass,
+  CloudRain, Edit3, Clock
 } from 'lucide-react'
 
 export default function AboutPage() {
@@ -136,6 +137,24 @@ export default function AboutPage() {
               <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">{s.label}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ========== THE PROBLEM ========== */}
+      <section className="max-w-5xl mx-auto px-5 mb-20">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-5" style={{ color: 'var(--gnp-ink)' }}>
+            Small Towns Deserve Better Than <span className="font-editorial italic" style={{ color: '#DC143C' }}>Scattered Information</span>
+          </h2>
+          <p className="text-gray-500 font-medium leading-relaxed mb-6">
+            Local newspapers are disappearing. Facebook algorithms bury community posts. City websites cover government meetings but not daily life. Your residents are left piecing together information from a dozen different sources just to know what&apos;s happening in their own town.
+          </p>
+          <p className="text-gray-500 font-medium leading-relaxed mb-6">
+            Traditional municipal platforms cost <strong className="text-gray-700">$15,000&ndash;$25,000+ per year</strong> and only cover government business. They don&apos;t tell you who&apos;s hiring, who passed away, or what events are coming up this weekend.
+          </p>
+          <p className="font-bold text-gray-700">
+            Go New Paper changes that. One app. Everything local. Free for every resident.
+          </p>
         </div>
       </section>
 
@@ -795,6 +814,160 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* ========== LIVE EVENT UPDATES SPOTLIGHT ========== */}
+      <section id="live-updates" className="max-w-5xl mx-auto px-5 py-20 scroll-mt-20">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4" style={{ background: 'rgba(220,20,60,0.08)', border: '1px solid rgba(220,20,60,0.18)' }}>
+            <Zap className="w-3.5 h-3.5" style={{ color: '#DC143C' }} />
+            <span className="text-xs font-bold tracking-wide" style={{ color: '#DC143C' }}>NEW · LIVE EVENT UPDATES</span>
+          </div>
+          <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-4" style={{ color: 'var(--gnp-ink)' }}>
+            Weather Moves Your Concert Indoors?<br />
+            <span className="font-editorial italic" style={{ color: '#DC143C' }}>Residents Know in Seconds.</span>
+          </h2>
+          <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
+            Organizers and community admins can update any event&apos;s location, date, or time — or cancel it outright — and every resident who marked &ldquo;Interested&rdquo; gets an instant push notification. No scrambling on Facebook. No missed updates.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          {/* Left: narrative + bullets */}
+          <div>
+            <div className="rounded-2xl p-6 mb-5" style={{ background: 'var(--gnp-paper-warm)', border: '1.5px solid var(--gnp-border-light)' }}>
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.08)' }}>
+                  <CloudRain className="w-5 h-5" style={{ color: '#2563eb' }} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold mb-1" style={{ color: 'var(--gnp-ink)' }}>The Saturday scenario</p>
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                    It&apos;s 4:00 PM. Your 6:00 PM concert in the park just got rained out. The old way: panic-post to Facebook, hope people see it, field a dozen phone calls. The Go New Paper way: open the event, tap Edit, type the new location, hit Save &amp; Notify.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { icon: Edit3, title: 'Organizers edit their own events', desc: 'Anyone who posted an event through the app can update it anytime — no back-and-forth with an admin.' },
+                { icon: Building2, title: 'Admins cover scraped events too', desc: 'Chamber, Lucas County ED, and city-calendar events get the same live-update powers through community admins.' },
+                { icon: Bell, title: 'Smart push notifications', desc: 'Only residents who marked &ldquo;Interested&rdquo; get notified — auto-filled with the change, editable before sending.' },
+                { icon: Clock, title: 'From weather call to notified — under a minute', desc: 'Edits and notifications happen in real time. No emails, no approval delays, no phone trees.' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(220,20,60,0.08)' }}>
+                    <item.icon className="w-4 h-4" style={{ color: '#DC143C' }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold mb-0.5" style={{ color: 'var(--gnp-ink)' }}>{item.title}</p>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: item.desc }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Visual mockup — before/after event cards + push notification */}
+          <div className="relative">
+            {/* Phone-like frame */}
+            <div className="relative rounded-[28px] p-4 mx-auto" style={{
+              background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 100%)',
+              boxShadow: '0 20px 60px rgba(26,26,46,0.3)',
+              maxWidth: '360px',
+            }}>
+              <div className="rounded-[20px] p-3" style={{ background: 'var(--gnp-paper)' }}>
+                {/* BEFORE card */}
+                <div className="mb-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 pl-1">Before</p>
+                  <div className="bg-white rounded-[14px] p-4" style={{ border: '1.5px solid var(--gnp-border-light)', boxShadow: 'var(--gnp-shadow-sm)' }}>
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-xl flex-shrink-0">🎵</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[13px] font-bold leading-snug" style={{ color: 'var(--gnp-ink)' }}>Summer Concert in the Park</h4>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: '#8a8778' }}>Chariton Chamber</p>
+                      </div>
+                      <span className="text-[10px] font-bold" style={{ color: '#DC143C' }}>Free</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-gray-600 font-medium mb-1.5">
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" style={{ color: '#DC143C' }} />Sat, Jun 14</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" style={{ color: '#DC143C' }} />6:00 PM</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
+                      <MapPin className="w-3 h-3" style={{ color: '#DC143C' }} />
+                      <span>Pin Oak Park Amphitheater</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow + "Edit & Notify" pill */}
+                <div className="flex items-center justify-center gap-2 my-2">
+                  <div className="h-px flex-1" style={{ background: 'var(--gnp-border-light)' }} />
+                  <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold text-white" style={{ background: 'linear-gradient(135deg, #DC143C 0%, #B91232 100%)', boxShadow: '0 2px 6px rgba(220,20,60,0.35)' }}>
+                    <Edit3 className="w-2.5 h-2.5" />
+                    EDIT &amp; NOTIFY
+                  </div>
+                  <div className="h-px flex-1" style={{ background: 'var(--gnp-border-light)' }} />
+                </div>
+
+                {/* AFTER card */}
+                <div className="mb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5 pl-1" style={{ color: '#DC143C' }}>After · Updated 4:02 PM</p>
+                  <div className="bg-white rounded-[14px] p-4" style={{ border: '2px solid rgba(220,20,60,0.3)', boxShadow: '0 4px 16px rgba(220,20,60,0.12)' }}>
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-xl flex-shrink-0">🎵</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[13px] font-bold leading-snug" style={{ color: 'var(--gnp-ink)' }}>Summer Concert in the Park</h4>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: '#8a8778' }}>Chariton Chamber</p>
+                      </div>
+                      <span className="text-[10px] font-bold" style={{ color: '#DC143C' }}>Free</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-gray-600 font-medium mb-1.5">
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" style={{ color: '#DC143C' }} />Sat, Jun 14</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" style={{ color: '#DC143C' }} />6:00 PM</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] font-bold">
+                      <MapPin className="w-3 h-3" style={{ color: '#DC143C' }} />
+                      <span style={{ color: '#DC143C' }}>MOVED: Carpenter&apos;s Hall (indoor)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Push notification toast */}
+                <div className="rounded-[12px] p-3 flex items-start gap-2.5" style={{ background: 'linear-gradient(160deg, #1a1a2e 0%, #2c3e50 100%)', boxShadow: '0 6px 20px rgba(26,26,46,0.25)' }}>
+                  <div className="w-7 h-7 rounded-lg flex-shrink-0 overflow-hidden bg-white flex items-center justify-center" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/GoNewPaper_LOGO.png" alt="Go New Paper" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <p className="text-[11px] font-bold text-white">Go New Paper</p>
+                      <p className="text-[9px] text-white/40 font-medium">now</p>
+                    </div>
+                    <p className="text-[11px] font-bold text-white leading-tight mb-0.5">Event Updated: Summer Concert in the Park</p>
+                    <p className="text-[10px] text-white/60 font-medium leading-snug">Moved indoors due to weather — now at Carpenter&apos;s Hall, 6 PM.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating "47 residents notified" badge */}
+            <div className="absolute -right-2 -top-2 md:-right-4 md:-top-3 rounded-full px-3 py-2 flex items-center gap-2" style={{
+              background: 'white',
+              border: '1.5px solid var(--gnp-border-light)',
+              boxShadow: '0 8px 24px rgba(26,26,46,0.12)',
+            }}>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(5,150,105,0.1)' }}>
+                <Check className="w-3.5 h-3.5" style={{ color: '#059669' }} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold leading-none mb-0.5" style={{ color: 'var(--gnp-ink)' }}>47 residents</p>
+                <p className="text-[9px] text-gray-400 font-medium leading-none">notified instantly</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ========== FAQ ========== */}
       <section className="py-16" style={{ background: 'var(--gnp-paper-warm)' }}>
         <div className="max-w-2xl mx-auto px-5">
@@ -858,14 +1031,14 @@ export default function AboutPage() {
               <ExternalLink className="w-4 h-4" />
               See It Live
             </Link>
-            <Link
-              href="/for-communities"
+            <a
+              href="#live-updates"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold text-white/80 hover:text-white transition-colors w-full sm:w-auto justify-center"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}
             >
-              <MapPin className="w-4 h-4" />
-              Bring GNP to Your Town
-            </Link>
+              <Zap className="w-4 h-4" />
+              See Live Updates
+            </a>
           </div>
 
           <p className="text-white/30 text-xs font-medium mt-6">
