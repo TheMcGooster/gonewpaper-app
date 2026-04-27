@@ -13,18 +13,16 @@ function getDayOfYear(dateStr: string): number {
 
 function formatTime(time: string | null): string {
   if (!time) return 'TBD'
-  // Handle 24hr format like "16:00:00"
+  // If already has AM/PM, return as-is (e.g. "2:00 PM")
+  if (/am|pm/i.test(time)) return time.trim()
+  // Handle 24hr format like "16:00:00" or "16:00"
   const match24 = time.match(/^(\d{1,2}):(\d{2})/)
   if (match24) {
-    let h = parseInt(match24[1])
+    const h = parseInt(match24[1])
     const m = match24[2]
-    if (h > 12) {
-      return `${h - 12}:${m} PM`
-    } else if (h === 12) {
-      return `12:${m} PM`
-    } else if (h === 0) {
-      return `12:${m} AM`
-    }
+    if (h > 12) return `${h - 12}:${m} PM`
+    if (h === 12) return `12:${m} PM`
+    if (h === 0) return `12:${m} AM`
     return `${h}:${m} AM`
   }
   return time
