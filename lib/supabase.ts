@@ -173,6 +173,10 @@ export type Affiliate = {
   is_active: boolean
   display_order: number
   clicks: number
+  payment_status?: 'pending' | 'active' | 'rejected' | null
+  submitted_by_email?: string | null
+  business_id?: number | null
+  town_id?: number | null
 }
 
 export type NonProfit = {

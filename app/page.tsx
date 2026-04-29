@@ -2,12 +2,18 @@
 // Go New Paper v3.0.0 - 11 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates, Explore
 // Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag } from 'lucide-react'
+import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club, ExploreLocation } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
 
 const isDev = process.env.NODE_ENV === 'development'
+
+// Detect a PDF URL — strips query strings/hashes so cache-bust params don't break detection.
+const isPdfUrl = (url?: string | null) => {
+  if (!url) return false
+  return url.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf')
+}
 
 // Format date from YYYY-MM-DD string to readable format (FIXED - no timezone shift)
 const formatEventDate = (dateStr: string) => {
@@ -197,6 +203,18 @@ export default function GoNewPaper() {
   const [showPostHousingModal, setShowPostHousingModal] = useState(false)
   const [showSubscribePrompt, setShowSubscribePrompt] = useState(false)
   const [isSubscriber, setIsSubscriber] = useState(false)
+  const [myBusiness, setMyBusiness] = useState<{ id: number; name: string; website: string } | null>(null)
+
+  // Post Deal form state
+  const [showPostDealModal, setShowPostDealModal] = useState(false)
+  const [postDealForm, setPostDealForm] = useState({ name: '', category: '', description: '', url: '', commission: '' })
+  const [postDealFile, setPostDealFile] = useState<File | null>(null)
+  const [postDealFilePreview, setPostDealFilePreview] = useState<string | null>(null)
+  const [postDealLoading, setPostDealLoading] = useState(false)
+  const [postDealSuccess, setPostDealSuccess] = useState(false)
+  const [postDealError, setPostDealError] = useState('')
+  const [pendingDeals, setPendingDeals] = useState<Affiliate[]>([])
+
   const [postHousingForm, setPostHousingForm] = useState({ title: '', price: '', listing_type: 'rent' as 'rent' | 'sale' | 'room', bedrooms: '', bathrooms: '', location: '', description: '', details: '', contact_name: '', contact_phone: '', contact_email: '', pets_allowed: false })
   const [postHousingSuccess, setPostHousingSuccess] = useState(false)
   const [postHousingLoading, setPostHousingLoading] = useState(false)
@@ -600,8 +618,10 @@ export default function GoNewPaper() {
 
     // Check if user has an active business subscription
     const checkSubscriber = async (email: string) => {
-      const { data } = await supabase.from('businesses').select('id').or(`contact_email.ilike.${email},email.ilike.${email}`).eq('payment_status', 'active').limit(1)
-      setIsSubscriber(!!(data && data.length > 0))
+      const { data } = await supabase.from('businesses').select('id, name, website').or(`contact_email.ilike.${email},email.ilike.${email}`).eq('payment_status', 'active').limit(1)
+      const biz = data?.[0] ?? null
+      setIsSubscriber(!!biz)
+      setMyBusiness(biz ? { id: biz.id, name: biz.name, website: biz.website || '' } : null)
     }
 
     // Get current session
@@ -631,6 +651,7 @@ export default function GoNewPaper() {
         setUserInterests([])
         setNotificationsEnabled(false)
         setIsSubscriber(false)
+        setMyBusiness(null)
       }
     })
 
@@ -748,6 +769,16 @@ export default function GoNewPaper() {
     }
     checkAccess()
   }, [user?.email, isAdmin])
+
+  // Fetch pending deal submissions for admin approval queue
+  useEffect(() => {
+    if (!isAdmin) { setPendingDeals([]); return }
+    const fetchPendingDeals = async () => {
+      const { data } = await supabase.from('affiliates').select('*').eq('payment_status', 'pending').order('id', { ascending: false })
+      if (data) setPendingDeals(data)
+    }
+    fetchPendingDeals()
+  }, [isAdmin])
 
   // Fetch monthly engagement report
   const fetchReport = async (townId: number, year: number, month: number) => {
@@ -1191,6 +1222,82 @@ export default function GoNewPaper() {
     }
   }
 
+  const handlePostDealFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setPostDealError('File must be under 5MB')
+      return
+    }
+    setPostDealError('')
+    setPostDealFile(file)
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onloadend = () => setPostDealFilePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      setPostDealFilePreview(null)
+    }
+  }
+
+  const handlePostDealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setPostDealError('')
+    if (!postDealForm.name.trim()) { setPostDealError('Business name is required'); return }
+    if (!postDealForm.url.trim()) { setPostDealError('Website URL is required'); return }
+    if (!postDealFile) { setPostDealError('Please upload an image or PDF for the deal'); return }
+    setPostDealLoading(true)
+    try {
+      const fileExt = postDealFile.name.split('.').pop()
+      const fileName = `deal-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const { error: uploadError } = await supabase.storage.from('deals').upload(fileName, postDealFile)
+      if (uploadError) throw new Error('Upload failed: ' + uploadError.message)
+      const { data: urlData } = supabase.storage.from('deals').getPublicUrl(fileName)
+      const { error } = await supabase.from('affiliates').insert({
+        name: postDealForm.name.trim(),
+        category: postDealForm.category || 'Local Deal',
+        logo_emoji: '🏷️',
+        url: postDealForm.url.trim(),
+        commission: postDealForm.commission.trim() || '',
+        description: postDealForm.description.trim() || null,
+        image_url: urlData.publicUrl,
+        is_active: false,
+        display_order: 999,
+        clicks: 0,
+        payment_status: 'pending',
+        submitted_by_email: user.email,
+        business_id: myBusiness?.id ?? null,
+        town_id: selectedTownId,
+      })
+      if (error) {
+        await supabase.storage.from('deals').remove([fileName])
+        throw error
+      }
+      setPostDealSuccess(true)
+      setPostDealFile(null)
+      setPostDealFilePreview(null)
+    } catch (err: any) {
+      setPostDealError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setPostDealLoading(false)
+    }
+  }
+
+  const handleDealApprove = async (id: number) => {
+    await supabase.from('affiliates').update({ payment_status: 'active', is_active: true }).eq('id', id)
+    setPendingDeals(prev => prev.filter(d => d.id !== id))
+    const { data } = await supabase.from('affiliates').select('*').eq('is_active', true).or('payment_status.eq.active,payment_status.is.null').order('display_order', { ascending: true })
+    if (data) setAffiliates(data)
+    showToast('Deal approved!')
+  }
+
+  const handleDealReject = async (id: number) => {
+    await supabase.from('affiliates').update({ payment_status: 'rejected', is_active: false }).eq('id', id)
+    setPendingDeals(prev => prev.filter(d => d.id !== id))
+    showToast('Deal rejected.')
+  }
+
   const handlePostHousingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -1383,7 +1490,7 @@ const handleInterestToggle = async (eventId: number) => {
           supabase.from('housing').select('*').eq('town_id', selectedTownId).eq('is_active', true).limit(20),
           supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20),
           supabase.from('celebrations_of_life').select('*').eq('town_id', selectedTownId).eq('is_approved', true).order('created_at', { ascending: false }).limit(10),
-          supabase.from('affiliates').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+          supabase.from('affiliates').select('*').eq('is_active', true).or('payment_status.eq.active,payment_status.is.null').order('display_order', { ascending: true }),
           // Town-specific organizations
           supabase.from('nonprofits').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
           supabase.from('clubs').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
@@ -3140,52 +3247,115 @@ const handleInterestToggle = async (eventId: number) => {
             {activeTab === 'affiliates' && (
               <>
                 <div className="section-banner bg-emerald-50/70 border-emerald-200 mb-4 animate-fade-in-up">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
-                    <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      <p className="text-sm font-black text-gray-800">Discounts & Deals</p>
+                    </div>
+                    {(isSubscriber || isAdmin) && (
+                      <button
+                        onClick={() => {
+                          setPostDealSuccess(false)
+                          setPostDealError('')
+                          setPostDealFile(null)
+                          setPostDealFilePreview(null)
+                          setPostDealForm({
+                            name: myBusiness?.name || '',
+                            category: '',
+                            description: '',
+                            url: myBusiness?.website || '',
+                            commission: '',
+                          })
+                          setShowPostDealModal(true)
+                        }}
+                        className="text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
+                        style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />Post Deal
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs font-medium text-[#8a8778]">
                     Local deals and partner offers. Some links support the app at no extra cost to you.
                   </p>
                 </div>
 
+                {isAdmin && pendingDeals.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Pending Deal Approvals ({pendingDeals.length})</p>
+                    <div className="space-y-2">
+                      {pendingDeals.map(deal => {
+                        const isPdf = isPdfUrl(deal.image_url)
+                        return (
+                          <div key={deal.id} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
+                            {deal.image_url?.startsWith('http') && !isPdf ? (
+                              <img src={deal.image_url} alt={deal.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-6 h-6 text-red-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">{deal.name}</p>
+                              <p className="text-[11px] text-gray-500 truncate">{deal.submitted_by_email}</p>
+                              {deal.description && <p className="text-[11px] text-gray-600 truncate">{deal.description}</p>}
+                            </div>
+                            <div className="flex flex-col gap-1.5 flex-shrink-0">
+                              <button onClick={() => handleDealApprove(deal.id)} className="text-[11px] font-black text-white bg-emerald-600 px-3 py-1 rounded-lg">Approve</button>
+                              <button onClick={() => handleDealReject(deal.id)} className="text-[11px] font-black text-gray-600 bg-gray-200 px-3 py-1 rounded-lg">Reject</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  {displayAffiliates.map(aff => (
-                    <div
-                      key={aff.id}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer active:scale-[0.98]"
-                      onClick={() => trackAffiliateClick(aff)}
-                    >
-                      {aff.image_url ? (
-                        <div className="w-full aspect-square bg-gray-50 flex items-center justify-center p-4">
-                          <img
-                            src={aff.image_url}
-                            alt={aff.name}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full aspect-square bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                          <span className="text-5xl">
-                            {aff.logo_emoji || aff.name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <h3 className="text-sm font-bold text-gray-900 truncate">{aff.name}</h3>
-                        {aff.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{aff.description}</p>
+                  {displayAffiliates.map(aff => {
+                    const isPdf = isPdfUrl(aff.image_url)
+                    return (
+                      <div
+                        key={aff.id}
+                        className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer active:scale-[0.98]"
+                        onClick={() => trackAffiliateClick(aff)}
+                      >
+                        {aff.image_url && !isPdf ? (
+                          <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center p-2">
+                            <img
+                              src={aff.image_url}
+                              alt={aff.name}
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : isPdf ? (
+                          <div className="w-full aspect-[4/3] bg-gradient-to-br from-red-50 to-red-100 flex flex-col items-center justify-center gap-1">
+                            <FileText className="w-8 h-8 text-red-400" />
+                            <span className="text-[10px] font-black uppercase tracking-wide text-red-500">View PDF</span>
+                          </div>
+                        ) : (
+                          <div className="w-full aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                            <span className="text-4xl">
+                              {aff.logo_emoji || aff.name.charAt(0)}
+                            </span>
+                          </div>
                         )}
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{aff.category}</span>
-                          {aff.commission && (
-                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">{aff.commission}</span>
+                        <div className="p-2.5">
+                          <h3 className="text-sm font-bold text-gray-900 truncate">{aff.name}</h3>
+                          {aff.description && (
+                            <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{aff.description}</p>
                           )}
+                          <div className="flex items-center justify-between mt-1.5 gap-1">
+                            <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide truncate">{aff.category}</span>
+                            {aff.commission && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{aff.commission}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             )}
@@ -4024,6 +4194,103 @@ const handleInterestToggle = async (eventId: number) => {
 
                   <button type="submit" disabled={postJobLoading} className={`w-full ${theme.accentClass} text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50`}>
                     {postJobLoading ? 'POSTING...' : 'POST JOB'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Post Deal Modal */}
+      {showPostDealModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => setShowPostDealModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display">
+                {postDealSuccess ? 'Submitted!' : 'Post a Deal'}
+              </h2>
+              <button onClick={() => setShowPostDealModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+
+            {postDealSuccess ? (
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">✅</div>
+                <p className="text-lg font-black mb-2">Deal Submitted!</p>
+                <p className="text-sm text-gray-600 font-semibold mb-6">
+                  Your deal is pending admin approval and will appear in the Deals tab once approved.
+                </p>
+                <button
+                  onClick={() => setShowPostDealModal(false)}
+                  className="w-full bg-emerald-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg"
+                >
+                  CLOSE
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePostDealSubmit}>
+                <div className="space-y-4">
+                  {postDealError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 font-semibold">{postDealError}</div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Business Name *</label>
+                    <input type="text" value={postDealForm.name} onChange={e => setPostDealForm(f => ({...f, name: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="Your business name" required maxLength={100} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                    <select value={postDealForm.category} onChange={e => setPostDealForm(f => ({...f, category: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold">
+                      <option value="">Select category</option>
+                      <option>Restaurant</option>
+                      <option>Retail</option>
+                      <option>Services</option>
+                      <option>Healthcare</option>
+                      <option>Agriculture</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Deal Description</label>
+                    <input type="text" value={postDealForm.description} onChange={e => setPostDealForm(f => ({...f, description: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder='e.g. "Weekly Menu — valid Mon–Fri"' maxLength={150} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Your Website URL *</label>
+                    <input type="url" value={postDealForm.url} onChange={e => setPostDealForm(f => ({...f, url: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder="https://yourbusiness.com" required />
+                    <p className="text-[11px] text-gray-400 mt-1">Tapping the deal card will open this URL.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Discount/Offer Tag (optional)</label>
+                    <input type="text" value={postDealForm.commission} onChange={e => setPostDealForm(f => ({...f, commission: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none font-semibold" placeholder='e.g. "10% Off", "Free Delivery"' maxLength={40} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Deal Image or PDF * (max 5MB)</label>
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
+                      {postDealFilePreview ? (
+                        <img src={postDealFilePreview} alt="Preview" className="max-h-32 object-contain mx-auto mb-2 rounded-lg" />
+                      ) : postDealFile ? (
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <FileText className="w-8 h-8 text-red-400" />
+                          <span className="text-sm font-semibold text-gray-600 truncate max-w-[180px]">{postDealFile.name}</span>
+                        </div>
+                      ) : null}
+                      <label htmlFor="deal-file-upload" className="cursor-pointer text-sm font-bold text-emerald-700 hover:text-emerald-800">
+                        {postDealFile ? 'Change file' : 'Upload image or PDF'}
+                      </label>
+                      <input type="file" accept="image/*,.pdf,application/pdf" onChange={handlePostDealFileChange} className="hidden" id="deal-file-upload" />
+                      <p className="text-[11px] text-gray-400 mt-1">JPG, PNG, WEBP, or PDF (e.g., a weekly menu)</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#8a8778] font-medium text-center">Submissions are reviewed by an admin before they appear in the Deals tab.</p>
+
+                  <button type="submit" disabled={postDealLoading} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
+                    {postDealLoading ? 'SUBMITTING...' : 'SUBMIT DEAL'}
                   </button>
                 </div>
               </form>
