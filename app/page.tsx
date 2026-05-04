@@ -1,7 +1,7 @@
 'use client'
 // Go New Paper v3.0.0 - 11 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates, Explore
 // Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club, ExploreLocation } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
@@ -112,6 +112,7 @@ export default function GoNewPaper() {
     setActiveTabRaw(tab)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1682,6 +1683,31 @@ const handleInterestToggle = async (eventId: number) => {
   const displayNonprofits = nonprofits
   const displayClubs = clubs
 
+  // Global search — matches across every tab's data. Empty query → no results object.
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return null
+    const m = (...vals: (string | null | undefined)[]) =>
+      vals.some(v => typeof v === 'string' && v.toLowerCase().includes(q))
+    return {
+      events: displayEvents.filter(e => m(e.title, e.location, e.category, e.description, e.address, e.sponsor_name)),
+      jobs: displayJobs.filter(j => m(j.title, j.company, j.type, j.location, j.description)),
+      housing: displayHousing.filter(h => m(h.title, h.location, h.address, h.description, h.listing_type)),
+      businesses: displayBusinesses.filter(b => m(b.name, b.category, b.tagline, b.description, b.address)),
+      clubs: displayClubs.filter(c => m(c.name, c.category, c.tagline, c.description, c.meeting_location)),
+      nonprofits: displayNonprofits.filter(n => m(n.name, n.category, n.tagline, n.description)),
+      community: displayCommunity.filter(c => m(c.title, c.post_type, c.description, c.location)),
+      celebrations: celebrations.filter(c => m(c.full_name, c.obituary, c.funeral_home, c.service_location)),
+      affiliates: displayAffiliates.filter(a => m(a.name, a.category, a.description)),
+      explore: exploreLocations.filter(l => m(l.name, l.category, l.address, l.summary)),
+      comics: dailyJokes.filter(j => m(j.question, j.punchline, j.category)),
+    }
+  }, [searchQuery, displayEvents, displayJobs, displayHousing, displayBusinesses, displayClubs, displayNonprofits, displayCommunity, celebrations, displayAffiliates, exploreLocations, dailyJokes])
+
+  const totalSearchHits = searchResults
+    ? Object.values(searchResults).reduce((sum, arr) => sum + arr.length, 0)
+    : 0
+
   // Explore map — initialize Leaflet when tab is active (data from Supabase)
   const filteredExploreLocations = exploreFilter === 'all'
     ? exploreLocations
@@ -2041,9 +2067,21 @@ const handleInterestToggle = async (eventId: number) => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input
               type="text"
-              placeholder="Search events, jobs, housing..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium search-input-refined text-white focus:text-gray-900 focus:outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events, jobs, clubs, businesses..."
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm font-medium search-input-refined text-white focus:text-gray-900 focus:outline-none"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -2091,6 +2129,104 @@ const handleInterestToggle = async (eventId: number) => {
                 <div className="skeleton h-10 w-full rounded-lg mt-3"></div>
               </div>
             ))}
+          </div>
+        ) : searchQuery.trim() && searchResults ? (
+          <div className="animate-fade-in-up">
+            {/* Search Results header */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-black text-gray-900">Search Results</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {totalSearchHits} {totalSearchHits === 1 ? 'match' : 'matches'} for "{searchQuery.trim()}"
+                </p>
+              </div>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs font-bold text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-lg border border-[#e8e6e1] bg-white"
+              >
+                Clear
+              </button>
+            </div>
+
+            {totalSearchHits === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#e8e6e1] p-8 text-center">
+                <p className="text-sm font-bold text-gray-900">No matches found</p>
+                <p className="text-xs text-gray-500 mt-1">Try a different word or check spelling.</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {([
+                  { id: 'events', label: 'Events', icon: Calendar, items: searchResults.events,
+                    title: (e: any) => e.title, sub: (e: any) => [e.date, e.time, e.location].filter(Boolean).join(' • ') },
+                  { id: 'jobs', label: 'Jobs', icon: Briefcase, items: searchResults.jobs,
+                    title: (j: any) => j.title, sub: (j: any) => [j.company, j.type, j.location].filter(Boolean).join(' • ') },
+                  { id: 'housing', label: 'Housing', icon: Home, items: searchResults.housing,
+                    title: (h: any) => h.title, sub: (h: any) => [h.price, h.location || h.address].filter(Boolean).join(' • ') },
+                  { id: 'businesses', label: 'Business', icon: ShoppingBag, items: searchResults.businesses,
+                    title: (b: any) => b.name, sub: (b: any) => [b.category, b.tagline].filter(Boolean).join(' • ') },
+                  { id: 'clubs', label: 'Clubs', icon: UsersRound, items: searchResults.clubs,
+                    title: (c: any) => c.name, sub: (c: any) => [c.category, c.tagline].filter(Boolean).join(' • ') },
+                  { id: 'nonprofits', label: 'Non-Profits', icon: HeartHandshake, items: searchResults.nonprofits,
+                    title: (n: any) => n.name, sub: (n: any) => [n.category, n.tagline].filter(Boolean).join(' • ') },
+                  { id: 'community', label: 'Community', icon: Users, items: searchResults.community,
+                    title: (c: any) => c.title, sub: (c: any) => [c.post_type, c.location].filter(Boolean).join(' • ') },
+                  { id: 'celebrations', label: 'In Memory', icon: Flower2, items: searchResults.celebrations,
+                    title: (c: any) => c.full_name, sub: (c: any) => [c.funeral_home, c.service_location].filter(Boolean).join(' • ') },
+                  { id: 'affiliates', label: 'Deals', icon: TrendingUp, items: searchResults.affiliates,
+                    title: (a: any) => a.name, sub: (a: any) => [a.category, a.description].filter(Boolean).join(' • ') },
+                  { id: 'explore', label: 'Explore', icon: Compass, items: searchResults.explore,
+                    title: (l: any) => l.name, sub: (l: any) => [l.category, l.address].filter(Boolean).join(' • ') },
+                  { id: 'comics', label: 'Daily Laughs', icon: Laugh, items: searchResults.comics,
+                    title: (j: any) => j.question, sub: (j: any) => j.punchline },
+                ] as const).map(section => {
+                  if (section.items.length === 0) return null
+                  const Icon = section.icon
+                  const shown = section.items.slice(0, 5)
+                  const more = section.items.length - shown.length
+                  return (
+                    <section key={section.id}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-4 h-4 ${theme.accentTextClass}`} strokeWidth={2.4} />
+                          <h3 className="text-[11px] font-black tracking-wider uppercase text-gray-700">
+                            {section.label}
+                          </h3>
+                          <span className="text-[10px] font-bold text-gray-400">({section.items.length})</span>
+                        </div>
+                        <button
+                          onClick={() => { setSearchQuery(''); setActiveTab(section.id) }}
+                          className={`text-[10px] font-bold ${theme.accentTextClass} uppercase tracking-wider`}
+                        >
+                          View all
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {shown.map((item: any) => (
+                          <button
+                            key={`${section.id}-${item.id}`}
+                            onClick={() => { setSearchQuery(''); setActiveTab(section.id) }}
+                            className="w-full text-left bg-white rounded-xl border border-[#e8e6e1] p-3 hover:border-gray-300 transition-colors"
+                          >
+                            <p className="text-sm font-bold text-gray-900 line-clamp-1">{section.title(item)}</p>
+                            {section.sub(item) && (
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{section.sub(item)}</p>
+                            )}
+                          </button>
+                        ))}
+                        {more > 0 && (
+                          <button
+                            onClick={() => { setSearchQuery(''); setActiveTab(section.id) }}
+                            className="w-full text-xs font-bold text-gray-500 hover:text-gray-900 py-2"
+                          >
+                            + {more} more in {section.label}
+                          </button>
+                        )}
+                      </div>
+                    </section>
+                  )
+                })}
+              </div>
+            )}
           </div>
         ) : (
           <>
