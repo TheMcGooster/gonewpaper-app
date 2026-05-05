@@ -85,6 +85,8 @@ export async function POST(request: Request) {
     errors: [],
   }
 
+  // Validate up front.
+  const validObits: IngestObituary[] = []
   for (const obit of obituariesToProcess) {
     const validationError = validateObituary(obit)
     if (validationError) {
@@ -92,22 +94,33 @@ export async function POST(request: Request) {
       results.skipped++
       continue
     }
+    validObits.push(obit)
+  }
 
-    // Dedup: case-insensitive check by full_name
-    const { data: existing } = await supabase
+  if (validObits.length > 0) {
+    // Batch dedup: one SELECT for all candidate names.
+    // No unique constraint on full_name, so we filter in JS using a lowercase Set.
+    const candidateNames = Array.from(new Set(validObits.map(o => o.full_name)))
+    const { data: existingRows } = await supabase
       .from('celebrations_of_life')
-      .select('id')
-      .ilike('full_name', obit.full_name)
-      .limit(1)
+      .select('full_name')
+      .in('full_name', candidateNames)
 
-    if (existing && existing.length > 0) {
-      results.skipped++
-      continue
-    }
+    const existingLower = new Set(
+      (existingRows || []).map(r => (r.full_name || '').toLowerCase())
+    )
 
-    const { error: insertError } = await supabase
-      .from('celebrations_of_life')
-      .insert({
+    // Also dedup within this batch (in case a scraper sends the same name twice).
+    const seenInBatch = new Set<string>()
+    const rowsToInsert: Record<string, unknown>[] = []
+    for (const obit of validObits) {
+      const key = obit.full_name.toLowerCase()
+      if (existingLower.has(key) || seenInBatch.has(key)) {
+        results.skipped++
+        continue
+      }
+      seenInBatch.add(key)
+      rowsToInsert.push({
         full_name: obit.full_name,
         birth_date: obit.birth_date || null,
         passing_date: obit.passing_date || null,
@@ -123,13 +136,21 @@ export async function POST(request: Request) {
         submitted_by: obit.submitted_by || null,
         is_approved: true, // Scraped obituaries are auto-approved
       })
+    }
 
-    if (insertError) {
-      console.error(`Insert error for "${obit.full_name}":`, insertError)
-      results.errors.push(`"${obit.full_name}": ${insertError.message}`)
-      results.skipped++
-    } else {
-      results.inserted++
+    if (rowsToInsert.length > 0) {
+      const { data: inserted, error: insertError } = await supabase
+        .from('celebrations_of_life')
+        .insert(rowsToInsert)
+        .select('id')
+
+      if (insertError) {
+        console.error('Bulk insert error:', insertError)
+        results.errors.push(`Bulk insert failed: ${insertError.message}`)
+        results.skipped += rowsToInsert.length
+      } else {
+        results.inserted = inserted?.length ?? rowsToInsert.length
+      }
     }
   }
 

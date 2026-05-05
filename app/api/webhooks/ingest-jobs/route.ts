@@ -70,6 +70,9 @@ export async function POST(request: Request) {
     errors: [],
   }
 
+  // Validate up front; collect rows to insert.
+  const defaultExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const validRows: Record<string, unknown>[] = []
   for (const job of jobsToProcess) {
     const validationError = validateJob(job)
     if (validationError) {
@@ -77,45 +80,37 @@ export async function POST(request: Request) {
       results.skipped++
       continue
     }
+    validRows.push({
+      title: job.title || null,
+      company: job.company || null,
+      type: job.type || null,
+      pay: job.pay || null,
+      description: job.description || null,
+      apply_url: job.apply_url || null,
+      town: job.town || null,
+      location: job.location || null,
+      distance_miles: job.distance_miles || null,
+      town_id: job.town_id || 1,
+      auto_scraped: job.auto_scraped !== undefined ? job.auto_scraped : true,
+      expires_at: job.expires_at || defaultExpiry,
+    })
+  }
 
-    // Dedup: check by apply_url (has unique constraint in DB)
-    const { data: existing } = await supabase
+  if (validRows.length > 0) {
+    // Single ON CONFLICT DO NOTHING upsert. apply_url has a unique constraint —
+    // duplicates are silently dropped, returned data lists only newly-inserted rows.
+    const { data: inserted, error: upsertError } = await supabase
       .from('jobs')
+      .upsert(validRows, { onConflict: 'apply_url', ignoreDuplicates: true })
       .select('id')
-      .eq('apply_url', job.apply_url!)
-      .limit(1)
 
-    if (existing && existing.length > 0) {
-      results.skipped++
-      continue
-    }
-
-    // Set expiry to 30 days from now if not provided
-    const expiresAt = job.expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-
-    const { error: insertError } = await supabase
-      .from('jobs')
-      .insert({
-        title: job.title || null,
-        company: job.company || null,
-        type: job.type || null,
-        pay: job.pay || null,
-        description: job.description || null,
-        apply_url: job.apply_url || null,
-        town: job.town || null,
-        location: job.location || null,
-        distance_miles: job.distance_miles || null,
-        town_id: job.town_id || 1,
-        auto_scraped: job.auto_scraped !== undefined ? job.auto_scraped : true,
-        expires_at: expiresAt,
-      })
-
-    if (insertError) {
-      console.error(`Insert error for "${job.title}":`, insertError)
-      results.errors.push(`"${job.title}": ${insertError.message}`)
-      results.skipped++
+    if (upsertError) {
+      console.error('Bulk upsert error:', upsertError)
+      results.errors.push(`Bulk upsert failed: ${upsertError.message}`)
+      results.skipped += validRows.length
     } else {
-      results.inserted++
+      results.inserted = inserted?.length ?? 0
+      results.skipped += validRows.length - results.inserted
     }
   }
 
