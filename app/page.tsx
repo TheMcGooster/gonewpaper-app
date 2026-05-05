@@ -2,7 +2,7 @@
 // Go New Paper v3.0.0 - 11 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates, Explore
 // Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Calendar, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText } from 'lucide-react'
+import { Calendar, CalendarPlus, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText, AlertTriangle, PawPrint } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club, ExploreLocation } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
@@ -89,6 +89,61 @@ const formatEventTime = (timeStr: string) => {
   }
 }
 
+// Generate an .ics calendar file for an event and trigger download.
+// Uses floating local time (no TZID) — calendar apps interpret as user-local, which is right for a hyperlocal IA app.
+const downloadEventIcs = (event: { id: number; title: string; date: string; time?: string | null; location?: string | null; description?: string | null }) => {
+  try {
+    const escape = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+    const datePart = (event.date || '').split('T')[0]
+    const [y, mo, d] = datePart.split('-').map(Number)
+    if (!y || !mo || !d) return
+
+    let startMins = 9 * 60
+    if (event.time) {
+      const m = parseTimeToMinutes(event.time)
+      if (m !== 9999) startMins = m
+    }
+    let endMins = startMins + 60
+    let endY = y, endMo = mo, endD = d
+    if (endMins >= 24 * 60) {
+      endMins -= 24 * 60
+      const next = new Date(y, mo - 1, d + 1)
+      endY = next.getFullYear(); endMo = next.getMonth() + 1; endD = next.getDate()
+    }
+    const fmt = (yy: number, mm: number, dd: number, mins: number) => {
+      const h = Math.floor(mins / 60), min = mins % 60
+      return `${yy}${String(mm).padStart(2,'0')}${String(dd).padStart(2,'0')}T${String(h).padStart(2,'0')}${String(min).padStart(2,'0')}00`
+    }
+    const dtstamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Go New Paper//EN',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:gnp-event-${event.id}@gonewpaper.com`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${fmt(y, mo, d, startMins)}`,
+      `DTEND:${fmt(endY, endMo, endD, endMins)}`,
+      `SUMMARY:${escape(event.title || 'Event')}`,
+    ]
+    if (event.location) lines.push(`LOCATION:${escape(event.location)}`)
+    if (event.description) lines.push(`DESCRIPTION:${escape(event.description)}`)
+    lines.push('END:VEVENT', 'END:VCALENDAR')
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(event.title || 'event').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 60) || 'event'}.ics`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (e) {
+    console.error('ICS download failed:', e)
+  }
+}
+
 // Explore tab — category colors & labels (locations fetched from Supabase explore_locations table)
 const EXPLORE_CATEGORY_COLORS: Record<string, string> = {
   state_park: '#16a34a',  // green-600
@@ -96,6 +151,13 @@ const EXPLORE_CATEGORY_COLORS: Record<string, string> = {
   trail: '#ea580c',       // orange-600
   recreation: '#9333ea',  // purple-600
   park: '#059669',        // emerald-600
+}
+
+const ALERT_META: Record<string, { emoji: string; label: string; bgClass: string; borderClass: string; titleClass: string }> = {
+  weather:  { emoji: '⛈️', label: 'Weather', bgClass: 'bg-red-50',    borderClass: 'border-red-300',    titleClass: 'text-red-800' },
+  utility:  { emoji: '💡', label: 'Utility', bgClass: 'bg-amber-50',  borderClass: 'border-amber-300',  titleClass: 'text-amber-900' },
+  road:     { emoji: '🚧', label: 'Road',    bgClass: 'bg-orange-50', borderClass: 'border-orange-300', titleClass: 'text-orange-800' },
+  general:  { emoji: '🚨', label: 'Alert',   bgClass: 'bg-red-50',    borderClass: 'border-red-300',    titleClass: 'text-red-800' },
 }
 
 const EXPLORE_CATEGORY_LABELS: Record<string, string> = {
@@ -285,6 +347,19 @@ export default function GoNewPaper() {
   const [nonprofits, setNonprofits] = useState<NonProfit[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
   const [exploreLocations, setExploreLocations] = useState<ExploreLocation[]>([])
+  type CivicAlert = { id: number; town_id: number; category: 'weather' | 'utility' | 'road' | 'general'; title: string; message: string; expires_at: string; is_active: boolean; created_at: string }
+  const [civicAlerts, setCivicAlerts] = useState<CivicAlert[]>([])
+  const [showCivicAlertModal, setShowCivicAlertModal] = useState(false)
+  const [civicAlertForm, setCivicAlertForm] = useState({ category: 'weather' as 'weather' | 'utility' | 'road' | 'general', title: '', message: '', expiresInHours: 24, sendPush: true })
+  const [civicAlertSubmitting, setCivicAlertSubmitting] = useState(false)
+
+  type LostPet = { id: number; town_id: number; pet_name: string | null; pet_type: 'dog' | 'cat' | 'other'; description: string; photo_url: string | null; last_seen_lat: number | null; last_seen_lng: number | null; last_seen_address: string | null; contact_name: string | null; contact_phone: string | null; contact_email: string | null; status: 'lost' | 'found' | 'closed'; is_active: boolean; expires_at: string; created_by: string | null; created_at: string }
+  const [lostPets, setLostPets] = useState<LostPet[]>([])
+  const [showLostPetModal, setShowLostPetModal] = useState(false)
+  const [lostPetForm, setLostPetForm] = useState<{ pet_name: string; pet_type: 'dog' | 'cat' | 'other'; description: string; last_seen_address: string; contact_name: string; contact_phone: string; contact_email: string }>({ pet_name: '', pet_type: 'dog', description: '', last_seen_address: '', contact_name: '', contact_phone: '', contact_email: '' })
+  const [lostPetPhoto, setLostPetPhoto] = useState<File | null>(null)
+  const [lostPetSubmitting, setLostPetSubmitting] = useState(false)
+  const [lostPetPin, setLostPetPin] = useState<{ lat: number; lng: number } | null>(null)
   const [dailyJokes, setDailyJokes] = useState<{ id: number; day_of_year: number; question: string; punchline: string; category: string }[]>([])
 
   // iOS detection — web push only works in installed PWA on iOS (Safari 16.4+)
@@ -1410,6 +1485,165 @@ export default function GoNewPaper() {
     setCommunityPosts(prev => prev.filter(p => p.id !== id))
   }
 
+// Submit a new lost pet report. Open to any signed-in user. Photo uploaded to
+// the `pets` Supabase Storage bucket; row inserted into `lost_pets` with a
+// 14-day expiry.
+const submitLostPet = async () => {
+  if (!user) {
+    setShowAuthModal(true)
+    return
+  }
+  const description = lostPetForm.description.trim()
+  if (!description) {
+    showToast('Description is required')
+    return
+  }
+  setLostPetSubmitting(true)
+  try {
+    let photoUrl: string | null = null
+    if (lostPetPhoto) {
+      const ext = (lostPetPhoto.name.split('.').pop() || 'jpg').toLowerCase()
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('pets')
+        .upload(fileName, lostPetPhoto, { contentType: lostPetPhoto.type || 'image/jpeg' })
+      if (uploadError) {
+        showToast('Photo upload failed: ' + uploadError.message)
+        setLostPetSubmitting(false)
+        return
+      }
+      const { data: urlData } = supabase.storage.from('pets').getPublicUrl(fileName)
+      photoUrl = urlData.publicUrl
+    }
+
+    const { data: inserted, error } = await supabase
+      .from('lost_pets')
+      .insert({
+        town_id: selectedTownId,
+        pet_name: lostPetForm.pet_name.trim() || null,
+        pet_type: lostPetForm.pet_type,
+        description,
+        photo_url: photoUrl,
+        last_seen_lat: lostPetPin?.lat ?? null,
+        last_seen_lng: lostPetPin?.lng ?? null,
+        last_seen_address: lostPetForm.last_seen_address.trim() || null,
+        contact_name: lostPetForm.contact_name.trim() || null,
+        contact_phone: lostPetForm.contact_phone.trim() || null,
+        contact_email: lostPetForm.contact_email.trim() || null,
+        created_by: user.id,
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('lost_pets insert error:', error)
+      showToast('Failed to post: ' + error.message)
+      return
+    }
+    if (inserted) {
+      setLostPets(prev => [inserted as LostPet, ...prev])
+    }
+    setShowLostPetModal(false)
+    setLostPetForm({ pet_name: '', pet_type: 'dog', description: '', last_seen_address: '', contact_name: '', contact_phone: '', contact_email: '' })
+    setLostPetPhoto(null)
+    setLostPetPin(null)
+    showToast('Lost pet report posted!')
+  } catch (e) {
+    console.error(e)
+    showToast('Network error')
+  } finally {
+    setLostPetSubmitting(false)
+  }
+}
+
+// Mark a lost pet as found / closed. Owner-only via RLS.
+const markPetFound = async (id: number) => {
+  if (!user) return
+  if (!confirm('Mark this pet as found? It will be hidden from the board.')) return
+  const { error } = await supabase
+    .from('lost_pets')
+    .update({ status: 'found', is_active: false })
+    .eq('id', id)
+    .eq('created_by', user.id)
+  if (error) {
+    showToast('Failed to update')
+    return
+  }
+  setLostPets(prev => prev.filter(p => p.id !== id))
+  showToast('🎉 Marked as found!')
+}
+
+// Submit a new civic alert (admin only). Posts to /api/admin/civic-alert which
+// inserts the row + fires a OneSignal push to everyone tagged with the town_id.
+const submitCivicAlert = async () => {
+  if (!user || !isAdmin) return
+  const title = civicAlertForm.title.trim()
+  const message = civicAlertForm.message.trim()
+  if (!title || !message) {
+    showToast('Title and message are required')
+    return
+  }
+  setCivicAlertSubmitting(true)
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) {
+      showToast('Session expired — sign in again')
+      return
+    }
+    const res = await fetch('/api/admin/civic-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        townId: selectedTownId,
+        category: civicAlertForm.category,
+        title,
+        message,
+        expiresInHours: civicAlertForm.expiresInHours,
+        sendPush: civicAlertForm.sendPush,
+      }),
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok) {
+      showToast(`Failed: ${(json && json.error) || res.status}`)
+      return
+    }
+    if (json?.alert) {
+      setCivicAlerts(prev => [json.alert as CivicAlert, ...prev])
+    }
+    setShowCivicAlertModal(false)
+    setCivicAlertForm({ category: 'weather', title: '', message: '', expiresInHours: 24, sendPush: true })
+    showToast(civicAlertForm.sendPush ? 'Alert posted + push sent' : 'Alert posted')
+  } catch (e) {
+    console.error(e)
+    showToast('Network error')
+  } finally {
+    setCivicAlertSubmitting(false)
+  }
+}
+
+const dismissCivicAlert = async (id: number) => {
+  if (!isAdmin) return
+  if (!confirm('Dismiss this alert? It will be hidden from everyone.')) return
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) return
+    const res = await fetch(`/api/admin/civic-alert?id=${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      setCivicAlerts(prev => prev.filter(a => a.id !== id))
+      showToast('Alert dismissed')
+    } else {
+      showToast('Failed to dismiss')
+    }
+  } catch {
+    showToast('Network error')
+  }
+}
+
 // Handle interest toggle
 const handleInterestToggle = async (eventId: number) => {
   if (!user) {
@@ -1482,7 +1716,9 @@ const handleInterestToggle = async (eventId: number) => {
           nonprofitsRes,
           clubsRes,
           jokesRes,
-          exploreRes
+          exploreRes,
+          civicAlertsRes,
+          lostPetsRes
         ] = await Promise.all([
           // Town-specific content (filtered by selectedTownId)
           supabase.from('events').select('*').eq('town_id', selectedTownId).eq('verified', true).gte('date', new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })).order('date', { ascending: true }).limit(100),
@@ -1498,7 +1734,11 @@ const handleInterestToggle = async (eventId: number) => {
           // Daily jokes: pre-approved, keyed by day-of-year (safe, no AI generation risk)
           supabase.from('daily_jokes').select('id,day_of_year,question,punchline,category').in('day_of_year', recentDoys).eq('is_approved', true),
           // Explore locations: parks, trails, lakes, landmarks (from DB with image support)
-          supabase.from('explore_locations').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true })
+          supabase.from('explore_locations').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('display_order', { ascending: true }),
+          // Civic alerts: town-scoped urgent broadcasts (boil water, storm, road closure)
+          supabase.from('civic_alerts').select('*').eq('town_id', selectedTownId).eq('is_active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
+          // Lost pets: 14-day soft-expiry community board, pinned on Explore map
+          supabase.from('lost_pets').select('*').eq('town_id', selectedTownId).eq('is_active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false })
         ])
 
         if (eventsRes.data) {
@@ -1545,6 +1785,8 @@ const handleInterestToggle = async (eventId: number) => {
         if (nonprofitsRes.data) setNonprofits(nonprofitsRes.data)
         if (clubsRes.data) setClubs(clubsRes.data)
         if (exploreRes.data) setExploreLocations(exploreRes.data)
+        if (civicAlertsRes.data) setCivicAlerts(civicAlertsRes.data as CivicAlert[])
+        if (lostPetsRes.data) setLostPets(lostPetsRes.data as LostPet[])
         if (jokesRes.data) {
           // Sort so today's joke is first, then yesterday, etc.
           const doyOrder = new Map(recentDoys.map((doy, i) => [doy, i]))
@@ -2230,6 +2472,52 @@ const handleInterestToggle = async (eventId: number) => {
           </div>
         ) : (
           <>
+            {/* Civic Alerts banner — town-scoped urgent broadcasts, shown on every tab */}
+            {civicAlerts.length > 0 && (
+              <div className="mb-4 space-y-2 animate-fade-in-up">
+                {civicAlerts.map(alert => {
+                  const meta = ALERT_META[alert.category] || ALERT_META.general
+                  return (
+                    <div
+                      key={alert.id}
+                      className={`rounded-2xl border-2 ${meta.borderClass} ${meta.bgClass} p-4`}
+                      style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl flex-shrink-0 leading-none">{meta.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className={`text-[10px] font-black uppercase tracking-wider ${meta.titleClass}`}>{meta.label} Alert</h3>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900 leading-snug">{alert.title}</p>
+                          <p className="text-[13px] text-gray-700 mt-1 leading-relaxed">{alert.message}</p>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => dismissCivicAlert(alert.id)}
+                            className="text-gray-500 hover:text-gray-900 flex-shrink-0 p-1"
+                            aria-label="Dismiss alert"
+                            title="Dismiss"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {/* Admin: Post Civic Alert (Events tab only, to avoid clutter) */}
+            {isAdmin && activeTab === 'events' && (
+              <button
+                onClick={() => setShowCivicAlertModal(true)}
+                className="w-full mb-4 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-900 text-xs font-black uppercase tracking-wider hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Post Civic Alert
+              </button>
+            )}
             {/* Daily Digest */}
             {activeTab === 'events' && (() => {
               // Get time-aware greeting
@@ -2389,6 +2677,16 @@ const handleInterestToggle = async (eventId: number) => {
                           "I'm Interested"
                         )}
                       </button>
+                      {!event.cancelled && (
+                        <button
+                          onClick={() => downloadEventIcs(event)}
+                          className="px-3 py-3 rounded-xl bg-white border-2 border-gray-200 text-gray-700 hover:border-gray-400 transition-colors"
+                          title="Add to your calendar"
+                          aria-label="Add to calendar"
+                        >
+                          <CalendarPlus className="w-4 h-4" />
+                        </button>
+                      )}
                       {user && !event.cancelled && (event.submitted_by === user.id || isAdmin) && (
                         <button
                           onClick={() => openEditEventModal(event)}
@@ -3285,6 +3583,95 @@ const handleInterestToggle = async (eventId: number) => {
                 {/* Map container */}
                 <div className="relative rounded-[14px] overflow-hidden border-[1.5px] border-[#e8e6e1] shadow-md animate-fade-in-up mb-3" style={{ height: '55vh', minHeight: '300px' }}>
                   <div id="explore-map" style={{ width: '100%', height: '100%' }} />
+                </div>
+
+                {/* Lost Pets section */}
+                <div className="mb-4 mt-5 animate-fade-in-up">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <PawPrint className="w-5 h-5 text-rose-600" />
+                      <h3 className="text-sm font-black tracking-tight text-gray-900">Lost Pets</h3>
+                      {lostPets.length > 0 && (
+                        <span className="text-[10px] font-bold text-gray-400">({lostPets.length})</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!user) { setShowAuthModal(true); return }
+                        setShowLostPetModal(true)
+                      }}
+                      className="text-rose-700 text-xs font-bold flex items-center gap-1 tracking-wide bg-white px-3 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 transition-colors"
+                      style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />Report
+                    </button>
+                  </div>
+                  {lostPets.length === 0 ? (
+                    <p className="text-xs text-gray-500 font-medium px-1">No active reports. If you've lost a pet, tap "Report" to alert the town.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {lostPets.map(pet => {
+                        const typeEmoji = pet.pet_type === 'cat' ? '🐱' : pet.pet_type === 'other' ? '🐾' : '🐶'
+                        const isOwner = user && pet.created_by === user.id
+                        return (
+                          <div
+                            key={pet.id}
+                            className="bg-white rounded-[12px] border-2 border-rose-100 overflow-hidden"
+                            style={{ boxShadow: '0 2px 8px rgba(190,18,60,0.08)' }}
+                          >
+                            <div className="aspect-square bg-rose-50 relative">
+                              {pet.photo_url ? (
+                                <img src={pet.photo_url} alt={pet.pet_name || 'Lost pet'} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-5xl">{typeEmoji}</div>
+                              )}
+                              <div className="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                                Lost {typeEmoji}
+                              </div>
+                            </div>
+                            <div className="p-2.5">
+                              <p className="text-sm font-bold text-gray-900 truncate">{pet.pet_name || 'Unnamed'}</p>
+                              <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2 leading-snug">{pet.description}</p>
+                              {pet.last_seen_address && (
+                                <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1 truncate">
+                                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                                  {pet.last_seen_address}
+                                </p>
+                              )}
+                              {(pet.contact_phone || pet.contact_email) && (
+                                <div className="flex gap-1 mt-2">
+                                  {pet.contact_phone && (
+                                    <a
+                                      href={`tel:${pet.contact_phone}`}
+                                      className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black uppercase tracking-wide py-1.5 rounded text-center"
+                                    >
+                                      Call
+                                    </a>
+                                  )}
+                                  {pet.contact_email && (
+                                    <a
+                                      href={`mailto:${pet.contact_email}?subject=Re%3A%20Lost%20${encodeURIComponent(pet.pet_name || pet.pet_type)}`}
+                                      className="flex-1 bg-white border-2 border-rose-200 hover:border-rose-400 text-rose-700 text-[10px] font-black uppercase tracking-wide py-1 rounded text-center"
+                                    >
+                                      Email
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                              {isOwner && (
+                                <button
+                                  onClick={() => markPetFound(pet.id)}
+                                  className="w-full mt-2 bg-emerald-50 border border-emerald-300 text-emerald-700 text-[10px] font-black uppercase tracking-wide py-1.5 rounded hover:bg-emerald-100 transition-colors"
+                                >
+                                  Mark as Found
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Admin: Pending Spots Approval Panel */}
@@ -4248,6 +4635,228 @@ const handleInterestToggle = async (eventId: number) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Civic Alert Modal (admin only) */}
+      {showCivicAlertModal && isAdmin && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => !civicAlertSubmitting && setShowCivicAlertModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black tracking-tight font-display flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                Post Civic Alert
+              </h2>
+              <button onClick={() => setShowCivicAlertModal(false)} disabled={civicAlertSubmitting} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['weather','utility','road','general'] as const).map(cat => {
+                    const meta = ALERT_META[cat]
+                    const active = civicAlertForm.category === cat
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCivicAlertForm(f => ({ ...f, category: cat }))}
+                        className={`p-3 rounded-lg border-2 text-left transition-colors ${active ? `${meta.borderClass} ${meta.bgClass}` : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      >
+                        <div className="text-xl mb-0.5">{meta.emoji}</div>
+                        <div className={`text-xs font-black uppercase tracking-wider ${active ? meta.titleClass : 'text-gray-700'}`}>{meta.label}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Title <span className="text-gray-400 font-normal">(max 80 chars)</span></label>
+                <input
+                  type="text"
+                  value={civicAlertForm.title}
+                  onChange={e => setCivicAlertForm(f => ({ ...f, title: e.target.value }))}
+                  maxLength={80}
+                  placeholder="e.g. Boil Water Advisory"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-amber-500 focus:outline-none font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Message <span className="text-gray-400 font-normal">(max 280 chars)</span></label>
+                <textarea
+                  value={civicAlertForm.message}
+                  onChange={e => setCivicAlertForm(f => ({ ...f, message: e.target.value }))}
+                  maxLength={280}
+                  rows={3}
+                  placeholder="What residents need to know"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-amber-500 focus:outline-none font-semibold resize-none"
+                />
+                <p className="text-xs text-gray-400 mt-1">{civicAlertForm.message.length}/280</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Expires after</label>
+                <select
+                  value={civicAlertForm.expiresInHours}
+                  onChange={e => setCivicAlertForm(f => ({ ...f, expiresInHours: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-amber-500 focus:outline-none font-semibold bg-white"
+                >
+                  <option value={2}>2 hours</option>
+                  <option value={6}>6 hours</option>
+                  <option value={12}>12 hours</option>
+                  <option value={24}>24 hours</option>
+                  <option value={48}>2 days</option>
+                  <option value={72}>3 days</option>
+                  <option value={168}>1 week</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={civicAlertForm.sendPush}
+                  onChange={e => setCivicAlertForm(f => ({ ...f, sendPush: e.target.checked }))}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-bold text-gray-700">Send push notification to {selectedTownId === 1 ? 'Chariton' : selectedTownId === 2 ? 'Knoxville' : selectedTownId === 3 ? 'Albia' : 'Corydon'} subscribers</span>
+              </label>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 leading-relaxed">
+                <strong>Reminder:</strong> Civic alerts go to every notification subscriber in this town. Use sparingly — for genuine community-wide info like boil water orders, severe weather, or road closures.
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowCivicAlertModal(false)}
+                  disabled={civicAlertSubmitting}
+                  className="flex-1 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-black tracking-wide uppercase text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitCivicAlert}
+                  disabled={civicAlertSubmitting || !civicAlertForm.title.trim() || !civicAlertForm.message.trim()}
+                  className="flex-1 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black tracking-wide uppercase text-xs disabled:opacity-50"
+                >
+                  {civicAlertSubmitting ? 'Posting…' : 'Post Alert'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lost Pet Modal */}
+      {showLostPetModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => !lostPetSubmitting && setShowLostPetModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-xl font-black tracking-tight font-display flex items-center gap-2">
+                <PawPrint className="w-5 h-5 text-rose-600" />
+                Report a Lost Pet
+              </h2>
+              <button onClick={() => setShowLostPetModal(false)} disabled={lostPetSubmitting} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Pet Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['dog','cat','other'] as const).map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setLostPetForm(f => ({ ...f, pet_type: t }))}
+                      className={`p-2.5 rounded-lg border-2 text-sm font-black uppercase tracking-wider transition-colors ${lostPetForm.pet_type === t ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}
+                    >
+                      {t === 'dog' ? '🐶 Dog' : t === 'cat' ? '🐱 Cat' : '🐾 Other'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Pet Name <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={lostPetForm.pet_name}
+                  onChange={e => setLostPetForm(f => ({ ...f, pet_name: e.target.value }))}
+                  maxLength={60}
+                  placeholder="e.g. Buddy"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-rose-500 focus:outline-none font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Description *</label>
+                <textarea
+                  value={lostPetForm.description}
+                  onChange={e => setLostPetForm(f => ({ ...f, description: e.target.value }))}
+                  maxLength={400}
+                  rows={3}
+                  placeholder="Breed, size, color, collar, distinguishing features"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-rose-500 focus:outline-none font-semibold resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setLostPetPhoto(e.target.files?.[0] || null)}
+                  className="w-full text-sm font-medium text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:uppercase file:tracking-wider file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"
+                />
+                {lostPetPhoto && <p className="text-xs text-gray-500 mt-1">Selected: {lostPetPhoto.name}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Last Seen <span className="text-gray-400 font-normal">(cross-street or landmark)</span></label>
+                <input
+                  type="text"
+                  value={lostPetForm.last_seen_address}
+                  onChange={e => setLostPetForm(f => ({ ...f, last_seen_address: e.target.value }))}
+                  maxLength={120}
+                  placeholder="e.g. 5th & Court, near Hy-Vee"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-rose-500 focus:outline-none font-semibold"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={lostPetForm.contact_phone}
+                    onChange={e => setLostPetForm(f => ({ ...f, contact_phone: e.target.value }))}
+                    maxLength={20}
+                    placeholder="641-..."
+                    className="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-rose-500 focus:outline-none font-semibold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={lostPetForm.contact_email}
+                    onChange={e => setLostPetForm(f => ({ ...f, contact_email: e.target.value }))}
+                    maxLength={120}
+                    placeholder="optional"
+                    className="w-full px-3 py-2.5 rounded-lg border-2 border-gray-200 focus:border-rose-500 focus:outline-none font-semibold text-sm"
+                  />
+                </div>
+              </div>
+              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-900 leading-relaxed">
+                Posts auto-expire after 14 days. Tap "Mark as Found" on your card once your pet is home.
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowLostPetModal(false)}
+                  disabled={lostPetSubmitting}
+                  className="flex-1 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-black tracking-wide uppercase text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitLostPet}
+                  disabled={lostPetSubmitting || !lostPetForm.description.trim()}
+                  className="flex-1 py-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black tracking-wide uppercase text-xs disabled:opacity-50"
+                >
+                  {lostPetSubmitting ? 'Posting…' : 'Post Report'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
