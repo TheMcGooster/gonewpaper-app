@@ -168,6 +168,33 @@ const EXPLORE_CATEGORY_LABELS: Record<string, string> = {
   park: 'City Park',
 }
 
+// Sponsor badge with graceful fallback: if the explicit logo URL fails to load
+// (e.g. Facebook photo page links are not direct images), swap to the matching
+// non-profit / club / business logo, or finally a generic Star icon.
+function SponsorBadge({ sponsorName, primaryLogoUrl, fallbackLogoUrl }: {
+  sponsorName: string
+  primaryLogoUrl?: string
+  fallbackLogoUrl?: string
+}) {
+  const [primaryFailed, setPrimaryFailed] = useState(false)
+  const [fallbackFailed, setFallbackFailed] = useState(false)
+  const useFallback = !primaryLogoUrl || primaryFailed || !primaryLogoUrl.startsWith('http')
+  const showFallbackImg = useFallback && fallbackLogoUrl && !fallbackFailed
+  const showPrimaryImg = !useFallback
+  return (
+    <div className="flex items-center gap-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+      {showPrimaryImg ? (
+        <img src={primaryLogoUrl} alt={sponsorName} className="w-6 h-6 rounded object-contain" onError={() => setPrimaryFailed(true)} />
+      ) : showFallbackImg ? (
+        <img src={fallbackLogoUrl} alt={sponsorName} className="w-6 h-6 rounded object-contain" onError={() => setFallbackFailed(true)} />
+      ) : (
+        <Star className="w-4 h-4 text-amber-600 flex-shrink-0" />
+      )}
+      <span className="text-xs font-bold text-amber-800">Sponsored by {sponsorName}</span>
+    </div>
+  )
+}
+
 export default function GoNewPaper() {
   const [activeTab, setActiveTabRaw] = useState('events')
   const setActiveTab = (tab: string) => {
@@ -249,7 +276,7 @@ export default function GoNewPaper() {
 
   // Edit Event form state (organizer-edit-with-notification flow)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-  const [editEventForm, setEditEventForm] = useState({ date: '', time: '', location: '', cancelled: false })
+  const [editEventForm, setEditEventForm] = useState({ title: '', date: '', time: '', location: '', description: '', category: '📅', price: 'Free', sponsor_name: '', sponsor_logo_url: '', cancelled: false })
   const [editEventMessage, setEditEventMessage] = useState('')
   const [editEventMessageDirty, setEditEventMessageDirty] = useState(false)
   const [editEventLoading, setEditEventLoading] = useState(false)
@@ -1139,9 +1166,15 @@ export default function GoNewPaper() {
   const openEditEventModal = (event: Event) => {
     setEditingEvent(event)
     setEditEventForm({
+      title: event.title || '',
       date: event.date || '',
       time: normalizeTimeForInput(event.time || ''),
       location: event.location || '',
+      description: (event as any).description || '',
+      category: event.category || '📅',
+      price: event.price || 'Free',
+      sponsor_name: (event as any).sponsor_name || '',
+      sponsor_logo_url: (event as any).sponsor_logo_url || '',
       cancelled: !!event.cancelled,
     })
     setEditEventMessage('')
@@ -1169,7 +1202,7 @@ export default function GoNewPaper() {
 
   // Build a human-readable auto-fill message from the diff between the original event and form state.
   // Used both as the initial value and to refresh while the user hasn't manually edited the box.
-  const buildEditNotificationMessage = (original: Event, form: { date: string; time: string; location: string; cancelled: boolean }): string => {
+  const buildEditNotificationMessage = (original: Event, form: { date: string; time: string; location: string; cancelled: boolean; title?: string }): string => {
     if (form.cancelled && !original.cancelled) {
       return `This event has been cancelled.`
     }
@@ -1202,6 +1235,9 @@ export default function GoNewPaper() {
 
     // Build only the changed fields
     const updates: Record<string, string | boolean> = {}
+    if (editEventForm.title.trim() !== (editingEvent.title || '').trim()) {
+      updates.title = editEventForm.title.trim()
+    }
     if (editEventForm.location.trim() !== (editingEvent.location || '').trim()) {
       updates.location = editEventForm.location.trim()
     }
@@ -1212,6 +1248,21 @@ export default function GoNewPaper() {
       // <input type="time"> returns HH:MM; DB canonical format is HH:MM:SS — append seconds so
       // the event-reminders cron time parser continues to work.
       updates.time = /^\d{2}:\d{2}$/.test(editEventForm.time) ? `${editEventForm.time}:00` : editEventForm.time
+    }
+    if (editEventForm.description.trim() !== (((editingEvent as any).description) || '').trim()) {
+      updates.description = editEventForm.description.trim()
+    }
+    if (editEventForm.category !== (editingEvent.category || '')) {
+      updates.category = editEventForm.category
+    }
+    if (editEventForm.price.trim() !== (editingEvent.price || '').trim()) {
+      updates.price = editEventForm.price.trim()
+    }
+    if (editEventForm.sponsor_name.trim() !== (((editingEvent as any).sponsor_name) || '').trim()) {
+      updates.sponsor_name = editEventForm.sponsor_name.trim()
+    }
+    if (editEventForm.sponsor_logo_url.trim() !== (((editingEvent as any).sponsor_logo_url) || '').trim()) {
+      updates.sponsor_logo_url = editEventForm.sponsor_logo_url.trim()
     }
     if (editEventForm.cancelled !== !!editingEvent.cancelled) {
       updates.cancelled = editEventForm.cancelled
@@ -1915,6 +1966,46 @@ const handleInterestToggle = async (eventId: number) => {
   ]
 
 
+  // Look up a fallback logo for a sponsor by matching the sponsor name against
+  // known non-profits, clubs, and businesses. Tries exact match first, then
+  // substring match either direction (so "Almost Home Animal Rescue" finds
+  // "Almost Home", and "Chariton Kiwanis" finds "Chariton Kiwanis Club").
+  const findSponsorLogo = useCallback((sponsorName: string): string | undefined => {
+    const target = sponsorName.trim().toLowerCase()
+    if (!target) return undefined
+    const candidates: Array<{ name: string; logo?: string }> = []
+    for (const np of nonprofits) candidates.push({ name: np.name, logo: np.logo_url })
+    for (const cl of clubs) candidates.push({ name: cl.name, logo: cl.logo_url })
+    for (const b of businesses) candidates.push({ name: b.name, logo: (b as any).logo_url || (b as any).image_url })
+
+    // Exact match first
+    for (const c of candidates) {
+      if (c.logo && c.name.trim().toLowerCase() === target) return c.logo
+    }
+    // Then substring match — prefer longer candidate names (more specific) over shorter ones
+    const partial = candidates
+      .filter(c => c.logo)
+      .filter(c => {
+        const n = c.name.trim().toLowerCase()
+        return n.length >= 4 && (target.includes(n) || n.includes(target))
+      })
+      .sort((a, b) => b.name.length - a.name.length)
+    return partial[0]?.logo
+  }, [nonprofits, clubs, businesses])
+
+  // Override the stored category emoji for events whose title clearly indicates a different
+  // sport — e.g. T-Ball / baseball / softball events submitted under the generic 🏈 Sports
+  // category should display ⚾ instead.
+  const getEventIcon = (event: Event): string => {
+    const title = (event.title || '').toLowerCase()
+    if (event.category === '🏈') {
+      if (/\bbaseball\b|\bt[- ]?ball\b|\bsoftball\b|\blittle league\b|\blcll\b/i.test(title)) {
+        return '⚾'
+      }
+    }
+    return event.category
+  }
+
   // Use sample data if database is empty (events always use real data — empty state shows "no events")
   const displayEvents = events
   const displayJobs = jobs.length > 0 ? jobs : sampleJobs
@@ -2582,7 +2673,7 @@ const handleInterestToggle = async (eventId: number) => {
                         {todaysEvents.map((event, idx) => (
                           <li key={idx} className="flex items-center gap-2.5">
                             <span className="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0"></span>
-                            <span>{event.category} {event.title}</span>
+                            <span>{getEventIcon(event)} {event.title}</span>
                             <span className="text-white/50 text-xs ml-auto">{event.time ? formatEventTime(event.time) : formatEventTime(event.date)}</span>
                           </li>
                         ))}
@@ -2622,7 +2713,7 @@ const handleInterestToggle = async (eventId: number) => {
                       </div>
                     )}
                     <div className="flex items-start gap-3 mb-3">
-                      <span className="text-2xl flex-shrink-0 mt-0.5">{event.category}</span>
+                      <span className="text-2xl flex-shrink-0 mt-0.5">{getEventIcon(event)}</span>
                       <div className="flex-1 min-w-0">
                         <h3 className={`text-[15px] font-bold tracking-tight leading-snug ${event.cancelled ? 'line-through text-gray-500' : ''}`}>{event.title}</h3>
                         <p className="text-[11px] text-[#8a8778] font-semibold uppercase tracking-wider mt-0.5">{event.source}</p>
@@ -2646,12 +2737,11 @@ const handleInterestToggle = async (eventId: number) => {
                       <span>{event.location || 'TBD'}</span>
                     </div>
                     {(event as any).sponsor_name && (
-                      <div className="flex items-center gap-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        {(event as any).sponsor_logo_url && (event as any).sponsor_logo_url.startsWith('http') && (
-                          <img src={(event as any).sponsor_logo_url} alt={(event as any).sponsor_name} className="w-6 h-6 rounded object-contain" />
-                        )}
-                        <span className="text-xs font-bold text-amber-800">Sponsored by {(event as any).sponsor_name}</span>
-                      </div>
+                      <SponsorBadge
+                        sponsorName={(event as any).sponsor_name as string}
+                        primaryLogoUrl={(event as any).sponsor_logo_url as string | undefined}
+                        fallbackLogoUrl={findSponsorLogo((event as any).sponsor_name as string)}
+                      />
                     )}
                     <div className="flex items-center gap-2">
                       <button
@@ -2716,7 +2806,7 @@ const handleInterestToggle = async (eventId: number) => {
                     {pendingEvents.map(event => (
                       <div key={event.id} className="bg-white rounded-[14px] p-4 mb-3 border-2 border-amber-300" style={{ boxShadow: '0 2px 8px rgba(217,119,6,0.1)' }}>
                         <div className="flex items-start gap-2 mb-2">
-                          <span className="text-xl flex-shrink-0">{event.category}</span>
+                          <span className="text-xl flex-shrink-0">{getEventIcon(event)}</span>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-[14px] font-bold tracking-tight leading-snug">{event.title}</h4>
                             <p className="text-[11px] text-amber-700 font-semibold uppercase tracking-wider mt-0.5">Community Submission</p>
@@ -4527,6 +4617,7 @@ const handleInterestToggle = async (eventId: number) => {
                         <option value="📅">📅 General</option>
                         <option value="🎵">🎵 Music</option>
                         <option value="🏈">🏈 Sports</option>
+                        <option value="⚾">⚾ Baseball</option>
                         <option value="🎨">🎨 Arts</option>
                         <option value="🏛️">🏛️ Civic</option>
                         <option value="🎉">🎉 Festival</option>
@@ -4589,6 +4680,11 @@ const handleInterestToggle = async (eventId: number) => {
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 font-semibold">{editEventError}</div>
                 )}
 
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Event Name</label>
+                  <input type="text" value={editEventForm.title} onChange={(e) => setEditEventForm(f => ({...f, title: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" maxLength={100} />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
@@ -4603,6 +4699,46 @@ const handleInterestToggle = async (eventId: number) => {
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
                   <input type="text" value={editEventForm.location} onChange={(e) => setEditEventForm(f => ({...f, location: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" maxLength={100} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                    <select value={editEventForm.category} onChange={(e) => setEditEventForm(f => ({...f, category: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400">
+                      <option value="📅">📅 General</option>
+                      <option value="🎵">🎵 Music</option>
+                      <option value="🏈">🏈 Sports</option>
+                      <option value="⚾">⚾ Baseball</option>
+                      <option value="🎨">🎨 Arts</option>
+                      <option value="🏛️">🏛️ Civic</option>
+                      <option value="🎉">🎉 Festival</option>
+                      <option value="🍽️">🍽️ Food</option>
+                      <option value="🤝">🤝 Volunteer</option>
+                      <option value="🎬">🎬 Movie</option>
+                      <option value="🙏">🙏 Faith</option>
+                      <option value="👶">👶 Kids</option>
+                      <option value="📚">📚 Education</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Price</label>
+                    <input type="text" value={editEventForm.price} onChange={(e) => setEditEventForm(f => ({...f, price: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold disabled:bg-gray-50 disabled:text-gray-400" placeholder="Free" maxLength={30} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                  <textarea value={editEventForm.description} onChange={(e) => setEditEventForm(f => ({...f, description: e.target.value}))} disabled={editEventForm.cancelled} rows={3} maxLength={500} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-red-500 focus:outline-none font-semibold text-sm disabled:bg-gray-50 disabled:text-gray-400" />
+                </div>
+
+                <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5" /> Event Sponsor (optional)
+                  </p>
+                  <div className="space-y-2">
+                    <input type="text" value={editEventForm.sponsor_name} onChange={(e) => setEditEventForm(f => ({...f, sponsor_name: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-3 py-2 rounded-lg border-2 border-amber-200 focus:border-amber-500 focus:outline-none font-semibold text-sm disabled:bg-gray-50 disabled:text-gray-400" placeholder="Sponsor business name" maxLength={100} />
+                    <input type="url" value={editEventForm.sponsor_logo_url} onChange={(e) => setEditEventForm(f => ({...f, sponsor_logo_url: e.target.value}))} disabled={editEventForm.cancelled} className="w-full px-3 py-2 rounded-lg border-2 border-amber-200 focus:border-amber-500 focus:outline-none font-semibold text-sm disabled:bg-gray-50 disabled:text-gray-400" placeholder="Sponsor logo URL (https://...)" />
+                  </div>
                 </div>
 
                 <label className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-3 cursor-pointer">

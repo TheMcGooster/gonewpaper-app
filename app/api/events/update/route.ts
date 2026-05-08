@@ -7,8 +7,8 @@ const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'a7951e0e-737
 const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY!
 
 // Allow-listed editable fields. Anything else in the request body is ignored.
-type EditableField = 'date' | 'time' | 'location' | 'cancelled'
-const EDITABLE_FIELDS: EditableField[] = ['date', 'time', 'location', 'cancelled']
+type EditableField = 'title' | 'date' | 'time' | 'location' | 'description' | 'category' | 'price' | 'sponsor_name' | 'sponsor_logo_url' | 'cancelled'
+const EDITABLE_FIELDS: EditableField[] = ['title', 'date', 'time', 'location', 'description', 'category', 'price', 'sponsor_name', 'sponsor_logo_url', 'cancelled']
 
 // Admin allow-list — mirrors the client-side isAdmin check in page.tsx and the
 // is_admin() SQL function. Admins can edit any event, including scraped ones
