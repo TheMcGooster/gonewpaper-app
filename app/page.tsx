@@ -2,7 +2,7 @@
 // Go New Paper v3.0.0 - 11 tabs: Events, Jobs, Housing, Business, Non-Profits, Clubs, In Memory, Comics, Community, Affiliates, Explore
 // Features: Explore map, event sponsors, interest counts, community dashboard, location opt-in
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Calendar, CalendarPlus, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText, AlertTriangle, PawPrint } from 'lucide-react'
+import { Calendar, CalendarPlus, Briefcase, Home, ShoppingBag, Users, Bell, Search, MapPin, Clock, Star, Menu, X, Plus, Heart, Newspaper, TrendingUp, LogIn, LogOut, User, Check, HeartHandshake, UsersRound, Flower2, Trash2, Laugh, ExternalLink, Smartphone, BarChart3, ChevronLeft, ChevronRight, Compass, Navigation, TreePine, Waves, Flag, FileText, AlertTriangle, PawPrint, Pencil } from 'lucide-react'
 import { supabase, Event, Job, Business, Housing, CommunityPost, CelebrationOfLife, Affiliate, NonProfit, Club, ExploreLocation } from '@/lib/supabase'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 // OneSignal SDK is loaded via CDN in layout.tsx — no npm package needed
@@ -266,6 +266,8 @@ export default function GoNewPaper() {
   })
   const [communityImage, setCommunityImage] = useState<File | null>(null)
   const [communityImagePreview, setCommunityImagePreview] = useState<string | null>(null)
+  const [editingCommunityPostId, setEditingCommunityPostId] = useState<number | null>(null)
+  const [editingCommunityExistingImageUrl, setEditingCommunityExistingImageUrl] = useState<string | null>(null)
   const [communityError, setCommunityError] = useState('')
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communitySuccess, setCommunitySuccess] = useState(false)
@@ -944,9 +946,40 @@ export default function GoNewPaper() {
     })
     setCommunityImage(null)
     setCommunityImagePreview(null)
+    setEditingCommunityPostId(null)
+    setEditingCommunityExistingImageUrl(null)
     setCommunityError('')
     setCommunitySuccess(false)
     setCommunityLoading(false)
+  }
+
+  const startEditCommunityPost = (post: CommunityPost) => {
+    // Split "YYYY-MM-DD to YYYY-MM-DD" or single "YYYY-MM-DD" back into start/end
+    let start_date = ''
+    let end_date = ''
+    if (post.date) {
+      const parts = post.date.split(' to ')
+      start_date = parts[0]?.trim() || ''
+      end_date = parts[1]?.trim() || ''
+    }
+    setCommunityForm({
+      title: post.title || '',
+      post_type: post.post_type || '',
+      description: post.description || '',
+      location: post.location || '',
+      start_date,
+      end_date,
+      hours: post.time || '',
+      contact_info: post.contact_info || '',
+    })
+    setEditingCommunityPostId(post.id)
+    setEditingCommunityExistingImageUrl(post.image_url || null)
+    setCommunityImage(null)
+    setCommunityImagePreview(post.image_url || null)
+    setCommunityError('')
+    setCommunitySuccess(false)
+    setCommunityLoading(false)
+    setShowCommunityModal(true)
   }
 
   const handleCommunityImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1125,7 +1158,7 @@ export default function GoNewPaper() {
       other: '\u{1F4AC}',
     }
 
-    let imageUrl: string | null = null
+    let imageUrl: string | null = editingCommunityPostId ? editingCommunityExistingImageUrl : null
     if (communityImage) {
       const ext = (communityImage.name.split('.').pop() || 'jpg').toLowerCase()
       const folder = user?.id ?? 'anon'
@@ -1139,9 +1172,11 @@ export default function GoNewPaper() {
         return
       }
       imageUrl = supabase.storage.from('pets').getPublicUrl(fileName).data.publicUrl
+    } else if (!communityImagePreview) {
+      imageUrl = null
     }
 
-    const { error } = await supabase.from('community_posts').insert({
+    const postFields = {
       title: communityForm.title.trim(),
       post_type: communityForm.post_type,
       emoji: emojiMap[communityForm.post_type] || '\u{1F4AC}',
@@ -1151,15 +1186,22 @@ export default function GoNewPaper() {
       time: communityForm.hours.trim() || null,
       contact_info: communityForm.contact_info.trim() || null,
       image_url: imageUrl,
-      town_id: selectedTownId,
-      is_active: true,
-    })
+    }
+
+    const { error } = editingCommunityPostId
+      ? await supabase.from('community_posts').update(postFields).eq('id', editingCommunityPostId)
+      : await supabase.from('community_posts').insert({
+          ...postFields,
+          town_id: selectedTownId,
+          is_active: true,
+          posted_by: user?.id ?? null,
+        })
 
     if (error) { setCommunityError(error.message); setCommunityLoading(false); return }
 
     setCommunitySuccess(true)
     setCommunityLoading(false)
-    showToast('Community post submitted!')
+    showToast(editingCommunityPostId ? 'Community post updated!' : 'Community post submitted!')
 
     // Re-fetch community posts (filtered by current town)
     const { data } = await supabase.from('community_posts').select('*').eq('town_id', selectedTownId).eq('is_active', true).order('created_at', { ascending: false }).limit(20)
@@ -3230,12 +3272,19 @@ const handleInterestToggle = async (eventId: number) => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  {displayCommunity.map((post, idx) => (
+                  {displayCommunity.map((post, idx) => {
+                    const canManagePost = isAdmin || (!!user && !!post.posted_by && post.posted_by === user.id)
+                    return (
                     <div key={post.id} className={`bg-white rounded-[14px] p-4 border-[1.5px] border-emerald-100 card-hover relative animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`} style={{ boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
-                      {isAdmin && (
-                        <button onClick={() => handleDeleteCommunityPost(post.id, post.title)} className="absolute top-2 right-2 p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove post">
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
+                      {canManagePost && (
+                        <div className="absolute top-2 right-2 flex gap-1.5">
+                          <button onClick={() => startEditCommunityPost(post)} className="p-1.5 bg-blue-100 hover:bg-blue-200 rounded-lg transition-all" title="Edit post">
+                            <Pencil className="w-4 h-4 text-blue-600" />
+                          </button>
+                          <button onClick={() => handleDeleteCommunityPost(post.id, post.title)} className="p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition-all" title="Remove post">
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
+                        </div>
                       )}
                       <div className="flex items-start gap-3">
                         <span className="text-2xl">{post.emoji}</span>
@@ -3276,7 +3325,8 @@ const handleInterestToggle = async (eventId: number) => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {displayCommunity.length === 0 && (
@@ -5566,7 +5616,7 @@ const handleInterestToggle = async (eventId: number) => {
           <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black tracking-tight font-display">
-                {communitySuccess ? 'Posted!' : 'Post to Community'}
+                {communitySuccess ? (editingCommunityPostId ? 'Updated!' : 'Posted!') : (editingCommunityPostId ? 'Edit Post' : 'Post to Community')}
               </h2>
               <button onClick={() => { setShowCommunityModal(false); resetCommunityForm() }} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
@@ -5574,9 +5624,11 @@ const handleInterestToggle = async (eventId: number) => {
             {communitySuccess ? (
               <div className="text-center py-6">
                 <div className="text-6xl mb-4">🎉</div>
-                <p className="text-lg font-black mb-2">Your post is live!</p>
+                <p className="text-lg font-black mb-2">{editingCommunityPostId ? 'Your changes are live!' : 'Your post is live!'}</p>
                 <p className="text-sm text-gray-600 font-semibold mb-6">
-                  Your community post is now visible on the Community tab for all of {selectedTownName} to see!
+                  {editingCommunityPostId
+                    ? `Your edits are now visible on the Community tab.`
+                    : `Your community post is now visible on the Community tab for all of ${selectedTownName} to see!`}
                 </p>
                 <button
                   onClick={() => { setShowCommunityModal(false); resetCommunityForm(); setActiveTab('community') }}
@@ -5662,7 +5714,7 @@ const handleInterestToggle = async (eventId: number) => {
                   {communityError && <p className="text-red-600 text-sm font-bold">{communityError}</p>}
 
                   <button type="submit" disabled={communityLoading} className="w-full bg-green-600 text-white py-3 rounded-lg font-black tracking-wide shadow-lg hover:shadow-xl transition-all uppercase disabled:opacity-50">
-                    {communityLoading ? 'SUBMITTING...' : 'SUBMIT POST'}
+                    {communityLoading ? (editingCommunityPostId ? 'SAVING...' : 'SUBMITTING...') : (editingCommunityPostId ? 'SAVE CHANGES' : 'SUBMIT POST')}
                   </button>
                 </div>
               </form>
