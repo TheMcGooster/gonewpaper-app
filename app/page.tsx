@@ -5612,8 +5612,8 @@ const handleInterestToggle = async (eventId: number) => {
 
       {/* Community Post Modal */}
       {showCommunityModal && (
-        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={() => { setShowCommunityModal(false); resetCommunityForm() }}>
-          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 16px 50px rgba(26,26,46,0.2)' }}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black tracking-tight font-display">
                 {communitySuccess ? (editingCommunityPostId ? 'Updated!' : 'Posted!') : (editingCommunityPostId ? 'Edit Post' : 'Post to Community')}
