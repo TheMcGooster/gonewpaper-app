@@ -264,6 +264,8 @@ export default function GoNewPaper() {
   const [communityForm, setCommunityForm] = useState({
     title: '', post_type: '' as string, description: '', location: '', start_date: '', end_date: '', hours: '', contact_info: '',
   })
+  const [communityImage, setCommunityImage] = useState<File | null>(null)
+  const [communityImagePreview, setCommunityImagePreview] = useState<string | null>(null)
   const [communityError, setCommunityError] = useState('')
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communitySuccess, setCommunitySuccess] = useState(false)
@@ -940,9 +942,27 @@ export default function GoNewPaper() {
     setCommunityForm({
       title: '', post_type: '', description: '', location: '', start_date: '', end_date: '', hours: '', contact_info: '',
     })
+    setCommunityImage(null)
+    setCommunityImagePreview(null)
     setCommunityError('')
     setCommunitySuccess(false)
     setCommunityLoading(false)
+  }
+
+  const handleCommunityImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setCommunityError('Please choose an image file')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setCommunityError('Image must be under 10MB')
+      return
+    }
+    setCommunityError('')
+    setCommunityImage(file)
+    setCommunityImagePreview(URL.createObjectURL(file))
   }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1105,6 +1125,22 @@ export default function GoNewPaper() {
       other: '\u{1F4AC}',
     }
 
+    let imageUrl: string | null = null
+    if (communityImage) {
+      const ext = (communityImage.name.split('.').pop() || 'jpg').toLowerCase()
+      const folder = user?.id ?? 'anon'
+      const fileName = `${folder}/community-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('pets')
+        .upload(fileName, communityImage, { contentType: communityImage.type || 'image/jpeg' })
+      if (uploadError) {
+        setCommunityError('Image upload failed: ' + uploadError.message)
+        setCommunityLoading(false)
+        return
+      }
+      imageUrl = supabase.storage.from('pets').getPublicUrl(fileName).data.publicUrl
+    }
+
     const { error } = await supabase.from('community_posts').insert({
       title: communityForm.title.trim(),
       post_type: communityForm.post_type,
@@ -1114,7 +1150,7 @@ export default function GoNewPaper() {
       date: communityForm.start_date ? (communityForm.end_date ? `${communityForm.start_date} to ${communityForm.end_date}` : communityForm.start_date) : null,
       time: communityForm.hours.trim() || null,
       contact_info: communityForm.contact_info.trim() || null,
-      image_url: null,
+      image_url: imageUrl,
       town_id: selectedTownId,
       is_active: true,
     })
@@ -3208,6 +3244,14 @@ const handleInterestToggle = async (eventId: number) => {
                           <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {post.post_type === 'lost_pet' ? 'Lost Pet' : post.post_type === 'found_pet' ? 'Found Pet' : post.post_type === 'garage_sale' ? 'Garage Sale' : post.post_type === 'volunteer' ? 'Volunteer' : post.post_type === 'announcement' ? 'Announcement' : 'Other'}
                           </span>
+                          {post.image_url && (
+                            <img
+                              src={post.image_url}
+                              alt={post.title}
+                              loading="lazy"
+                              className="w-full max-h-72 object-cover rounded-lg border border-emerald-100 mt-2"
+                            />
+                          )}
                           {post.description && (
                             <p className="text-sm font-semibold text-gray-700 mt-2">{post.description}</p>
                           )}
@@ -5565,6 +5609,28 @@ const handleInterestToggle = async (eventId: number) => {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
                     <textarea value={communityForm.description} onChange={(e) => setCommunityForm(f => ({...f, description: e.target.value}))} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-green-500 focus:outline-none font-semibold" placeholder="Add more details (optional)" rows={3} maxLength={500} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Photo</label>
+                    {communityImagePreview ? (
+                      <div className="relative">
+                        <img src={communityImagePreview} alt="Selected" className="w-full h-48 object-cover rounded-lg border-2 border-gray-200" />
+                        <button
+                          type="button"
+                          onClick={() => { setCommunityImage(null); setCommunityImagePreview(null) }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-lg shadow"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center w-full px-4 py-6 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-500 cursor-pointer transition-colors">
+                        <input type="file" accept="image/*" onChange={handleCommunityImageChange} className="hidden" />
+                        <span className="text-sm font-semibold text-gray-600">📷 Add a photo (optional)</span>
+                      </label>
+                    )}
                   </div>
 
                   <div>
