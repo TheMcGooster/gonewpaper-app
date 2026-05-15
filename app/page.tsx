@@ -3249,7 +3249,7 @@ const handleInterestToggle = async (eventId: number) => {
                               src={post.image_url}
                               alt={post.title}
                               loading="lazy"
-                              className="w-full max-h-72 object-cover rounded-lg border border-emerald-100 mt-2"
+                              className="block w-full max-w-sm max-h-72 object-contain rounded-lg border border-emerald-100 mt-2 bg-gray-50"
                             />
                           )}
                           {post.description && (
